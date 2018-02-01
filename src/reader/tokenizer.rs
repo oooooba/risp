@@ -192,12 +192,4 @@ fn test_rejection() {
                Err(Exception::new(
                    TokenizerInvalidEscapedCharacterException('b', 4),
                    Some(InfoKind::TokenizerInfo(0, 6)))));
-    /*
-    assert_eq!(Tokenizer::new("( 1x2 )".to_string()).tokenize(),
-               Err(TokenizerError::new(InvalidInteger("1x2".to_string()), 2, 3)));
-    assert_eq!(Tokenizer::new(.to_string()).tokenize(),
-               Err(TokenizerError::new(NonTerminatedString, 2, 4)));
-    assert_eq!(Tokenizer::new(r#""a\bc""#.to_string()).tokenize(),
-               Err(TokenizerError::new(InvalidEscapedChar('b', 4), 0, 6)));
-    */
 }
