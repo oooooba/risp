@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::collections::LinkedList;
 
 #[derive(PartialEq, Debug)]
 pub enum ValueKind {
@@ -6,7 +7,7 @@ pub enum ValueKind {
     StringValue(String),
     SymbolValue(String),
     KeywordValue(String),
-    ListValue(Vec<Value>),
+    ListValue(LinkedList<Value>),
 }
 
 #[derive(PartialEq, Debug)]
@@ -55,6 +56,10 @@ pub fn create_keyword_value(keyword: String) -> Value {
     Rc::new(ValueKind::KeywordValue(keyword))
 }
 
-pub fn create_list_value(values: Vec<Value>) -> Value {
-    Rc::new(ValueKind::ListValue(values))
+pub fn create_list_value(mut values: Vec<Value>) -> Value {
+    let mut list = LinkedList::new();
+    while let Some(value) = values.pop() {
+        list.push_front(value);
+    }
+    Rc::new(ValueKind::ListValue(list))
 }
