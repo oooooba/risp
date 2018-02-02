@@ -83,7 +83,7 @@ impl Tokenizer {
         }
     }
 
-    fn tokenize_atom(&mut self) -> Result<Value, ExceptionKind> {
+    fn tokenize_symbol(&mut self) -> Result<Value, ExceptionKind> {
         let pos = self.pos;
         self.ahead(1);
         while let Some(c) = self.peek(0) {
@@ -128,7 +128,7 @@ impl Tokenizer {
             } else if c == CHAR_MINUS {
                 match self.peek(1) {
                     Some(c) if c.is_numeric() => Some(self.tokenize_number()),
-                    _ => Some(self.tokenize_atom()),
+                    _ => Some(self.tokenize_symbol()),
                 }
             } else if c == CHAR_D_QUOTE {
                 Some(self.tokenize_string())
@@ -143,7 +143,7 @@ impl Tokenizer {
                 self.ahead(1);
                 None
             } else {
-                Some(self.tokenize_atom())
+                Some(self.tokenize_symbol())
             };
             let len = self.pos - pos;
             match result {
