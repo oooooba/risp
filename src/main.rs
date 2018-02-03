@@ -10,11 +10,13 @@ fn main() {
         print!("> ");
         let _ = io::stdout().flush();
         match reader::read() {
-            Ok(None) => {
-                break
+            Ok(tokens) => println!("ok: {:?}", tokens),
+            Err(err) => {
+                println!("err: {:?}", err);
+                if err.is_ereader_end_of_input_exception() {
+                    break;
+                }
             }
-            Ok(Some(tokens)) => println!("ok: {:?}", tokens),
-            Err(err) => println!("err: {:?}", err),
         }
     }
 }

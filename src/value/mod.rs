@@ -16,6 +16,11 @@ pub enum ExceptionKind {
     TokenizerInvalidEscapedCharacterException(char, usize),
     TokenizerNonTerminatedStringException,
     ReaderIOException(String),
+    ReaderInvalidStatusException,
+    ReaderEndOfInputException,
+    ParserInvalidStatusException,
+    ParserUnexpectedKeywordException(Value),
+    ParserUnterminatedTokensException(Value),
 }
 
 #[derive(PartialEq, Debug)]
@@ -37,6 +42,10 @@ impl Exception {
             kind: kind,
             info: info,
         }
+    }
+
+    pub fn is_ereader_end_of_input_exception(&self) -> bool {
+        self.kind == ExceptionKind::ReaderEndOfInputException
     }
 }
 
