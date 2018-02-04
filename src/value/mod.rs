@@ -1,13 +1,27 @@
 use std::rc::Rc;
 use std::collections::{HashMap, LinkedList};
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
 pub enum ValueKind {
     IntegerValue(isize),
     StringValue(String),
     SymbolValue(String),
     KeywordValue(String),
     ListValue(LinkedList<Value>),
+}
+
+impl PartialEq for ValueKind {
+    fn eq(&self, other: &ValueKind) -> bool {
+        use self::ValueKind::*;
+        match (self, other) {
+            (&IntegerValue(ref lhs), &IntegerValue(ref rhs)) if lhs == rhs => true,
+            (&StringValue(ref lhs), &StringValue(ref rhs)) if lhs == rhs => true,
+            (&SymbolValue(ref lhs), &SymbolValue(ref rhs)) if lhs == rhs => true,
+            (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) if lhs == rhs => true,
+            (&ListValue(ref lhs), &ListValue(ref rhs)) if lhs == rhs => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
