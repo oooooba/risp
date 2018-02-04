@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use std::collections::LinkedList;
+use std::collections::{HashMap, LinkedList};
 
 #[derive(PartialEq, Debug)]
 pub enum ValueKind {
@@ -21,6 +21,7 @@ pub enum ExceptionKind {
     ParserInvalidStatusException,
     ParserUnexpectedKeywordException(Value),
     ParserUnterminatedTokensException(Value),
+    EvaluatorUndefinedSymbolException(String),
 }
 
 #[derive(PartialEq, Debug)]
@@ -71,4 +72,23 @@ pub fn create_list_value(mut values: Vec<Value>) -> Value {
         list.push_front(value);
     }
     Rc::new(ValueKind::ListValue(list))
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Env {
+    pub map: HashMap<String, Value>,
+    pub outer: Option<Box<Env>>,
+}
+
+impl Env {
+    pub fn new(map: HashMap<String, Value>, outer: Option<Box<Env>>) -> Env {
+        Env {
+            map: map,
+            outer: outer,
+        }
+    }
+}
+
+pub fn create_empty_env() -> Env {
+    Env::new(HashMap::new(), None)
 }
