@@ -24,6 +24,7 @@ impl Interpreter {
             }
             KeywordValue(_) => Ok(ast.clone()),
             ListValue(_) => unimplemented!(),
+            _ => unimplemented!(),
         }
     }
 }
