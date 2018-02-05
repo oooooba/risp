@@ -1,11 +1,11 @@
-use value::{Value, ValueKind, Exception, ExceptionKind, Env};
+use value::{Value, ValueKind, Exception, ExceptionKind, EnvPtr};
 
 pub struct Interpreter {
-    env: Env,
+    env: EnvPtr,
 }
 
 impl Interpreter {
-    pub fn new(env: Env) -> Interpreter {
+    pub fn new(env: EnvPtr) -> Interpreter {
         Interpreter {
             env: env,
         }
@@ -29,7 +29,7 @@ impl Interpreter {
     }
 }
 
-pub fn eval(ast: Value, env: Env) -> Result<Value, Exception> {
+pub fn eval(ast: Value, env: EnvPtr) -> Result<Value, Exception> {
     Interpreter::new(env).eval(ast)
 }
 
@@ -41,13 +41,14 @@ mod tests {
     fn test_acceptance() {
         use value::*;
         {
-            let env = create_empty_env();
+            let env = Env::create_empty_env();
             assert_eq!(eval(create_keyword_value("XYZ".to_string()), env),
                        Ok(create_keyword_value("XYZ".to_string())));
         }
         {
-            let mut env = create_empty_env();
-            env.map.insert("x".to_string(), create_string_value("abc".to_string()));
+            let env = Env::create_initialized_env(vec![
+                ("x".to_string(), create_string_value("abc".to_string())),
+            ]);
             assert_eq!(eval(create_symbol_value("x".to_string()), env),
                        Ok(create_string_value("abc".to_string())));
         }
@@ -57,7 +58,7 @@ mod tests {
     fn test_rejection() {
         use value::*;
         {
-            let env = create_empty_env();
+            let env = Env::create_empty_env();
             assert_eq!(eval(create_symbol_value("x".to_string()), env),
                        Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException("x".to_string()), None)));
         }
