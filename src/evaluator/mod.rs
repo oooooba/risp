@@ -89,14 +89,14 @@ mod tests {
     fn test_acceptance() {
         use value::*;
         {
-            let env = Env::create_empty_env();
+            let env = Env::create_empty();
             assert_eq!(eval(create_keyword_value("XYZ".to_string()), env),
                        Ok(create_keyword_value("XYZ".to_string())));
         }
         {
-            let env = Env::create_initialized_env(vec![
+            let env = Env::create(vec![
                 ("x".to_string(), create_string_value("abc".to_string())),
-            ]);
+            ], None);
             assert_eq!(eval(create_symbol_value("x".to_string()), env),
                        Ok(create_string_value("abc".to_string())));
         }
@@ -133,7 +133,7 @@ mod tests {
     fn test_rejection() {
         use value::*;
         {
-            let env = Env::create_empty_env();
+            let env = Env::create_empty();
             assert_eq!(eval(create_symbol_value("x".to_string()), env),
                        Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException("x".to_string()), None)));
         }

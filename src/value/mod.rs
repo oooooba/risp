@@ -125,12 +125,8 @@ impl Env {
         })
     }
 
-    pub fn create_empty_env() -> EnvPtr {
+    pub fn create_empty() -> EnvPtr {
         Env::new(HashMap::new(), None)
-    }
-
-    pub fn create_initialized_env(pairs: Vec<(String, Value)>) -> EnvPtr {
-        Env::new(HashMap::from_iter(pairs), None)
     }
 
     pub fn create(pairs: Vec<(String, Value)>, outer: Option<EnvPtr>) -> EnvPtr {
@@ -193,26 +189,26 @@ mod tests {
     fn test_builtin_function() {
         use self::ExceptionKind::*;
         {
-            let env = Env::create_initialized_env(vec![
+            let env = Env::create(vec![
                 ("x".to_string(), create_integer_value(1)),
                 ("y".to_string(), create_integer_value(2)),
-            ]);
+            ], None);
             run_builtin_func(Box::new(builtin_func), env,
                              Ok(create_integer_value(3)));
         }
         {
-            let env = Env::create_initialized_env(vec![
+            let env = Env::create(vec![
                 ("x".to_string(), create_integer_value(1)),
                 ("z".to_string(), create_integer_value(2)),
-            ]);
+            ], None);
             run_builtin_func(Box::new(builtin_func), env,
                              Err(Exception::new(EvaluatorUndefinedSymbolException("y".to_string()), None)));
         }
         {
-            let env = Env::create_initialized_env(vec![
+            let env = Env::create(vec![
                 ("x".to_string(), create_string_value("1".to_string())),
                 ("y".to_string(), create_integer_value(2)),
-            ]);
+            ], None);
             run_builtin_func(Box::new(builtin_func), env,
                              Err(Exception::new(EvaluatorTypeException("Integer".to_string(), "Unknown".to_string()), None)));
         }
