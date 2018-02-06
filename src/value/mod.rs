@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::collections::{HashMap, LinkedList};
 use std::fmt;
+use std::iter::FromIterator;
 
 #[derive(Debug)]
 pub enum ValueKind {
@@ -9,7 +10,7 @@ pub enum ValueKind {
     SymbolValue(String),
     KeywordValue(String),
     ListValue(LinkedList<Value>),
-    ClosureValue(FuncKind, String, Env), // (body, arg, env), support only one argument currently
+    ClosureValue(FuncKind, String, EnvPtr), // (body, arg, env), support only one argument currently
 }
 
 impl PartialEq for ValueKind {
@@ -28,7 +29,7 @@ impl PartialEq for ValueKind {
 
 pub enum FuncKind {
     AstFunc(Value),
-    BuiltinFunc(Box<Fn(Env) -> Result<Value, Exception>>),
+    BuiltinFunc(Box<Fn(EnvPtr) -> Result<Value, Exception>>),
 }
 
 impl fmt::Debug for FuncKind {
@@ -106,34 +107,54 @@ pub fn create_list_value(mut values: Vec<Value>) -> Value {
     Rc::new(ValueKind::ListValue(list))
 }
 
-pub fn create_closure_value(func: FuncKind, arg: String, env: Env) -> Value {
+pub fn create_closure_value(func: FuncKind, arg: String, env: EnvPtr) -> Value {
     Rc::new(ValueKind::ClosureValue(func, arg, env))
 }
 
 #[derive(PartialEq, Debug)]
 pub struct Env {
     pub map: HashMap<String, Value>,
-    pub outer: Option<Box<Env>>,
+    pub outer: Option<EnvPtr>,
 }
 
 impl Env {
-    pub fn new(map: HashMap<String, Value>, outer: Option<Box<Env>>) -> Env {
-        Env {
+    fn new(map: HashMap<String, Value>, outer: Option<EnvPtr>) -> EnvPtr {
+        Rc::new(Env {
             map: map,
             outer: outer,
+        })
+    }
+
+    pub fn create_empty_env() -> EnvPtr {
+        Env::new(HashMap::new(), None)
+    }
+
+    pub fn create_initialized_env(pairs: Vec<(String, Value)>) -> EnvPtr {
+        Env::new(HashMap::from_iter(pairs), None)
+    }
+
+    pub fn create(pairs: Vec<(String, Value)>, outer: Option<EnvPtr>) -> EnvPtr {
+        Env::new(HashMap::from_iter(pairs), outer)
+    }
+
+    pub fn lookup(&self, key: &String) -> Option<&Value> {
+        match self.map.get(key) {
+            value @ Some(_) => value,
+            None => match self.outer {
+                Some(ref env) => env.lookup(key),
+                None => None,
+            }
         }
     }
 }
 
-pub fn create_empty_env() -> Env {
-    Env::new(HashMap::new(), None)
-}
+pub type EnvPtr = Rc<Env>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn builtin_func(env: Env) -> Result<Value, Exception> {
+    fn builtin_func(env: EnvPtr) -> Result<Value, Exception> {
         let x_str = "x".to_string();
         let y_str = "y".to_string();
         let type_int_str = "Integer".to_string();
@@ -154,7 +175,7 @@ mod tests {
         Ok(create_integer_value(x_int + y_int))
     }
 
-    fn run_builtin_func(func: Box<Fn(Env) -> Result<Value, Exception>>, env: Env, result: Result<Value, Exception>) {
+    fn run_builtin_func(func: Box<Fn(EnvPtr) -> Result<Value, Exception>>, env: EnvPtr, result: Result<Value, Exception>) {
         let func = FuncKind::BuiltinFunc(func);
         let closure = create_closure_value(func, "_".to_string(), env);
         match *closure {
@@ -172,23 +193,26 @@ mod tests {
     fn test_builtin_function() {
         use self::ExceptionKind::*;
         {
-            let mut env = create_empty_env();
-            env.map.insert("x".to_string(), create_integer_value(1));
-            env.map.insert("y".to_string(), create_integer_value(2));
+            let env = Env::create_initialized_env(vec![
+                ("x".to_string(), create_integer_value(1)),
+                ("y".to_string(), create_integer_value(2)),
+            ]);
             run_builtin_func(Box::new(builtin_func), env,
                              Ok(create_integer_value(3)));
         }
         {
-            let mut env = create_empty_env();
-            env.map.insert("x".to_string(), create_integer_value(1));
-            env.map.insert("z".to_string(), create_integer_value(2));
+            let env = Env::create_initialized_env(vec![
+                ("x".to_string(), create_integer_value(1)),
+                ("z".to_string(), create_integer_value(2)),
+            ]);
             run_builtin_func(Box::new(builtin_func), env,
                              Err(Exception::new(EvaluatorUndefinedSymbolException("y".to_string()), None)));
         }
         {
-            let mut env = create_empty_env();
-            env.map.insert("x".to_string(), create_string_value("1".to_string()));
-            env.map.insert("y".to_string(), create_integer_value(2));
+            let env = Env::create_initialized_env(vec![
+                ("x".to_string(), create_string_value("1".to_string())),
+                ("y".to_string(), create_integer_value(2)),
+            ]);
             run_builtin_func(Box::new(builtin_func), env,
                              Err(Exception::new(EvaluatorTypeException("Integer".to_string(), "Unknown".to_string()), None)));
         }

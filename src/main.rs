@@ -14,7 +14,7 @@ fn main() {
         match reader::read() {
             Ok(tokens) => {
                 println!("read ok: {:?}", tokens);
-                match evaluator::eval(tokens, value::create_empty_env()) {
+                match evaluator::eval(tokens, value::Env::create_empty_env()) {
                     Ok(v) => println!("eval ok: {:?}", v),
                     Err(err) => println!("eval err: {:?}", err),
                 }
