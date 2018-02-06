@@ -132,6 +132,20 @@ impl Env {
     pub fn create_initialized_env(pairs: Vec<(String, Value)>) -> EnvPtr {
         Env::new(HashMap::from_iter(pairs), None)
     }
+
+    pub fn create(pairs: Vec<(String, Value)>, outer: Option<EnvPtr>) -> EnvPtr {
+        Env::new(HashMap::from_iter(pairs), outer)
+    }
+
+    pub fn lookup(&self, key: &String) -> Option<&Value> {
+        match self.map.get(key) {
+            value @ Some(_) => value,
+            None => match self.outer {
+                Some(ref env) => env.lookup(key),
+                None => None,
+            }
+        }
+    }
 }
 
 pub type EnvPtr = Rc<Env>;
