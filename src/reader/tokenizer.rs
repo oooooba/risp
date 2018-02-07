@@ -1,5 +1,5 @@
 use value;
-use value::{Value, Exception, ExceptionKind, InfoKind};
+use value::{Value, Exception, ExceptionKind, InfoKind, EnvPtr};
 
 const CHAR_L_PAREN: char = '(';
 const CHAR_R_PAREN: char = ')';
@@ -19,13 +19,15 @@ fn is_grouping_char(c: char) -> bool {
 pub struct Tokenizer {
     input: String,
     pos: usize,
+    env: EnvPtr,
 }
 
 impl Tokenizer {
-    pub fn new(input: String) -> Tokenizer {
+    pub fn new(input: String, env: EnvPtr) -> Tokenizer {
         Tokenizer {
             input: input,
             pos: 0,
+            env: env,
         }
     }
 
@@ -135,8 +137,8 @@ impl Tokenizer {
             } else if is_grouping_char(c) {
                 self.ahead(1);
                 match c {
-                    CHAR_L_PAREN => Some(Ok(value::create_keyword_value(CHAR_L_PAREN.to_string()))),
-                    CHAR_R_PAREN => Some(Ok(value::create_keyword_value(CHAR_R_PAREN.to_string()))),
+                    CHAR_L_PAREN => self.env.lookup(&CHAR_L_PAREN.to_string()).map(|v| Ok(v.clone())),
+                    CHAR_R_PAREN => self.env.lookup(&CHAR_R_PAREN.to_string()).map(|v| Ok(v.clone())),
                     _ => unreachable!(),
                 }
             } else if is_delim_char(c) {
@@ -162,15 +164,18 @@ impl Tokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use value::Env;
 
     #[test]
     fn test_acceptance() {
-        assert_eq!(Tokenizer::new("123 -456".to_string()).tokenize(),
+        assert_eq!(Tokenizer::new("123 -456".to_string(),
+                                  Env::create_global()).tokenize(),
                    Ok(value::create_list_value(vec![
                        value::create_integer_value(123),
                        value::create_integer_value(-456),
                    ])));
-        assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string()).tokenize(),
+        assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
+                                  Env::create_global()).tokenize(),
                    Ok(value::create_list_value(vec![
                        value::create_string_value("abc".to_string()),
                        value::create_string_value("d\ne\\f\"g".to_string()),
@@ -184,15 +189,18 @@ mod tests {
     #[test]
     fn test_rejection() {
         use self::ExceptionKind::*;
-        assert_eq!(Tokenizer::new("( 1x2 )".to_string()).tokenize(),
+        assert_eq!(Tokenizer::new("( 1x2 )".to_string(),
+                                  Env::create_global()).tokenize(),
                    Err(Exception::new(
                        TokenizerInvalidLexemeException("1x2".to_string()),
                        Some(InfoKind::TokenizerInfo(2, 3)))));
-        assert_eq!(Tokenizer::new(r#"x "abc"#.to_string()).tokenize(),
+        assert_eq!(Tokenizer::new(r#"x "abc"#.to_string(),
+                                  Env::create_global()).tokenize(),
                    Err(Exception::new(
                        TokenizerNonTerminatedStringException,
                        Some(InfoKind::TokenizerInfo(2, 4)))));
-        assert_eq!(Tokenizer::new(r#""a\bc""#.to_string()).tokenize(),
+        assert_eq!(Tokenizer::new(r#""a\bc""#.to_string(),
+                                  Env::create_global()).tokenize(),
                    Err(Exception::new(
                        TokenizerInvalidEscapedCharacterException('b', 4),
                        Some(InfoKind::TokenizerInfo(0, 6)))));

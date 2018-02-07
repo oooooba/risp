@@ -133,6 +133,14 @@ impl Env {
         Env::new(HashMap::from_iter(pairs), outer)
     }
 
+    pub fn create_global() -> EnvPtr {
+        let pairs = vec![
+            ("(".to_string(), create_keyword_value("(".to_string())),
+            (")".to_string(), create_keyword_value(")".to_string())),
+        ];
+        Env::new(HashMap::from_iter(pairs), None)
+    }
+
     pub fn lookup(&self, key: &String) -> Option<&Value> {
         match self.map.get(key) {
             value @ Some(_) => value,

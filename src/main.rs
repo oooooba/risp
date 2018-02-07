@@ -8,13 +8,14 @@ use risp::reader;
 use risp::value;
 
 fn main() {
+    let env = value::Env::create_global();
     loop {
         print!("> ");
         let _ = io::stdout().flush();
-        match reader::read() {
+        match reader::read(env.clone()) {
             Ok(tokens) => {
                 println!("read ok: {:?}", tokens);
-                match evaluator::eval(tokens, value::Env::create_empty()) {
+                match evaluator::eval(tokens, env.clone()) {
                     Ok(v) => println!("eval ok: {:?}", v),
                     Err(err) => println!("eval err: {:?}", err),
                 }
