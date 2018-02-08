@@ -26,15 +26,15 @@ impl Interpreter {
             ClosureValue(_, _, _) => Ok(ast.clone()),
             ListValue(ref list) => {
                 let mut iter = list.iter();
-                let func = match iter.next() {
-                    Some(f) => f.clone(),
-                    None => return Err(Exception::new(ExceptionKind::EvaluatorTypeException("Closure".to_string(), "Unknown".to_string()), None)),
+                let first = match iter.next() {
+                    Some(elem) => elem.clone(),
+                    None => return Ok(ast.clone()),
                 };
-                match *self.eval(func)? {
+                match *self.eval(first.clone())? {
                     ClosureValue(ref func, ref arg, ref env) => {
                         let arg_val = match iter.next() {
                             Some(val) => self.eval(val.clone())?,
-                            None => return Err(Exception::new(ExceptionKind::EvaluatorTypeException("Closure".to_string(), "Unknown".to_string()), None)),
+                            None => return Err(Exception::new(ExceptionKind::EvaluatorArityException(1, 0), None)),
                         };
                         let new_env = Env::create(vec![(arg.clone(), arg_val)], Some(env.clone()));
                         match func {
@@ -101,31 +101,38 @@ mod tests {
                        Ok(create_string_value("abc".to_string())));
         }
         {
-            let env = Env::create(vec![
-                ("x".to_string(), create_integer_value(1)),
-                ("y".to_string(), create_integer_value(2)),
-            ], None);
+            let func = FuncKind::BuiltinFunc(Box::new(builtin_func));
             let closure_env = Env::create(vec![
                 ("y".to_string(), create_integer_value(3)),
             ], None);
-            let func = FuncKind::BuiltinFunc(Box::new(builtin_func));
+            let env = Env::create(vec![
+                ("x".to_string(), create_integer_value(1)),
+                ("y".to_string(), create_integer_value(2)),
+                ("f".to_string(), create_closure_value(func, "x".to_string(), closure_env)),
+            ], None);
             assert_eq!(eval(create_list_value(vec![
-                create_closure_value(func, "x".to_string(), closure_env),
+                create_symbol_value("f".to_string()),
                 create_integer_value(4),
             ]), env), Ok(create_integer_value(7)));
         }
         {
-            let env = Env::create(vec![
-                ("x".to_string(), create_integer_value(1)),
-            ], None);
+            let func = FuncKind::AstFunc(create_symbol_value("x".to_string()));
             let closure_env = Env::create(vec![
                 ("x".to_string(), create_integer_value(2)),
             ], None);
-            let func = FuncKind::AstFunc(create_symbol_value("x".to_string()));
+            let env = Env::create(vec![
+                ("x".to_string(), create_integer_value(1)),
+                ("f".to_string(), create_closure_value(func, "x".to_string(), closure_env)),
+            ], None);
             assert_eq!(eval(create_list_value(vec![
-                create_closure_value(func, "x".to_string(), closure_env),
+                create_symbol_value("f".to_string()),
                 create_integer_value(3),
             ]), env), Ok(create_integer_value(3)));
+        }
+        {
+            let env = Env::create_empty();
+            assert_eq!(eval(create_list_value(vec![]), env),
+                       Ok(create_list_value(vec![])));
         }
     }
 

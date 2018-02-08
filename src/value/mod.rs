@@ -55,6 +55,7 @@ pub enum ExceptionKind {
     ParserUnterminatedTokensException(Value),
     EvaluatorUndefinedSymbolException(String),
     EvaluatorTypeException(String, String),
+    EvaluatorArityException(usize, usize), // (expected, actual)
 }
 
 #[derive(PartialEq, Debug)]
