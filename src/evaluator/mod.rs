@@ -52,6 +52,7 @@ impl Interpreter {
                     _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Closure".to_string(), "Unknown".to_string()), None)),
                 }
             }
+            NilValue => Ok(ast.clone()),
         }
     }
 }
@@ -133,6 +134,11 @@ mod tests {
             let env = Env::create_empty();
             assert_eq!(eval(Value::create_list(vec![]), env),
                        Ok(Value::create_list(vec![])));
+        }
+        {
+            let env = Env::create_empty();
+            assert_eq!(eval(Value::create_nil(), env),
+                       Ok(Value::create_nil()));
         }
     }
 

@@ -13,6 +13,7 @@ pub enum ValueKind {
     KeywordValue(String),
     ListValue(LinkedList<ValuePtr>),
     ClosureValue(FuncKind, String, EnvPtr), // (body, arg, env), support only one argument currently
+    NilValue,
 }
 
 impl PartialEq for ValueKind {
@@ -24,6 +25,7 @@ impl PartialEq for ValueKind {
             (&SymbolValue(ref lhs), &SymbolValue(ref rhs)) if lhs == rhs => true,
             (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) if lhs == rhs => true,
             (&ListValue(ref lhs), &ListValue(ref rhs)) if lhs == rhs => true,
+            (&NilValue, &NilValue) => true,
             _ => false,
         }
     }
@@ -82,6 +84,10 @@ impl Value {
 
     pub fn create_closure(func: FuncKind, arg: String, env: EnvPtr) -> ValuePtr {
         Value::new(ValueKind::ClosureValue(func, arg, env))
+    }
+
+    pub fn create_nil() -> ValuePtr {
+        Value::new(ValueKind::NilValue)
     }
 }
 
