@@ -1,5 +1,6 @@
-use value;
-use value::{Value, Exception, ExceptionKind, InfoKind, EnvPtr};
+use core::value;
+use core::value::{Value, EnvPtr};
+use value::{Exception, ExceptionKind, InfoKind};
 
 const CHAR_L_PAREN: char = '(';
 const CHAR_R_PAREN: char = ')';
@@ -164,7 +165,7 @@ impl Tokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use value::Env;
+    use core::value::Env;
 
     #[test]
     fn test_acceptance() {

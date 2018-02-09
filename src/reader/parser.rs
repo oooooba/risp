@@ -1,7 +1,8 @@
 use std::collections::LinkedList;
 
-use value;
-use value::{Value, ValueKind, Exception, ExceptionKind};
+use core::value;
+use core::value::{Value, ValueKind};
+use value::{Exception, ExceptionKind};
 
 pub struct Parser {
     tokens: LinkedList<Value>,
@@ -82,6 +83,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::value::*;
 
     fn convert_vec_to_linked_list<T>(mut xs: Vec<T>) -> LinkedList<T> {
         let mut list = LinkedList::new();
@@ -93,7 +95,6 @@ mod tests {
 
     #[test]
     fn test_acceptance() {
-        use value::*;
         assert_eq!(Parser::new(convert_vec_to_linked_list(vec![
             create_integer_value(123),
         ])).parse(), Ok(

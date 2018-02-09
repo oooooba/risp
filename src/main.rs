@@ -5,7 +5,7 @@ use std::io::Write;
 
 use risp::evaluator;
 use risp::reader;
-use risp::value;
+use risp::core::value;
 
 fn main() {
     let env = value::Env::create_global();

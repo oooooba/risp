@@ -1,4 +1,5 @@
-use value::{Value, ValueKind, FuncKind, Exception, ExceptionKind, Env, EnvPtr};
+use core::value::{Value, ValueKind, FuncKind, Env, EnvPtr};
+use value::{Exception, ExceptionKind};
 
 pub struct Interpreter {
     env: EnvPtr,
@@ -62,7 +63,7 @@ pub fn eval(ast: Value, env: EnvPtr) -> Result<Value, Exception> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use value::*;
+    use core::value::*;
 
     fn builtin_func(env: EnvPtr) -> Result<Value, Exception> {
         let x_str = "x".to_string();
@@ -87,7 +88,6 @@ mod tests {
 
     #[test]
     fn test_acceptance() {
-        use value::*;
         {
             let env = Env::create_empty();
             assert_eq!(eval(create_keyword_value("XYZ".to_string()), env),
