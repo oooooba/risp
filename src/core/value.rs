@@ -64,8 +64,8 @@ impl Value {
         Value::new(ValueKind::StringValue(string))
     }
 
-    pub fn create_symbol(symboll: String) -> ValuePtr {
-        Value::new(ValueKind::SymbolValue(symboll))
+    pub fn create_symbol(symbol: String) -> ValuePtr {
+        Value::new(ValueKind::SymbolValue(symbol))
     }
 
     pub fn create_keyword(keyword: String) -> ValuePtr {
