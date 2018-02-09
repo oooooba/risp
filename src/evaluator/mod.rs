@@ -1,4 +1,4 @@
-use core::value::{Value, ValueKind, FuncKind, Env, EnvPtr};
+use core::value::{ValueKind, ValuePtr, FuncKind, Env, EnvPtr};
 use core::exception::{Exception, ExceptionKind};
 
 pub struct Interpreter {
@@ -12,9 +12,9 @@ impl Interpreter {
         }
     }
 
-    fn eval(&mut self, ast: Value) -> Result<Value, Exception> {
+    fn eval(&mut self, ast: ValuePtr) -> Result<ValuePtr, Exception> {
         use self::ValueKind::*;
-        match *ast {
+        match ast.kind {
             IntegerValue(_) => Ok(ast.clone()),
             StringValue(_) => Ok(ast.clone()),
             SymbolValue(ref symbol) => {
@@ -31,7 +31,7 @@ impl Interpreter {
                     Some(elem) => elem.clone(),
                     None => return Ok(ast.clone()),
                 };
-                match *self.eval(first.clone())? {
+                match (self.eval(first.clone())?).kind {
                     ClosureValue(ref func, ref arg, ref env) => {
                         let arg_val = match iter.next() {
                             Some(val) => self.eval(val.clone())?,
@@ -56,7 +56,7 @@ impl Interpreter {
     }
 }
 
-pub fn eval(ast: Value, env: EnvPtr) -> Result<Value, Exception> {
+pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     Interpreter::new(env).eval(ast)
 }
 
@@ -65,74 +65,74 @@ mod tests {
     use super::*;
     use core::value::*;
 
-    fn builtin_func(env: EnvPtr) -> Result<Value, Exception> {
+    fn builtin_func(env: EnvPtr) -> Result<ValuePtr, Exception> {
         let x_str = "x".to_string();
         let y_str = "y".to_string();
         let type_int_str = "Integer".to_string();
         let type_unknown_str = "Unknown".to_string();
 
         let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
-        let x_int = match **x_val {
+        let x_int = match x_val.kind {
             ValueKind::IntegerValue(n) => n,
             _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
         };
 
         let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
-        let y_int = match **y_val {
+        let y_int = match y_val.kind {
             ValueKind::IntegerValue(n) => n,
             _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
         };
 
-        Ok(create_integer_value(x_int + y_int))
+        Ok(Value::create_integer(x_int + y_int))
     }
 
     #[test]
     fn test_acceptance() {
         {
             let env = Env::create_empty();
-            assert_eq!(eval(create_keyword_value("XYZ".to_string()), env),
-                       Ok(create_keyword_value("XYZ".to_string())));
+            assert_eq!(eval(Value::create_keyword("XYZ".to_string()), env),
+                       Ok(Value::create_keyword("XYZ".to_string())));
         }
         {
             let env = Env::create(vec![
-                ("x".to_string(), create_string_value("abc".to_string())),
+                ("x".to_string(), Value::create_string("abc".to_string())),
             ], None);
-            assert_eq!(eval(create_symbol_value("x".to_string()), env),
-                       Ok(create_string_value("abc".to_string())));
+            assert_eq!(eval(Value::create_symbol("x".to_string()), env),
+                       Ok(Value::create_string("abc".to_string())));
         }
         {
             let func = FuncKind::BuiltinFunc(Box::new(builtin_func));
             let closure_env = Env::create(vec![
-                ("y".to_string(), create_integer_value(3)),
+                ("y".to_string(), Value::create_integer(3)),
             ], None);
             let env = Env::create(vec![
-                ("x".to_string(), create_integer_value(1)),
-                ("y".to_string(), create_integer_value(2)),
-                ("f".to_string(), create_closure_value(func, "x".to_string(), closure_env)),
+                ("x".to_string(), Value::create_integer(1)),
+                ("y".to_string(), Value::create_integer(2)),
+                ("f".to_string(), Value::create_closure(func, "x".to_string(), closure_env)),
             ], None);
-            assert_eq!(eval(create_list_value(vec![
-                create_symbol_value("f".to_string()),
-                create_integer_value(4),
-            ]), env), Ok(create_integer_value(7)));
+            assert_eq!(eval(Value::create_list(vec![
+                Value::create_symbol("f".to_string()),
+                Value::create_integer(4),
+            ]), env), Ok(Value::create_integer(7)));
         }
         {
-            let func = FuncKind::AstFunc(create_symbol_value("x".to_string()));
+            let func = FuncKind::AstFunc(Value::create_symbol("x".to_string()));
             let closure_env = Env::create(vec![
-                ("x".to_string(), create_integer_value(2)),
+                ("x".to_string(), Value::create_integer(2)),
             ], None);
             let env = Env::create(vec![
-                ("x".to_string(), create_integer_value(1)),
-                ("f".to_string(), create_closure_value(func, "x".to_string(), closure_env)),
+                ("x".to_string(), Value::create_integer(1)),
+                ("f".to_string(), Value::create_closure(func, "x".to_string(), closure_env)),
             ], None);
-            assert_eq!(eval(create_list_value(vec![
-                create_symbol_value("f".to_string()),
-                create_integer_value(3),
-            ]), env), Ok(create_integer_value(3)));
+            assert_eq!(eval(Value::create_list(vec![
+                Value::create_symbol("f".to_string()),
+                Value::create_integer(3),
+            ]), env), Ok(Value::create_integer(3)));
         }
         {
             let env = Env::create_empty();
-            assert_eq!(eval(create_list_value(vec![]), env),
-                       Ok(create_list_value(vec![])));
+            assert_eq!(eval(Value::create_list(vec![]), env),
+                       Ok(Value::create_list(vec![])));
         }
     }
 
@@ -141,7 +141,7 @@ mod tests {
         use core::exception::*;
         {
             let env = Env::create_empty();
-            assert_eq!(eval(create_symbol_value("x".to_string()), env),
+            assert_eq!(eval(Value::create_symbol("x".to_string()), env),
                        Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException("x".to_string()), None)));
         }
     }

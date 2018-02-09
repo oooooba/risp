@@ -1,4 +1,4 @@
-use core::value::{Value};
+use core::value::ValuePtr;
 
 #[derive(PartialEq, Debug)]
 pub enum ExceptionKind {
@@ -9,8 +9,8 @@ pub enum ExceptionKind {
     ReaderInvalidStatusException,
     ReaderEndOfInputException,
     ParserInvalidStatusException,
-    ParserUnexpectedKeywordException(Value),
-    ParserUnterminatedTokensException(Value),
+    ParserUnexpectedKeywordException(ValuePtr),
+    ParserUnterminatedTokensException(ValuePtr),
     EvaluatorUndefinedSymbolException(String),
     EvaluatorTypeException(String, String),
     EvaluatorArityException(usize, usize), // (expected, actual)

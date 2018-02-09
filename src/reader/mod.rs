@@ -4,12 +4,12 @@ mod parser;
 use std::io;
 use std::rc::Rc;
 
-use core::value::{Value, ValueKind, EnvPtr};
+use core::value::{ValueKind, ValuePtr, EnvPtr};
 use core::exception::{Exception, ExceptionKind};
 use self::tokenizer::Tokenizer;
 use self::parser::Parser;
 
-pub fn read(env: EnvPtr) -> Result<Value, Exception> {
+pub fn read(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let mut buf = String::new();
     io::stdin().read_line(&mut buf).map_err(|error|
         Exception::new(ExceptionKind::ReaderIOException(error.to_string()), None))
@@ -20,7 +20,7 @@ pub fn read(env: EnvPtr) -> Result<Value, Exception> {
         })
         .and_then(|buf| Tokenizer::new(buf, env).tokenize())
         .and_then(|tokens| match Rc::try_unwrap(tokens).unwrap_or_else(
-            |_| unreachable!()) {
+            |_| unreachable!()).kind {
             ValueKind::ListValue(tokens) => Ok(tokens),
             _ => unreachable!()
         })

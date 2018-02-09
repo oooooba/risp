@@ -1,5 +1,4 @@
-use core::value;
-use core::value::{Value, EnvPtr};
+use core::value::{Value, ValuePtr, EnvPtr};
 use core::exception::{Exception, ExceptionKind, InfoKind};
 
 const CHAR_L_PAREN: char = '(';
@@ -44,7 +43,7 @@ impl Tokenizer {
         &self.input.as_str()[start_pos..end_pos]
     }
 
-    fn tokenize_string(&mut self) -> Result<Value, ExceptionKind> {
+    fn tokenize_string(&mut self) -> Result<ValuePtr, ExceptionKind> {
         let pos = self.pos;
         self.ahead(1);
         let mut s = String::new();
@@ -82,11 +81,11 @@ impl Tokenizer {
         if let Some(kind) = err {
             Err(kind)
         } else {
-            Ok(value::create_string_value(s))
+            Ok(Value::create_string(s))
         }
     }
 
-    fn tokenize_symbol(&mut self) -> Result<Value, ExceptionKind> {
+    fn tokenize_symbol(&mut self) -> Result<ValuePtr, ExceptionKind> {
         let pos = self.pos;
         self.ahead(1);
         while let Some(c) = self.peek(0) {
@@ -95,10 +94,10 @@ impl Tokenizer {
             }
             self.ahead(1);
         }
-        Ok(value::create_symbol_value(self.sub(pos, self.pos).to_string()))
+        Ok(Value::create_symbol(self.sub(pos, self.pos).to_string()))
     }
 
-    fn tokenize_number(&mut self) -> Result<Value, ExceptionKind> {
+    fn tokenize_number(&mut self) -> Result<ValuePtr, ExceptionKind> {
         let pos = self.pos;
         self.ahead(1);
         let mut is_valid = true;
@@ -116,13 +115,13 @@ impl Tokenizer {
         let s = self.sub(pos, pos + len);
         if is_valid {
             let n = s.parse::<isize>().unwrap();
-            Ok(value::create_integer_value(n))
+            Ok(Value::create_integer(n))
         } else {
             Err(ExceptionKind::TokenizerInvalidLexemeException(s.to_string()))
         }
     }
 
-    pub fn tokenize(&mut self) -> Result<Value, Exception> {
+    pub fn tokenize(&mut self) -> Result<ValuePtr, Exception> {
         let mut tokens = Vec::new();
         while let Some(c) = self.peek(0) {
             let pos = self.pos;
@@ -158,7 +157,7 @@ impl Tokenizer {
                 None => (),
             }
         }
-        Ok(value::create_list_value(tokens))
+        Ok(Value::create_list(tokens))
     }
 }
 
@@ -171,19 +170,19 @@ mod tests {
     fn test_acceptance() {
         assert_eq!(Tokenizer::new("123 -456".to_string(),
                                   Env::create_global()).tokenize(),
-                   Ok(value::create_list_value(vec![
-                       value::create_integer_value(123),
-                       value::create_integer_value(-456),
+                   Ok(Value::create_list(vec![
+                       Value::create_integer(123),
+                       Value::create_integer(-456),
                    ])));
         assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
                                   Env::create_global()).tokenize(),
-                   Ok(value::create_list_value(vec![
-                       value::create_string_value("abc".to_string()),
-                       value::create_string_value("d\ne\\f\"g".to_string()),
-                       value::create_symbol_value("+".to_string()),
-                       value::create_symbol_value("-".to_string()),
-                       value::create_symbol_value("--".to_string()),
-                       value::create_symbol_value("-h".to_string()),
+                   Ok(Value::create_list(vec![
+                       Value::create_string("abc".to_string()),
+                       Value::create_string("d\ne\\f\"g".to_string()),
+                       Value::create_symbol("+".to_string()),
+                       Value::create_symbol("-".to_string()),
+                       Value::create_symbol("--".to_string()),
+                       Value::create_symbol("-h".to_string()),
                    ])));
     }
 
