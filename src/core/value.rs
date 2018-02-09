@@ -3,7 +3,7 @@ use std::collections::{HashMap, LinkedList};
 use std::fmt;
 use std::iter::FromIterator;
 
-use value::Exception;
+use core::exception::Exception;
 
 #[derive(Debug)]
 pub enum ValueKind {
@@ -120,7 +120,7 @@ pub type EnvPtr = Rc<Env>;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use value::{Exception, ExceptionKind};
+    use core::exception::{Exception, ExceptionKind};
 
     fn builtin_func(env: EnvPtr) -> Result<Value, Exception> {
         let x_str = "x".to_string();
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_builtin_function() {
-        use value::ExceptionKind::*;
+        use core::exception::ExceptionKind::*;
         {
             let env = Env::create(vec![
                 ("x".to_string(), create_integer_value(1)),

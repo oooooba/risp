@@ -1,5 +1,5 @@
 use core::value::{Value, ValueKind, FuncKind, Env, EnvPtr};
-use value::{Exception, ExceptionKind};
+use core::exception::{Exception, ExceptionKind};
 
 pub struct Interpreter {
     env: EnvPtr,
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_rejection() {
-        use value::*;
+        use core::exception::*;
         {
             let env = Env::create_empty();
             assert_eq!(eval(create_symbol_value("x".to_string()), env),

@@ -1,6 +1,6 @@
 use core::value;
 use core::value::{Value, EnvPtr};
-use value::{Exception, ExceptionKind, InfoKind};
+use core::exception::{Exception, ExceptionKind, InfoKind};
 
 const CHAR_L_PAREN: char = '(';
 const CHAR_R_PAREN: char = ')';

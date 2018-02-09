@@ -2,7 +2,7 @@ use std::collections::LinkedList;
 
 use core::value;
 use core::value::{Value, ValueKind};
-use value::{Exception, ExceptionKind};
+use core::exception::{Exception, ExceptionKind};
 
 pub struct Parser {
     tokens: LinkedList<Value>,
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_rejection() {
-        use value::*;
+        use core::exception::*;
         use self::ExceptionKind::*;
         assert_eq!(Parser::new(convert_vec_to_linked_list(vec![])).parse(), Err(Exception::new(ParserInvalidStatusException, None)));
         assert_eq!(Parser::new(convert_vec_to_linked_list(vec![

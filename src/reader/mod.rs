@@ -5,7 +5,7 @@ use std::io;
 use std::rc::Rc;
 
 use core::value::{Value, ValueKind, EnvPtr};
-use value::{Exception, ExceptionKind};
+use core::exception::{Exception, ExceptionKind};
 use self::tokenizer::Tokenizer;
 use self::parser::Parser;
 
