@@ -53,6 +53,7 @@ impl Interpreter {
                 }
             }
             NilValue => Ok(ast.clone()),
+            MapValue(_, _) => unimplemented!(),
         }
     }
 }
