@@ -2,65 +2,45 @@ use core::value::{ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
-pub struct Interpreter {
-    env: EnvPtr,
-}
-
-impl Interpreter {
-    pub fn new(env: EnvPtr) -> Interpreter {
-        Interpreter {
-            env: env,
-        }
-    }
-
-    fn eval(&mut self, ast: ValuePtr) -> Result<ValuePtr, Exception> {
-        use self::ValueKind::*;
-        match ast.kind {
-            IntegerValue(_) => Ok(ast.clone()),
-            StringValue(_) => Ok(ast.clone()),
-            SymbolValue(ref symbol) => {
-                match self.env.lookup(symbol) {
-                    Some(v) => Ok(v.clone()),
-                    None => Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(symbol.clone()), None)),
-                }
+pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    use self::ValueKind::*;
+    match ast.kind {
+        IntegerValue(_) => Ok(ast.clone()),
+        StringValue(_) => Ok(ast.clone()),
+        SymbolValue(ref symbol) => {
+            match env.lookup(symbol) {
+                Some(v) => Ok(v.clone()),
+                None => Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(symbol.clone()), None)),
             }
-            KeywordValue(_) => Ok(ast.clone()),
-            ClosureValue(_, _, _) => Ok(ast.clone()),
-            ListValue(ref list) => {
-                let mut iter = list.iter();
-                let first = match iter.next() {
-                    Some(elem) => elem.clone(),
-                    None => return Ok(ast.clone()),
-                };
-                match (self.eval(first.clone())?).kind {
-                    ClosureValue(ref func, ref arg, ref env) => {
-                        let arg_val = match iter.next() {
-                            Some(val) => self.eval(val.clone())?,
-                            None => return Err(Exception::new(ExceptionKind::EvaluatorArityException(1, 0), None)),
-                        };
-                        let new_env = Env::create(vec![(arg.clone(), arg_val)], Some(env.clone()));
-                        match func {
-                            &FuncKind::BuiltinFunc(ref f) => f(new_env.clone()),
-                            &FuncKind::AstFunc(ref f) => {
-                                let current_env = self.env.clone();
-                                self.env = new_env;
-                                let result = self.eval(f.clone());
-                                self.env = current_env;
-                                result
-                            }
+        }
+        KeywordValue(_) => Ok(ast.clone()),
+        ClosureValue(_, _, _) => Ok(ast.clone()),
+        ListValue(ref list) => {
+            let mut iter = list.iter();
+            let first = match iter.next() {
+                Some(elem) => elem.clone(),
+                None => return Ok(ast.clone()),
+            };
+            match (eval(first.clone(), env.clone())?).kind {
+                ClosureValue(ref func, ref arg, ref closure_env) => {
+                    let arg_val = match iter.next() {
+                        Some(val) => eval(val.clone(), env)?,
+                        None => return Err(Exception::new(ExceptionKind::EvaluatorArityException(1, 0), None)),
+                    };
+                    let new_env = Env::create(vec![(arg.clone(), arg_val)], Some(closure_env.clone()));
+                    match func {
+                        &FuncKind::BuiltinFunc(ref f) => f(new_env),
+                        &FuncKind::AstFunc(ref f) => {
+                            eval(f.clone(), new_env)
                         }
                     }
-                    _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Closure".to_string(), "Unknown".to_string()), None)),
                 }
+                _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Closure".to_string(), "Unknown".to_string()), None)),
             }
-            NilValue => Ok(ast.clone()),
-            MapValue(_, _) => unimplemented!(),
         }
+        NilValue => Ok(ast.clone()),
+        MapValue(_, _) => unimplemented!(),
     }
-}
-
-pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    Interpreter::new(env).eval(ast)
 }
 
 #[cfg(test)]
