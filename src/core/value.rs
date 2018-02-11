@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use std::collections::{HashMap, LinkedList};
+use std::collections::HashMap;
 use std::fmt;
 
 use core::exception::Exception;
@@ -11,13 +11,20 @@ pub enum ValueKind {
     StringValue(String),
     SymbolValue(String),
     KeywordValue(String),
-    ListValue(LinkedList<ValuePtr>),
+    ListValue(ValuePtr, ValuePtr), // (car, cdr), cdr must be ListValue or NilValue
     ClosureValue(FuncKind, String, EnvPtr), // (body, arg, env), support only one argument currently
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
 }
 
 impl ValueKind {
+    pub fn matches_list(&self) -> bool {
+        match self {
+            &ValueKind::ListValue(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn matches_nil(&self) -> bool {
         match self {
             &ValueKind::NilValue => true,
@@ -54,7 +61,7 @@ impl PartialEq for ValueKind {
             (&StringValue(ref lhs), &StringValue(ref rhs)) if lhs == rhs => true,
             (&SymbolValue(ref lhs), &SymbolValue(ref rhs)) if lhs == rhs => true,
             (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) if lhs == rhs => true,
-            (&ListValue(ref lhs), &ListValue(ref rhs)) if lhs == rhs => true,
+            (&ListValue(ref lhs_car, ref lhs_cdr), &ListValue(ref rhs_car, ref rhs_cdr)) => lhs_car == rhs_car && lhs_cdr == rhs_cdr,
             (&NilValue, &NilValue) => true,
             (&MapValue(_, _), &MapValue(_, _)) => self.flatten_map() == other.flatten_map(),
             _ => false,
@@ -105,12 +112,17 @@ impl Value {
         Value::new(ValueKind::KeywordValue(keyword))
     }
 
-    pub fn create_list(mut values: Vec<ValuePtr>) -> ValuePtr {
-        let mut list = LinkedList::new();
+    pub fn create_list(car: ValuePtr, cdr: ValuePtr) -> ValuePtr {
+        assert!(cdr.kind.matches_list() || cdr.kind.matches_nil());
+        Value::new(ValueKind::ListValue(car, cdr))
+    }
+
+    pub fn create_list_from_vec(mut values: Vec<ValuePtr>) -> ValuePtr {
+        let mut list = Value::create_nil();
         while let Some(value) = values.pop() {
-            list.push_front(value);
+            list = Value::create_list(value, list);
         }
-        Value::new(ValueKind::ListValue(list))
+        list
     }
 
     pub fn create_closure(func: FuncKind, arg: String, env: EnvPtr) -> ValuePtr {

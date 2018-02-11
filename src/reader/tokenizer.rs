@@ -158,7 +158,7 @@ impl Tokenizer {
                 None => (),
             }
         }
-        Ok(Value::create_list(tokens))
+        Ok(Value::create_list_from_vec(tokens))
     }
 }
 
@@ -171,13 +171,13 @@ mod tests {
     fn test_acceptance() {
         assert_eq!(Tokenizer::new("123 -456".to_string(),
                                   Env::create_global()).tokenize(),
-                   Ok(Value::create_list(vec![
+                   Ok(Value::create_list_from_vec(vec![
                        Value::create_integer(123),
                        Value::create_integer(-456),
                    ])));
         assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
                                   Env::create_global()).tokenize(),
-                   Ok(Value::create_list(vec![
+                   Ok(Value::create_list_from_vec(vec![
                        Value::create_string("abc".to_string()),
                        Value::create_string("d\ne\\f\"g".to_string()),
                        Value::create_symbol("+".to_string()),

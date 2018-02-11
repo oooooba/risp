@@ -15,17 +15,14 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         }
         KeywordValue(_) => Ok(ast.clone()),
         ClosureValue(_, _, _) => Ok(ast.clone()),
-        ListValue(ref list) => {
-            let mut iter = list.iter();
-            let first = match iter.next() {
-                Some(elem) => elem.clone(),
-                None => return Ok(ast.clone()),
-            };
-            match (eval(first.clone(), env.clone())?).kind {
+        ListValue(ref car, ref cdr) => {
+            match (eval(car.clone(), env.clone())?).kind {
                 ClosureValue(ref func, ref arg, ref closure_env) => {
-                    let arg_val = match iter.next() {
-                        Some(val) => eval(val.clone(), env)?,
-                        None => return Err(Exception::new(ExceptionKind::EvaluatorArityException(1, 0), None)),
+                    let arg_val = match cdr.kind {
+                        ValueKind::NilValue => return Err(Exception::new(ExceptionKind::EvaluatorArityException(1, 0), None)),
+                        ValueKind::ListValue(ref val, ref maybe_nil_value) if maybe_nil_value.kind == ValueKind::NilValue => eval(val.clone(), env)?,
+                        ValueKind::ListValue(_, _) => return Err(Exception::new(ExceptionKind::EvaluatorArityException(1, 2), None)),
+                        _ => eval(cdr.clone(), env)?,
                     };
                     let new_env = Env::create(vec![(arg.clone(), arg_val)], Some(closure_env.clone()));
                     match func {
@@ -93,7 +90,7 @@ mod tests {
                 ("y".to_string(), Value::create_integer(2)),
                 ("f".to_string(), Value::create_closure(func, "x".to_string(), closure_env)),
             ], None);
-            assert_eq!(eval(Value::create_list(vec![
+            assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),
                 Value::create_integer(4),
             ]), env), Ok(Value::create_integer(7)));
@@ -107,15 +104,15 @@ mod tests {
                 ("x".to_string(), Value::create_integer(1)),
                 ("f".to_string(), Value::create_closure(func, "x".to_string(), closure_env)),
             ], None);
-            assert_eq!(eval(Value::create_list(vec![
+            assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),
                 Value::create_integer(3),
             ]), env), Ok(Value::create_integer(3)));
         }
         {
             let env = Env::create_empty();
-            assert_eq!(eval(Value::create_list(vec![]), env),
-                       Ok(Value::create_list(vec![])));
+            assert_eq!(eval(Value::create_list_from_vec(vec![]), env),
+                       Ok(Value::create_list_from_vec(vec![])));
         }
         {
             let env = Env::create_empty();

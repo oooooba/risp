@@ -1,25 +1,34 @@
-use std::collections::LinkedList;
-
 use core::value::{Value, ValuePtr, ValueKind};
 use core::exception::{Exception, ExceptionKind};
 
 pub struct Parser {
-    tokens: LinkedList<ValuePtr>,
+    tokens: ValuePtr,
 }
 
 impl Parser {
-    pub fn new(tokens: LinkedList<ValuePtr>) -> Parser {
+    pub fn new(tokens: ValuePtr) -> Parser {
+        assert!(tokens.kind.matches_list() || tokens.kind.matches_nil());
         Parser {
             tokens: tokens,
         }
     }
 
     fn peek(&self) -> Option<&ValuePtr> {
-        self.tokens.front()
+        match self.tokens.kind {
+            ValueKind::NilValue => None,
+            ValueKind::ListValue(ref car, _) => Some(car),
+            _ => unreachable!(),
+        }
     }
 
     fn pop(&mut self) -> Option<ValuePtr> {
-        self.tokens.pop_front()
+        let (token, tokens) = match self.tokens.kind {
+            ValueKind::NilValue => (None, self.tokens.clone()),
+            ValueKind::ListValue(ref car, ref cdr) => (Some(car.clone()), cdr.clone()),
+            _ => unreachable!(),
+        };
+        self.tokens = tokens;
+        token
     }
 
     fn parse_grouping(&mut self, opening_lexeme: &str, closing_lexeme: &str) -> Result<ValuePtr, Exception> {
@@ -40,7 +49,7 @@ impl Parser {
         }
         assert_eq!(self.peek().unwrap().kind, KeywordValue(closing_lexeme.to_string()));
         self.pop();
-        Ok(Value::create_list(parsed))
+        Ok(Value::create_list_from_vec(parsed))
     }
 
     pub fn parse(&mut self) -> Result<ValuePtr, Exception> {
@@ -83,28 +92,20 @@ impl Parser {
 mod tests {
     use super::*;
 
-    fn convert_vec_to_linked_list<T>(mut xs: Vec<T>) -> LinkedList<T> {
-        let mut list = LinkedList::new();
-        while let Some(x) = xs.pop() {
-            list.push_front(x);
-        }
-        list
-    }
-
     #[test]
     fn test_acceptance() {
-        assert_eq!(Parser::new(convert_vec_to_linked_list(vec![
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
             Value::create_integer(123),
         ])).parse(), Ok(
             Value::create_integer(123)
         ));
-        assert_eq!(Parser::new(convert_vec_to_linked_list(vec![
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
             Value::create_keyword("(".to_string()),
             Value::create_keyword(")".to_string()),
         ])).parse(), Ok(
-            Value::create_list(vec![])
+            Value::create_list_from_vec(vec![])
         ));
-        assert_eq!(Parser::new(convert_vec_to_linked_list(vec![
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
             Value::create_keyword("(".to_string()),
             Value::create_integer(123),
             Value::create_string("abc".to_string()),
@@ -112,14 +113,14 @@ mod tests {
             Value::create_keyword("XYZ".to_string()),
             Value::create_keyword(")".to_string()),
         ])).parse(), Ok(
-            Value::create_list(vec![
+            Value::create_list_from_vec(vec![
                 Value::create_integer(123),
                 Value::create_string("abc".to_string()),
                 Value::create_symbol("def".to_string()),
                 Value::create_keyword("XYZ".to_string()),
             ])
         ));
-        assert_eq!(Parser::new(convert_vec_to_linked_list(vec![
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
             Value::create_keyword("(".to_string()),
             Value::create_keyword("(".to_string()),
             Value::create_integer(123),
@@ -131,12 +132,12 @@ mod tests {
             Value::create_keyword(")".to_string()),
             Value::create_keyword(")".to_string()),
         ])).parse(), Ok(
-            Value::create_list(vec![
-                Value::create_list(vec![
+            Value::create_list_from_vec(vec![
+                Value::create_list_from_vec(vec![
                     Value::create_integer(123),
                 ]),
                 Value::create_string("abc".to_string()),
-                Value::create_list(vec![
+                Value::create_list_from_vec(vec![
                     Value::create_symbol("def".to_string()),
                     Value::create_keyword("XYZ".to_string()),
                 ]),
@@ -148,13 +149,13 @@ mod tests {
     fn test_rejection() {
         use core::exception::*;
         use self::ExceptionKind::*;
-        assert_eq!(Parser::new(convert_vec_to_linked_list(vec![])).parse(), Err(Exception::new(ParserInvalidStatusException, None)));
-        assert_eq!(Parser::new(convert_vec_to_linked_list(vec![
-            Value::create_list(vec![
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![])).parse(), Err(Exception::new(ParserInvalidStatusException, None)));
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
+            Value::create_list_from_vec(vec![
                 Value::create_integer(123),
             ]),
         ])).parse(), Err(Exception::new(ParserInvalidStatusException, None)));
-        assert_eq!(Parser::new(convert_vec_to_linked_list(vec![
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
             Value::create_keyword("(".to_string()),
             Value::create_keyword("(".to_string()),
             Value::create_integer(123),

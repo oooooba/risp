@@ -2,9 +2,8 @@ mod tokenizer;
 mod parser;
 
 use std::io;
-use std::rc::Rc;
 
-use core::value::{ValueKind, ValuePtr};
+use core::value::ValuePtr;
 use core::exception::{Exception, ExceptionKind};
 use core::env::EnvPtr;
 use self::tokenizer::Tokenizer;
@@ -20,10 +19,5 @@ pub fn read(env: EnvPtr) -> Result<ValuePtr, Exception> {
             Ok(buf)
         })
         .and_then(|buf| Tokenizer::new(buf, env).tokenize())
-        .and_then(|tokens| match Rc::try_unwrap(tokens).unwrap_or_else(
-            |_| unreachable!()).kind {
-            ValueKind::ListValue(tokens) => Ok(tokens),
-            _ => unreachable!()
-        })
         .and_then(|tokens| Parser::new(tokens).parse())
 }
