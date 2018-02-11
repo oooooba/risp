@@ -1,9 +1,9 @@
 use std::rc::Rc;
 use std::collections::{HashMap, LinkedList};
 use std::fmt;
-use std::iter::FromIterator;
 
 use core::exception::Exception;
+use core::env::EnvPtr;
 
 #[derive(Debug)]
 pub enum ValueKind {
@@ -129,53 +129,12 @@ impl Value {
     }
 }
 
-#[derive(PartialEq, Debug)]
-pub struct Env {
-    pub map: HashMap<String, ValuePtr>,
-    pub outer: Option<EnvPtr>,
-}
-
-impl Env {
-    fn new(map: HashMap<String, ValuePtr>, outer: Option<EnvPtr>) -> EnvPtr {
-        Rc::new(Env {
-            map: map,
-            outer: outer,
-        })
-    }
-
-    pub fn create_empty() -> EnvPtr {
-        Env::new(HashMap::new(), None)
-    }
-
-    pub fn create(pairs: Vec<(String, ValuePtr)>, outer: Option<EnvPtr>) -> EnvPtr {
-        Env::new(HashMap::from_iter(pairs), outer)
-    }
-
-    pub fn create_global() -> EnvPtr {
-        let pairs = vec![
-            ("(".to_string(), Value::create_keyword("(".to_string())),
-            (")".to_string(), Value::create_keyword(")".to_string())),
-        ];
-        Env::new(HashMap::from_iter(pairs), None)
-    }
-
-    pub fn lookup(&self, key: &String) -> Option<&ValuePtr> {
-        match self.map.get(key) {
-            value @ Some(_) => value,
-            None => match self.outer {
-                Some(ref env) => env.lookup(key),
-                None => None,
-            }
-        }
-    }
-}
-
-pub type EnvPtr = Rc<Env>;
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::FromIterator;
     use core::exception::{Exception, ExceptionKind};
+    use core::env::{Env, EnvPtr};
 
     fn builtin_func(env: EnvPtr) -> Result<ValuePtr, Exception> {
         let x_str = "x".to_string();
@@ -204,7 +163,7 @@ mod tests {
         match closure.kind {
             ValueKind::ClosureValue(ref func, _, ref env) => {
                 match func {
-                    &FuncKind::BuiltinFunc(ref f) => assert_eq!(f(Env::new(env.map.clone(), None)), result),
+                    &FuncKind::BuiltinFunc(ref f) => assert_eq!(f(Env::create_clone(env)), result),
                     _ => unreachable!(),
                 }
             }

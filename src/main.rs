@@ -5,10 +5,10 @@ use std::io::Write;
 
 use risp::evaluator;
 use risp::reader;
-use risp::core::value;
+use risp::core::env;
 
 fn main() {
-    let env = value::Env::create_global();
+    let env = env::Env::create_global();
     loop {
         print!("> ");
         let _ = io::stdout().flush();

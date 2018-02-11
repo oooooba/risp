@@ -1,5 +1,6 @@
-use core::value::{ValueKind, ValuePtr, FuncKind, Env, EnvPtr};
+use core::value::{ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
+use core::env::{Env, EnvPtr};
 
 pub struct Interpreter {
     env: EnvPtr,

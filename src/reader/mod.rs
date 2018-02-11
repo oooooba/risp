@@ -4,8 +4,9 @@ mod parser;
 use std::io;
 use std::rc::Rc;
 
-use core::value::{ValueKind, ValuePtr, EnvPtr};
+use core::value::{ValueKind, ValuePtr};
 use core::exception::{Exception, ExceptionKind};
+use core::env::EnvPtr;
 use self::tokenizer::Tokenizer;
 use self::parser::Parser;
 
