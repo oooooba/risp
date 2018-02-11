@@ -12,8 +12,7 @@ pub enum ValueKind {
     SymbolValue(String),
     KeywordValue(String),
     ListValue(LinkedList<ValuePtr>),
-    ClosureValue(FuncKind, String, EnvPtr),
-    // (body, arg, env), support only one argument currently
+    ClosureValue(FuncKind, String, EnvPtr), // (body, arg, env), support only one argument currently
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
 }
@@ -29,7 +28,6 @@ impl ValueKind {
     pub fn matches_map(&self) -> bool {
         match self {
             &ValueKind::MapValue(_, _) => true,
-            //ValueKind::MapValue(_)=>true,
             _ => false,
         }
     }
