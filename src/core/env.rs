@@ -36,10 +36,6 @@ impl Env {
         Env::new(HashMap::from_iter(pairs), None)
     }
 
-    pub fn create_clone(original_env: &EnvPtr) -> EnvPtr {
-        Env::new(original_env.map.clone(), None)
-    }
-
     pub fn lookup(&self, key: &String) -> Option<&ValuePtr> {
         match self.map.get(key) {
             value @ Some(_) => value,
