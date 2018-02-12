@@ -83,7 +83,15 @@ impl Parser {
             };
             self.parse_grouping(opening_lexeme, closing_lexeme)
         } else {
-            Ok(self.pop().unwrap())
+            let token = self.pop().unwrap();
+            match token.kind {
+                SymbolValue(ref symbol) => match symbol.as_str() {
+                    "true" => Ok(Value::create_boolean(true)),
+                    "false" => Ok(Value::create_boolean(false)),
+                    _ => Ok(token.clone()),
+                }
+                _ => Ok(token.clone()),
+            }
         }
     }
 }
@@ -142,6 +150,11 @@ mod tests {
                     Value::create_keyword("XYZ".to_string()),
                 ]),
             ])
+        ));
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
+            Value::create_symbol("false".to_string()),
+        ])).parse(), Ok(
+            Value::create_boolean(false)
         ));
     }
 

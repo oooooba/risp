@@ -37,6 +37,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         }
         NilValue => Ok(ast.clone()),
         MapValue(_, _) => unimplemented!(),
+        BooleanValue(_) => Ok(ast.clone()),
     }
 }
 

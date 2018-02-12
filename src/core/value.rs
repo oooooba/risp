@@ -15,6 +15,7 @@ pub enum ValueKind {
     ClosureValue(FuncKind, String, EnvPtr), // (body, arg, env), support only one argument currently
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
+    BooleanValue(bool),
 }
 
 impl ValueKind {
@@ -64,6 +65,7 @@ impl PartialEq for ValueKind {
             (&ListValue(ref lhs_car, ref lhs_cdr), &ListValue(ref rhs_car, ref rhs_cdr)) => lhs_car == rhs_car && lhs_cdr == rhs_cdr,
             (&NilValue, &NilValue) => true,
             (&MapValue(_, _), &MapValue(_, _)) => self.flatten_map() == other.flatten_map(),
+            (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -136,6 +138,10 @@ impl Value {
     pub fn create_map(map: HashMap<String, ValuePtr>, extra_map: ValuePtr) -> ValuePtr {
         assert!(extra_map.kind.matches_map() || extra_map.kind.matches_nil());
         Value::new(ValueKind::MapValue(map, extra_map))
+    }
+
+    pub fn create_boolean(boolean: bool) -> ValuePtr {
+        Value::new(ValueKind::BooleanValue(boolean))
     }
 }
 
