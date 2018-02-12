@@ -57,10 +57,10 @@ impl PartialEq for ValueKind {
     fn eq(&self, other: &ValueKind) -> bool {
         use self::ValueKind::*;
         match (self, other) {
-            (&IntegerValue(ref lhs), &IntegerValue(ref rhs)) if lhs == rhs => true,
-            (&StringValue(ref lhs), &StringValue(ref rhs)) if lhs == rhs => true,
-            (&SymbolValue(ref lhs), &SymbolValue(ref rhs)) if lhs == rhs => true,
-            (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) if lhs == rhs => true,
+            (&IntegerValue(ref lhs), &IntegerValue(ref rhs)) => lhs == rhs,
+            (&StringValue(ref lhs), &StringValue(ref rhs)) => lhs == rhs,
+            (&SymbolValue(ref lhs), &SymbolValue(ref rhs)) => lhs == rhs,
+            (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) => lhs == rhs,
             (&ListValue(ref lhs_car, ref lhs_cdr), &ListValue(ref rhs_car, ref rhs_cdr)) => lhs_car == rhs_car && lhs_cdr == rhs_cdr,
             (&NilValue, &NilValue) => true,
             (&MapValue(_, _), &MapValue(_, _)) => self.flatten_map() == other.flatten_map(),
