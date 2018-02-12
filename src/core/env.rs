@@ -29,7 +29,7 @@ impl Env {
         Env::new(HashMap::from_iter(pairs), outer)
     }
 
-    pub fn create_global() -> EnvPtr {
+    pub fn create_default() -> EnvPtr {
         let pairs = vec![
             ("(".to_string(), Value::create_keyword("(".to_string())),
             (")".to_string(), Value::create_keyword(")".to_string())),

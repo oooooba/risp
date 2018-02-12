@@ -132,7 +132,7 @@ mod tests {
                        Ok(Value::create_nil()));
         }
         {
-            let env = Env::create_global();
+            let env = Env::create_default();
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("+".to_string()),
                 Value::create_integer(1),

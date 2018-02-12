@@ -8,7 +8,7 @@ use risp::reader;
 use risp::core::env;
 
 fn main() {
-    let env = env::Env::create_global();
+    let env = env::Env::create_default();
     loop {
         print!("> ");
         let _ = io::stdout().flush();

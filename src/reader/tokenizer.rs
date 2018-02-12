@@ -170,13 +170,13 @@ mod tests {
     #[test]
     fn test_acceptance() {
         assert_eq!(Tokenizer::new("123 -456".to_string(),
-                                  Env::create_global()).tokenize(),
+                                  Env::create_default()).tokenize(),
                    Ok(Value::create_list_from_vec(vec![
                        Value::create_integer(123),
                        Value::create_integer(-456),
                    ])));
         assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
-                                  Env::create_global()).tokenize(),
+                                  Env::create_default()).tokenize(),
                    Ok(Value::create_list_from_vec(vec![
                        Value::create_string("abc".to_string()),
                        Value::create_string("d\ne\\f\"g".to_string()),
@@ -191,17 +191,17 @@ mod tests {
     fn test_rejection() {
         use self::ExceptionKind::*;
         assert_eq!(Tokenizer::new("( 1x2 )".to_string(),
-                                  Env::create_global()).tokenize(),
+                                  Env::create_default()).tokenize(),
                    Err(Exception::new(
                        TokenizerInvalidLexemeException("1x2".to_string()),
                        Some(InfoKind::TokenizerInfo(2, 3)))));
         assert_eq!(Tokenizer::new(r#"x "abc"#.to_string(),
-                                  Env::create_global()).tokenize(),
+                                  Env::create_default()).tokenize(),
                    Err(Exception::new(
                        TokenizerNonTerminatedStringException,
                        Some(InfoKind::TokenizerInfo(2, 4)))));
         assert_eq!(Tokenizer::new(r#""a\bc""#.to_string(),
-                                  Env::create_global()).tokenize(),
+                                  Env::create_default()).tokenize(),
                    Err(Exception::new(
                        TokenizerInvalidEscapedCharacterException('b', 4),
                        Some(InfoKind::TokenizerInfo(0, 6)))));
