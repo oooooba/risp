@@ -12,7 +12,7 @@ pub enum ValueKind {
     SymbolValue(String),
     KeywordValue(String),
     ListValue(ValuePtr, ValuePtr), // (car, cdr), cdr must be ListValue or NilValue
-    ClosureValue(FuncKind, Vec<String>, EnvPtr), // (body, args, env)
+    ClosureValue(FuncKind, Vec<String>, EnvPtr), // (body, params, env)
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
     BooleanValue(bool),
@@ -147,8 +147,8 @@ impl Value {
         list
     }
 
-    pub fn create_closure(func: FuncKind, arg: Vec<String>, env: EnvPtr) -> ValuePtr {
-        Value::new(ValueKind::ClosureValue(func, arg, env))
+    pub fn create_closure(func: FuncKind, params: Vec<String>, env: EnvPtr) -> ValuePtr {
+        Value::new(ValueKind::ClosureValue(func, params, env))
     }
 
     pub fn create_nil() -> ValuePtr {
