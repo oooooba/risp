@@ -2,7 +2,8 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use core::value::{Value, ValuePtr};
+use core::value::{Value, ValuePtr, ValueKind, FuncKind};
+use core::exception::{Exception, ExceptionKind};
 
 #[derive(PartialEq, Debug)]
 pub struct Env {
@@ -32,6 +33,26 @@ impl Env {
         let pairs = vec![
             ("(".to_string(), Value::create_keyword("(".to_string())),
             (")".to_string(), Value::create_keyword(")".to_string())),
+            ("+".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
+                let x_str = "x".to_string();
+                let y_str = "y".to_string();
+                let type_int_str = "Integer".to_string();
+                let type_unknown_str = "Unknown".to_string();
+
+                let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
+                let x_int = match x_val.kind {
+                    ValueKind::IntegerValue(n) => n,
+                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
+                };
+
+                let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
+                let y_int = match y_val.kind {
+                    ValueKind::IntegerValue(n) => n,
+                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
+                };
+
+                Ok(Value::create_integer(x_int + y_int))
+            })), vec!["x".to_string(), "y".to_string()], Env::create_empty())),
         ];
         Env::new(HashMap::from_iter(pairs), None)
     }
