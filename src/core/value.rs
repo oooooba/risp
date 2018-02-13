@@ -19,21 +19,21 @@ pub enum ValueKind {
 }
 
 impl ValueKind {
-    pub fn matches_list(&self) -> bool {
+    pub fn is_list(&self) -> bool {
         match self {
             &ValueKind::ListValue(_, _) => true,
             _ => false,
         }
     }
 
-    pub fn matches_nil(&self) -> bool {
+    pub fn is_nil(&self) -> bool {
         match self {
             &ValueKind::NilValue => true,
             _ => false,
         }
     }
 
-    pub fn matches_map(&self) -> bool {
+    pub fn is_map(&self) -> bool {
         match self {
             &ValueKind::MapValue(_, _) => true,
             _ => false,
@@ -54,7 +54,7 @@ impl ValueKind {
     }
 
     pub fn length_list(&self) -> usize {
-        assert!(self.matches_list() || self.matches_nil());
+        assert!(self.is_list() || self.is_nil());
         let mut len = 0;
         let mut p = self;
         loop {
@@ -135,7 +135,7 @@ impl Value {
     }
 
     pub fn create_list(car: ValuePtr, cdr: ValuePtr) -> ValuePtr {
-        assert!(cdr.kind.matches_list() || cdr.kind.matches_nil());
+        assert!(cdr.kind.is_list() || cdr.kind.is_nil());
         Value::new(ValueKind::ListValue(car, cdr))
     }
 
@@ -156,7 +156,7 @@ impl Value {
     }
 
     pub fn create_map(map: HashMap<String, ValuePtr>, extra_map: ValuePtr) -> ValuePtr {
-        assert!(extra_map.kind.matches_map() || extra_map.kind.matches_nil());
+        assert!(extra_map.kind.is_map() || extra_map.kind.is_nil());
         Value::new(ValueKind::MapValue(map, extra_map))
     }
 

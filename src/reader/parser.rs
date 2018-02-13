@@ -7,7 +7,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: ValuePtr) -> Parser {
-        assert!(tokens.kind.matches_list() || tokens.kind.matches_nil());
+        assert!(tokens.kind.is_list() || tokens.kind.is_nil());
         Parser {
             tokens: tokens,
         }
