@@ -12,7 +12,7 @@ pub enum ExceptionKind {
     ParserUnexpectedKeywordException(ValuePtr),
     ParserUnterminatedTokensException(ValuePtr),
     EvaluatorUndefinedSymbolException(String),
-    EvaluatorTypeException(String, String),
+    EvaluatorTypeException(&'static str, &'static str), // (expected, actual)
     EvaluatorArityException(usize, usize), // (expected, actual)
 }
 

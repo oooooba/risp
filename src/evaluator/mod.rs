@@ -16,7 +16,8 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         KeywordValue(_) => Ok(ast.clone()),
         ClosureValue(_, _, _) => Ok(ast.clone()),
         ListValue(ref car, ref cdr) => {
-            match (eval(car.clone(), env.clone())?).kind {
+            let evaled_car = eval(car.clone(), env.clone())?;
+            match evaled_car.kind {
                 ClosureValue(ref func, ref params, ref closure_env) => {
                     let len_params = params.len();
                     let len_args = cdr.kind.length_list();
@@ -43,7 +44,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
                         }
                     }
                 }
-                _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Closure".to_string(), "Unknown".to_string()), None)),
+                _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_closure(), evaled_car.kind.as_type_str()), None)),
             }
         }
         NilValue => Ok(ast.clone()),
@@ -60,19 +61,17 @@ mod tests {
     fn builtin_func(env: EnvPtr) -> Result<ValuePtr, Exception> {
         let x_str = "x".to_string();
         let y_str = "y".to_string();
-        let type_int_str = "Integer".to_string();
-        let type_unknown_str = "Unknown".to_string();
 
         let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
         let x_int = match x_val.kind {
             ValueKind::IntegerValue(n) => n,
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
+            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), x_val.kind.as_type_str()), None)),
         };
 
         let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
         let y_int = match y_val.kind {
             ValueKind::IntegerValue(n) => n,
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
+            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), y_val.kind.as_type_str()), None)),
         };
 
         Ok(Value::create_integer(x_int + y_int))
@@ -156,8 +155,8 @@ mod tests {
                 Value::create_integer(1),
                 Value::create_string("x".to_string()),
             ]), env), Err(Exception::new(ExceptionKind::EvaluatorTypeException(
-                ValueKind::type_str_integer().to_string(),
-                ValueKind::type_str_string().to_string()), None)));
+                ValueKind::type_str_integer(),
+                ValueKind::type_str_string()), None)));
         }
     }
 }
