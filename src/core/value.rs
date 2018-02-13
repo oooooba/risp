@@ -19,6 +19,31 @@ pub enum ValueKind {
 }
 
 impl ValueKind {
+    pub fn as_type_str(&self) -> &'static str {
+        use self::ValueKind::*;
+        match self {
+            &IntegerValue(_) => ValueKind::type_str_integer(),
+            &StringValue(_) => ValueKind::type_str_string(),
+            &SymbolValue(_) => ValueKind::type_str_symbol(),
+            &KeywordValue(_) => ValueKind::type_str_keyword(),
+            &ListValue(_, _) => ValueKind::type_str_list(),
+            &ClosureValue(_, _, _) => ValueKind::type_str_closure(),
+            &NilValue => ValueKind::type_str_nil(),
+            &MapValue(_, _) => ValueKind::type_str_map(),
+            &BooleanValue(_) => ValueKind::type_str_boolean(),
+        }
+    }
+
+    pub fn type_str_integer() -> &'static str { "Integer" }
+    pub fn type_str_string() -> &'static str { "String" }
+    pub fn type_str_symbol() -> &'static str { "Symbol" }
+    pub fn type_str_keyword() -> &'static str { "Keyword" }
+    pub fn type_str_list() -> &'static str { "List" }
+    pub fn type_str_closure() -> &'static str { "Closure" }
+    pub fn type_str_nil() -> &'static str { "Nil" }
+    pub fn type_str_map() -> &'static str { "Map" }
+    pub fn type_str_boolean() -> &'static str { "Boolean" }
+
     pub fn is_list(&self) -> bool {
         match self {
             &ValueKind::ListValue(_, _) => true,

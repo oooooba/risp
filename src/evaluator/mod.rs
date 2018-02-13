@@ -149,5 +149,15 @@ mod tests {
             assert_eq!(eval(Value::create_symbol("x".to_string()), env),
                        Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException("x".to_string()), None)));
         }
+        {
+            let env = Env::create_default();
+            assert_eq!(eval(Value::create_list_from_vec(vec![
+                Value::create_symbol("+".to_string()),
+                Value::create_integer(1),
+                Value::create_string("x".to_string()),
+            ]), env), Err(Exception::new(ExceptionKind::EvaluatorTypeException(
+                ValueKind::type_str_integer().to_string(),
+                ValueKind::type_str_string().to_string()), None)));
+        }
     }
 }

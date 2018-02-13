@@ -36,19 +36,18 @@ impl Env {
             ("+".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
                 let x_str = "x".to_string();
                 let y_str = "y".to_string();
-                let type_int_str = "Integer".to_string();
-                let type_unknown_str = "Unknown".to_string();
+                let type_int_str = ValueKind::type_str_integer().to_string();
 
                 let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
                 let x_int = match x_val.kind {
                     ValueKind::IntegerValue(n) => n,
-                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
+                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, x_val.kind.as_type_str().to_string()), None)),
                 };
 
                 let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
                 let y_int = match y_val.kind {
                     ValueKind::IntegerValue(n) => n,
-                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, type_unknown_str), None)),
+                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(type_int_str, y_val.kind.as_type_str().to_string()), None)),
                 };
 
                 Ok(Value::create_integer(x_int + y_int))
