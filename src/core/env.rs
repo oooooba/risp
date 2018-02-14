@@ -51,6 +51,15 @@ impl Env {
 
                 Ok(Value::create_integer(x_int + y_int))
             })), vec!["x".to_string(), "y".to_string()], Env::create_empty())),
+            ("=".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
+                let x_str = "x".to_string();
+                let y_str = "y".to_string();
+
+                let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
+                let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
+
+                Ok(Value::create_boolean(x_val == y_val))
+            })), vec!["x".to_string(), "y".to_string()], Env::create_empty())),
         ];
         Env::new(HashMap::from_iter(pairs), None)
     }

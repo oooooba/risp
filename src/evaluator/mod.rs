@@ -138,6 +138,14 @@ mod tests {
                 Value::create_integer(2),
             ]), env), Ok(Value::create_integer(3)));
         }
+        {
+            let env = Env::create_default();
+            assert_eq!(eval(Value::create_list_from_vec(vec![
+                Value::create_symbol("=".to_string()),
+                Value::create_boolean(true),
+                Value::create_boolean(true),
+            ]), env), Ok(Value::create_boolean(true)));
+        }
     }
 
     #[test]
