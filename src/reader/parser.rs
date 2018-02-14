@@ -13,6 +13,18 @@ impl Parser {
         }
     }
 
+    pub fn pop_all(&mut self) -> Option<ValuePtr> {
+        let tokens = match self.tokens.kind {
+            ValueKind::NilValue => return None,
+            ValueKind::ListValue(_, _) => {
+                self.tokens.clone()
+            }
+            _ => unreachable!(),
+        };
+        self.tokens = Value::create_nil();
+        Some(tokens)
+    }
+
     fn peek(&self) -> Option<&ValuePtr> {
         match self.tokens.kind {
             ValueKind::NilValue => None,
