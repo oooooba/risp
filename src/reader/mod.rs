@@ -9,6 +9,10 @@ use core::env::EnvPtr;
 use self::tokenizer::Tokenizer;
 use self::parser::Parser;
 
+pub fn tokenize(content: String, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    Tokenizer::new(content, env).tokenize()
+}
+
 pub fn parse(tokens: ValuePtr) -> Result<(ValuePtr, Option<ValuePtr>), Exception> {
     let mut parser = Parser::new(tokens);
     let ast = parser.parse()?;
@@ -24,7 +28,7 @@ pub fn read(env: EnvPtr) -> Result<ValuePtr, Exception> {
         } else {
             Ok(buf)
         })
-        .and_then(|buf| Tokenizer::new(buf, env).tokenize())
+        .and_then(|buf| tokenize(buf, env))
         .and_then(|tokens| parse(tokens))
         .and_then(|pair| Ok(pair.0))
 }
