@@ -100,6 +100,7 @@ impl Parser {
                 SymbolValue(ref symbol) => match symbol.as_str() {
                     "true" => Ok(Value::create_boolean(true)),
                     "false" => Ok(Value::create_boolean(false)),
+                    "nil" => Ok(Value::create_nil()),
                     _ => Ok(token.clone()),
                 }
                 _ => Ok(token.clone()),
