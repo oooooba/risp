@@ -60,6 +60,10 @@ impl Env {
 
                 Ok(Value::create_boolean(x_val == y_val))
             })), vec!["x".to_string(), "y".to_string()], Env::create_empty())),
+            ("not".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
+                let val = env.lookup(&"%".to_string()).unwrap();
+                Ok(Value::create_boolean(*val == Value::create_boolean(false) || *val == Value::create_nil()))
+            })), vec!["%".to_string()], Env::create_empty())),
         ];
         Env::new(HashMap::from_iter(pairs), None)
     }
