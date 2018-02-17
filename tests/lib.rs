@@ -1,8 +1,10 @@
 extern crate risp;
 
+use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
+use std::path::PathBuf;
 
 use risp::core::parse_and_eval;
 use risp::core::value::Value;
@@ -14,7 +16,9 @@ fn test_examples() {
     let env = Env::create_default();
     let expected_value = Value::create_boolean(true);
 
-    let paths = fs::read_dir("./examples").unwrap();
+    let risp_home = env::var("RISP_HOME").unwrap();
+    let examples_dir: PathBuf = [&risp_home, "examples"].iter().collect();
+    let paths = fs::read_dir(examples_dir).unwrap();
     for path in paths {
         let path = path.unwrap().path();
         println!("[+] testing: {:?}", path);
@@ -33,10 +37,4 @@ fn test_examples() {
             }
         }
     }
-
-    /*
-    環境変数で指定された
-    ディレクトリからすべてのファイルを読み込み
-    テストする
-    */
 }
