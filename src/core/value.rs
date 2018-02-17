@@ -16,6 +16,7 @@ pub enum ValueKind {
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
     BooleanValue(bool),
+    VectorValue(Vec<ValuePtr>),
 }
 
 impl ValueKind {
@@ -31,6 +32,7 @@ impl ValueKind {
             &NilValue => ValueKind::type_str_nil(),
             &MapValue(_, _) => ValueKind::type_str_map(),
             &BooleanValue(_) => ValueKind::type_str_boolean(),
+            &VectorValue(_) => ValueKind::type_str_vector(),
         }
     }
 
@@ -43,6 +45,7 @@ impl ValueKind {
     pub fn type_str_nil() -> &'static str { "Nil" }
     pub fn type_str_map() -> &'static str { "Map" }
     pub fn type_str_boolean() -> &'static str { "Boolean" }
+    pub fn type_str_vector() -> &'static str { "Vector" }
 
     pub fn is_list(&self) -> bool {
         match self {
@@ -111,6 +114,7 @@ impl PartialEq for ValueKind {
             (&NilValue, &NilValue) => true,
             (&MapValue(_, _), &MapValue(_, _)) => self.flatten_map() == other.flatten_map(),
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
+            (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -187,6 +191,10 @@ impl Value {
 
     pub fn create_boolean(boolean: bool) -> ValuePtr {
         Value::new(ValueKind::BooleanValue(boolean))
+    }
+
+    pub fn create_vector(vector: Vec<ValuePtr>) -> ValuePtr {
+        Value::new(ValueKind::VectorValue(vector))
     }
 }
 
