@@ -2,6 +2,40 @@ use core::value::{ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
+fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    use self::ValueKind::*;
+    let evaled_car = eval(car.clone(), env.clone())?;
+    match evaled_car.kind {
+        ClosureValue(ref func, ref params, ref closure_env) => {
+            let len_params = params.len();
+            let len_args = cdr.kind.length_list();
+            if len_params != len_args {
+                return Err(Exception::new(ExceptionKind::EvaluatorArityException(len_params, len_args), None));
+            }
+            let mut pairs = vec![];
+            let mut cur = cdr;
+            for param in params.iter() {
+                let arg = match cur.kind {
+                    ListValue(ref arg, ref rest) => {
+                        cur = rest;
+                        eval(arg.clone(), env.clone())?
+                    }
+                    _ => eval(cur.clone(), env.clone())?,
+                };
+                pairs.push((param.clone(), arg));
+            }
+            let new_env = Env::create(pairs, Some(closure_env.clone()));
+            match func {
+                &FuncKind::BuiltinFunc(ref f) => f(new_env),
+                &FuncKind::AstFunc(ref f) => {
+                    eval(f.clone(), new_env)
+                }
+            }
+        }
+        _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_closure(), evaled_car.kind.as_type_str()), None)),
+    }
+}
+
 pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     match ast.kind {
@@ -15,38 +49,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         }
         KeywordValue(_) => Ok(ast.clone()),
         ClosureValue(_, _, _) => Ok(ast.clone()),
-        ListValue(ref car, ref cdr) => {
-            let evaled_car = eval(car.clone(), env.clone())?;
-            match evaled_car.kind {
-                ClosureValue(ref func, ref params, ref closure_env) => {
-                    let len_params = params.len();
-                    let len_args = cdr.kind.length_list();
-                    if len_params != len_args {
-                        return Err(Exception::new(ExceptionKind::EvaluatorArityException(len_params, len_args), None));
-                    }
-                    let mut pairs = vec![];
-                    let mut cur = cdr;
-                    for param in params.iter() {
-                        let arg = match cur.kind {
-                            ListValue(ref arg, ref rest) => {
-                                cur = rest;
-                                eval(arg.clone(), env.clone())?
-                            }
-                            _ => eval(cur.clone(), env.clone())?,
-                        };
-                        pairs.push((param.clone(), arg));
-                    }
-                    let new_env = Env::create(pairs, Some(closure_env.clone()));
-                    match func {
-                        &FuncKind::BuiltinFunc(ref f) => f(new_env),
-                        &FuncKind::AstFunc(ref f) => {
-                            eval(f.clone(), new_env)
-                        }
-                    }
-                }
-                _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_closure(), evaled_car.kind.as_type_str()), None)),
-            }
-        }
+        ListValue(ref car, ref cdr) => eval_list(car, cdr, env),
         NilValue => Ok(ast.clone()),
         MapValue(_, _) => unimplemented!(),
         BooleanValue(_) => Ok(ast.clone()),
