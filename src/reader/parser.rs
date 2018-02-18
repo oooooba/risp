@@ -61,7 +61,11 @@ impl Parser {
         }
         assert_eq!(self.peek().unwrap().kind, KeywordValue(closing_lexeme.to_string()));
         self.pop();
-        Ok(Value::create_list_from_vec(parsed))
+        match opening_lexeme {
+            "(" => Ok(Value::create_list_from_vec(parsed)),
+            "[" => Ok(Value::create_vector(parsed)),
+            _ => unreachable!(),
+        }
     }
 
     pub fn parse(&mut self) -> Result<ValuePtr, Exception> {
@@ -75,6 +79,8 @@ impl Parser {
                     match keyword.as_str() {
                         "(" => true,
                         ")" => return Err(Exception::new(ExceptionKind::ParserUnexpectedKeywordException(token.clone()), None)),
+                        "[" => true,
+                        "]" => return Err(Exception::new(ExceptionKind::ParserUnexpectedKeywordException(token.clone()), None)),
                         _ => false,
                     }
                 }
@@ -88,6 +94,7 @@ impl Parser {
                 KeywordValue(ref lexeme) => {
                     match lexeme.as_str() {
                         "(" => ("(", ")"),
+                        "[" => ("[", "]"),
                         _ => unreachable!(),
                     }
                 }
@@ -168,6 +175,17 @@ mod tests {
             Value::create_symbol("false".to_string()),
         ])).parse(), Ok(
             Value::create_boolean(false)
+        ));
+        assert_eq!(Parser::new(Value::create_list_from_vec(vec![
+            Value::create_keyword("[".to_string()),
+            Value::create_integer(123),
+            Value::create_string("abc".to_string()),
+            Value::create_keyword("]".to_string()),
+        ])).parse(), Ok(
+            Value::create_vector(vec![
+                Value::create_integer(123),
+                Value::create_string("abc".to_string()),
+            ])
         ));
     }
 
