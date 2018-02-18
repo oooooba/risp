@@ -1,50 +1,14 @@
+mod specialform;
+
 use core::value::{ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
-
-fn eval_builtin_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    use self::ValueKind::*;
-    assert!(ast.kind.is_list());
-    let (bindings, rest) = match ast.kind {
-        ListValue(ref car, ref cdr) => {
-            match car.kind {
-                VectorValue(ref bindings) => (bindings, cdr),
-                _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
-            }
-        }
-        _ => unreachable!(),
-    };
-    if bindings.len() % 2 != 0 {
-        return Err(Exception::new(ExceptionKind::EvaluatorArityException(bindings.len() + 1, bindings.len()), None));
-    }
-
-    let mut pairs = vec![];
-    for i in 0..(bindings.len() / 2) {
-        let key_i = i * 2;
-        let key = match bindings[key_i].kind {
-            SymbolValue(ref s) => s.clone(),
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), bindings[key_i].kind.as_type_str()), None)),
-        };
-        let val_i = i * 2 + 1;
-        let val = eval(bindings[val_i].clone(), Env::create(pairs.clone(), Some(env.clone())))?;
-        pairs.push((key, val));
-    }
-    let let_env = Env::create(pairs, Some(env));
-
-    let body = match rest.kind {
-        ListValue(ref car, ref cdr) => {
-            assert!(cdr.kind.is_nil());
-            car
-        }
-        _ => unreachable!(),
-    };
-    eval(body.clone(), let_env)
-}
+use evaluator::specialform::eval_specialform_let;
 
 fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     if car.kind.matches_symbol("let") {
-        return eval_builtin_let(cdr, env);
+        return eval_specialform_let(cdr, env);
     }
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
