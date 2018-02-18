@@ -8,13 +8,16 @@ const CHAR_COMMA: char = ',';
 const CHAR_MINUS: char = '-';
 const CHAR_D_QUOTE: char = '"';
 const CHAR_BACKSLASH: char = '\\';
+const CHAR_L_BRACKET: char = '[';
+const CHAR_R_BRACKET: char = ']';
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA
 }
 
 fn is_grouping_char(c: char) -> bool {
-    c == CHAR_L_PAREN || c == CHAR_R_PAREN
+    c == CHAR_L_PAREN || c == CHAR_R_PAREN ||
+        c == CHAR_L_BRACKET || c == CHAR_R_BRACKET
 }
 
 pub struct Tokenizer {
@@ -140,6 +143,8 @@ impl Tokenizer {
                 match c {
                     CHAR_L_PAREN => self.env.lookup(&CHAR_L_PAREN.to_string()).map(|v| Ok(v.clone())),
                     CHAR_R_PAREN => self.env.lookup(&CHAR_R_PAREN.to_string()).map(|v| Ok(v.clone())),
+                    CHAR_L_BRACKET => self.env.lookup(&CHAR_L_BRACKET.to_string()).map(|v| Ok(v.clone())),
+                    CHAR_R_BRACKET => self.env.lookup(&CHAR_R_BRACKET.to_string()).map(|v| Ok(v.clone())),
                     _ => unreachable!(),
                 }
             } else if is_delim_char(c) {

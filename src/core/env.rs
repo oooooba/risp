@@ -33,6 +33,8 @@ impl Env {
         let pairs = vec![
             ("(".to_string(), Value::create_keyword("(".to_string())),
             (")".to_string(), Value::create_keyword(")".to_string())),
+            ("[".to_string(), Value::create_keyword("[".to_string())),
+            ("]".to_string(), Value::create_keyword("]".to_string())),
             ("+".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
                 let x_str = "x".to_string();
                 let y_str = "y".to_string();
