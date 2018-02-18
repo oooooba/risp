@@ -1,4 +1,5 @@
 mod specialform;
+pub mod builtinfunc;
 
 use core::value::{ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};

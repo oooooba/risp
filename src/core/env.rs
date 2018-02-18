@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use core::value::{Value, ValuePtr, ValueKind, FuncKind};
-use core::exception::{Exception, ExceptionKind};
+use core::value::{Value, ValuePtr, FuncKind};
+use evaluator::builtinfunc;
 
 #[derive(PartialEq, Debug)]
 pub struct Env {
@@ -35,33 +35,12 @@ impl Env {
             (")".to_string(), Value::create_keyword(")".to_string())),
             ("[".to_string(), Value::create_keyword("[".to_string())),
             ("]".to_string(), Value::create_keyword("]".to_string())),
-            ("+".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
-                let x_str = "x".to_string();
-                let y_str = "y".to_string();
-
-                let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
-                let x_int = match x_val.kind {
-                    ValueKind::IntegerValue(n) => n,
-                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), x_val.kind.as_type_str()), None)),
-                };
-
-                let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
-                let y_int = match y_val.kind {
-                    ValueKind::IntegerValue(n) => n,
-                    _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), y_val.kind.as_type_str()), None)),
-                };
-
-                Ok(Value::create_integer(x_int + y_int))
-            })), vec!["x".to_string(), "y".to_string()], Env::create_empty())),
-            ("=".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
-                let x_str = "x".to_string();
-                let y_str = "y".to_string();
-
-                let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
-                let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
-
-                Ok(Value::create_boolean(x_val == y_val))
-            })), vec!["x".to_string(), "y".to_string()], Env::create_empty())),
+            ("+".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_add_integer)),
+                                                    vec!["x".to_string(), "y".to_string()],
+                                                    Env::create_empty())),
+            ("=".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_equal)),
+                                                    vec!["x".to_string(), "y".to_string()],
+                                                    Env::create_empty())),
             ("not".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
                 let val = env.lookup(&"%".to_string()).unwrap();
                 Ok(Value::create_boolean(*val == Value::create_boolean(false) || *val == Value::create_nil()))
