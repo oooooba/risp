@@ -100,6 +100,13 @@ impl ValueKind {
         }
         len
     }
+
+    pub fn matches_symbol(&self, expected: &str) -> bool {
+        match self {
+            &ValueKind::SymbolValue(ref actual) => expected == actual.as_str(),
+            _ => false,
+        }
+    }
 }
 
 impl PartialEq for ValueKind {
