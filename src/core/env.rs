@@ -36,7 +36,7 @@ impl Env {
             ("[".to_string(), Value::create_keyword("[".to_string())),
             ("]".to_string(), Value::create_keyword("]".to_string())),
             ("+".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_add_integer)),
-                                                    vec!["x".to_string(), "y".to_string()],
+                                                    vec!["%1".to_string(), "%2".to_string()],
                                                     Env::create_empty())),
             ("=".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_equal)),
                                                     vec!["x".to_string(), "y".to_string()],
