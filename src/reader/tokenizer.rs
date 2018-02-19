@@ -10,6 +10,7 @@ const CHAR_D_QUOTE: char = '"';
 const CHAR_BACKSLASH: char = '\\';
 const CHAR_L_BRACKET: char = '[';
 const CHAR_R_BRACKET: char = ']';
+const CHAR_COLON: char = ':';
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA
@@ -101,6 +102,28 @@ impl Tokenizer {
         Ok(Value::create_symbol(self.sub(pos, self.pos).to_string()))
     }
 
+    fn tokenize_keyword(&mut self) -> Result<ValuePtr, ExceptionKind> {
+        let colon_pos = self.pos;
+        if let Some(c) = self.peek(1) {
+            if is_grouping_char(c) || is_delim_char(c) {
+                return Err(ExceptionKind::TokenizerInvalidLexemeException(
+                    self.sub(colon_pos, colon_pos + 2).to_string()));
+            }
+        } else {
+            return Err(ExceptionKind::TokenizerInvalidLexemeException(
+                self.sub(colon_pos, colon_pos + 1).to_string()));
+        }
+        self.ahead(1);
+        let pos = self.pos;
+        while let Some(c) = self.peek(0) {
+            if is_delim_char(c) || is_grouping_char(c) {
+                break;
+            }
+            self.ahead(1);
+        }
+        Ok(Value::create_keyword(self.sub(pos, self.pos).to_string()))
+    }
+
     fn tokenize_number(&mut self) -> Result<ValuePtr, ExceptionKind> {
         let pos = self.pos;
         self.ahead(1);
@@ -150,6 +173,8 @@ impl Tokenizer {
             } else if is_delim_char(c) {
                 self.ahead(1);
                 None
+            } else if c == CHAR_COLON {
+                Some(self.tokenize_keyword())
             } else {
                 Some(self.tokenize_symbol())
             };
@@ -189,6 +214,11 @@ mod tests {
                        Value::create_symbol("-".to_string()),
                        Value::create_symbol("--".to_string()),
                        Value::create_symbol("-h".to_string()),
+                   ])));
+        assert_eq!(Tokenizer::new(":a".to_string(),
+                                  Env::create_default()).tokenize(),
+                   Ok(Value::create_list_from_vec(vec![
+                       Value::create_keyword("a".to_string()),
                    ])));
     }
 
