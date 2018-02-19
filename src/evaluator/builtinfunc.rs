@@ -4,6 +4,9 @@ use core::env::EnvPtr;
 
 enum IntegerBuiltinOperatorKind {
     Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 fn op_common_integer(kind: IntegerBuiltinOperatorKind, env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -22,12 +25,27 @@ fn op_common_integer(kind: IntegerBuiltinOperatorKind, env: EnvPtr) -> Result<Va
     use self::IntegerBuiltinOperatorKind::*;
     let val = match kind {
         Add => lhs_int + rhs_int,
+        Sub => lhs_int - rhs_int,
+        Mul => lhs_int * rhs_int,
+        Div => lhs_int / rhs_int,
     };
     Ok(Value::create_integer(val))
 }
 
 pub fn op_add_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
     op_common_integer(IntegerBuiltinOperatorKind::Add, env)
+}
+
+pub fn op_sub_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    op_common_integer(IntegerBuiltinOperatorKind::Sub, env)
+}
+
+pub fn op_mul_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    op_common_integer(IntegerBuiltinOperatorKind::Mul, env)
+}
+
+pub fn op_div_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    op_common_integer(IntegerBuiltinOperatorKind::Div, env)
 }
 
 pub fn op_equal(env: EnvPtr) -> Result<ValuePtr, Exception> {
