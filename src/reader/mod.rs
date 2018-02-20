@@ -13,10 +13,11 @@ pub fn tokenize(content: String, env: EnvPtr) -> Result<ValuePtr, Exception> {
     Tokenizer::new(content, env).tokenize()
 }
 
-pub fn parse(tokens: ValuePtr) -> Result<(ValuePtr, Option<ValuePtr>), Exception> {
+pub fn parse(tokens: ValuePtr) -> (Result<ValuePtr, Exception>, Option<ValuePtr>) {
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse()?;
-    Ok((ast, parser.pop_all()))
+    let result = parser.parse();
+    let rest_tokens = parser.pop_all();
+    (result, rest_tokens)
 }
 
 pub fn read(env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -29,6 +30,5 @@ pub fn read(env: EnvPtr) -> Result<ValuePtr, Exception> {
             Ok(buf)
         })
         .and_then(|buf| tokenize(buf, env))
-        .and_then(|tokens| parse(tokens))
-        .and_then(|pair| Ok(pair.0))
+        .and_then(|tokens| parse(tokens).0)
 }

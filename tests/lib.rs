@@ -27,8 +27,8 @@ fn test_examples() {
         file.read_to_string(&mut content).unwrap();
         let mut tokens = tokenize(content, env.clone()).unwrap();
         loop {
-            let (val, rest_tokens) = parse_and_eval(tokens, env.clone()).unwrap();
-            assert_eq!(val, expected_value);
+            let (val, rest_tokens) = parse_and_eval(tokens, env.clone());
+            assert_eq!(val.unwrap(), expected_value);
             match rest_tokens {
                 None => break,
                 Some(rest_tokens) => {

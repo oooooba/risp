@@ -8,11 +8,15 @@ use core::env::EnvPtr;
 use reader::parse;
 use evaluator::eval;
 
-pub fn parse_and_eval(tokens: ValuePtr, env: EnvPtr) -> Result<(ValuePtr, Option<ValuePtr>), Exception> {
+pub fn parse_and_eval(tokens: ValuePtr, env: EnvPtr) -> (Result<ValuePtr, Exception>, Option<ValuePtr>) {
     assert!(tokens.kind.is_list() || tokens.kind.is_nil());
-    let (ast, rest_tokens) = parse(tokens)?;
-    let val = eval(ast, env)?;
-    Ok((val, rest_tokens))
+    let (ast, rest_tokens) = parse(tokens);
+    let ast = match ast {
+        Ok(ast) => ast,
+        err @ Err(_) => return (err, rest_tokens),
+    };
+    let result = eval(ast, env);
+    (result, rest_tokens)
 }
 
 #[cfg(test)]
@@ -31,8 +35,8 @@ mod tests {
             Value::create_integer(2),
             Value::create_keyword(")".to_string()),
             Value::create_boolean(true),
-        ]), env), Ok((Value::create_integer(3), Some(Value::create_list_from_vec(vec![
+        ]), env), (Ok(Value::create_integer(3)), Some(Value::create_list_from_vec(vec![
             Value::create_boolean(true),
-        ])))));
+        ]))));
     }
 }
