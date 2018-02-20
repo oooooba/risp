@@ -42,6 +42,15 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     eval(body.clone(), let_env)
 }
 
+pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, Exception> {
+    use self::ValueKind::*;
+    assert!(ast.kind.is_list());
+    Ok(match ast.kind {
+        ListValue(ref car, _) => car.clone(),
+        _ => unreachable!(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -64,5 +73,14 @@ mod tests {
             ]),
             Value::create_symbol("y".to_string()),
         ]), env), Ok(Value::create_integer(3)));
+    }
+
+    #[test]
+    fn test_specialform_quote() {
+        let env = Env::create_default();
+        assert_eq!(eval(Value::create_list_from_vec(vec![
+            Value::create_symbol("quote".to_string()),
+            Value::create_symbol("x".to_string()),
+        ]), env), Ok(Value::create_symbol("x".to_string())));
     }
 }
