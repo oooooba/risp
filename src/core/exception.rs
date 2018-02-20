@@ -1,4 +1,5 @@
 use core::value::ValuePtr;
+use core::env::EnvPtr;
 
 #[derive(PartialEq, Debug)]
 pub enum ExceptionKind {
@@ -14,6 +15,7 @@ pub enum ExceptionKind {
     EvaluatorUndefinedSymbolException(String),
     EvaluatorTypeException(&'static str, &'static str), // (expected, actual)
     EvaluatorArityException(usize, usize), // (expected, actual)
+    Continuation(EnvPtr),
 }
 
 #[derive(PartialEq, Debug)]

@@ -51,6 +51,27 @@ pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, 
     })
 }
 
+pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    use self::ValueKind::*;
+    assert!(ast.kind.is_list());
+    let (name, rest) = match ast.kind {
+        ListValue(ref car, ref cdr) => match car.kind {
+            SymbolValue(ref symbol) => (symbol.clone(), cdr),
+            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(
+                ValueKind::type_str_symbol(), car.kind.as_type_str()), None)),
+        }
+        _ => unreachable!(),
+    };
+    let expr = match rest.kind {
+        ListValue(ref car, _) => car,
+        _ => rest,
+    };
+    let val = eval(expr.clone(), env.clone())?;
+    Err(Exception::new(
+        ExceptionKind::Continuation(Env::create(vec![(name, val)], Some(env))),
+        None))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
