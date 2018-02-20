@@ -4,13 +4,11 @@ pub mod builtinfunc;
 use core::value::{ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
-//use evaluator::specialform;
-use evaluator::specialform::eval_specialform_let;
 
 fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     if car.kind.matches_symbol("let") {
-        return eval_specialform_let(cdr, env);
+        return specialform::eval_specialform_let(cdr, env);
     } else if car.kind.matches_symbol("quote") {
         return specialform::eval_specialform_quote(cdr, env);
     }
