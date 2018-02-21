@@ -1,4 +1,4 @@
-use core::value::{ValueKind, ValuePtr};
+use core::value::{Value, ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use evaluator::eval;
@@ -96,6 +96,38 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     }
 }
 
+pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    use self::ValueKind::*;
+    assert!(ast.kind.is_list());
+    let (params, rest) = match ast.kind {
+        ListValue(ref car, ref cdr) => {
+            match car.kind {
+                VectorValue(ref params) => (params, cdr),
+                _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
+            }
+        }
+        _ => unreachable!(),
+    };
+    let body = match rest.kind {
+        ListValue(ref car, ref cdr) => {
+            assert!(cdr.kind.is_nil());
+            car
+        }
+        _ => unreachable!(),
+    };
+
+    let mut param_list = vec![];
+    for param in params.iter() {
+        let symbol = match param.kind {
+            SymbolValue(ref s) => s.clone(),
+            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), param.kind.as_type_str()), None)),
+        };
+        param_list.push(symbol);
+    }
+
+    Ok(Value::create_closure(FuncKind::AstFunc(body.clone()), param_list, env))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,5 +175,26 @@ mod tests {
             Value::create_nil(),
             Value::create_integer(1),
         ]), env), Ok(Value::create_nil()));
+    }
+
+    #[test]
+    fn test_specialform_fn() {
+        let env = Env::create_default();
+        assert_eq!(eval(Value::create_list_from_vec(vec![
+            Value::create_list_from_vec(vec![
+                Value::create_symbol("fn".to_string()),
+                Value::create_vector(vec![
+                    Value::create_symbol("x".to_string()),
+                    Value::create_symbol("y".to_string()),
+                ]),
+                Value::create_list_from_vec(vec![
+                    Value::create_symbol("+".to_string()),
+                    Value::create_symbol("x".to_string()),
+                    Value::create_symbol("y".to_string()),
+                ]),
+            ]),
+            Value::create_integer(1),
+            Value::create_integer(2),
+        ]), env.clone()), Ok(Value::create_integer(3)));
     }
 }
