@@ -72,6 +72,30 @@ pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
         None))
 }
 
+pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    use self::ValueKind::*;
+    assert!(ast.kind.is_list());
+    let (cond_expr, rest) = match ast.kind {
+        ListValue(ref car, ref cdr) => (car, cdr),
+        _ => unreachable!(),
+    };
+    let (true_expr, rest) = match rest.kind {
+        ListValue(ref car, ref cdr) => (car, cdr),
+        _ => unreachable!(),
+    };
+    let false_expr = match rest.kind {
+        ListValue(ref car, _) => car,
+        _ => rest,
+    };
+
+    let cond = eval(cond_expr.clone(), env.clone())?;
+    match cond.kind {
+        BooleanValue(false) => eval(false_expr.clone(), env),
+        NilValue => eval(false_expr.clone(), env),
+        _ => eval(true_expr.clone(), env),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -103,5 +127,21 @@ mod tests {
             Value::create_symbol("quote".to_string()),
             Value::create_symbol("x".to_string()),
         ]), env), Ok(Value::create_symbol("x".to_string())));
+    }
+
+    #[test]
+    fn test_specialform_if() {
+        let env = Env::create_default();
+        assert_eq!(eval(Value::create_list_from_vec(vec![
+            Value::create_symbol("if".to_string()),
+            Value::create_boolean(true),
+            Value::create_integer(1),
+            Value::create_integer(2),
+        ]), env.clone()), Ok(Value::create_integer(1)));
+        assert_eq!(eval(Value::create_list_from_vec(vec![
+            Value::create_symbol("if".to_string()),
+            Value::create_nil(),
+            Value::create_integer(1),
+        ]), env), Ok(Value::create_nil()));
     }
 }
