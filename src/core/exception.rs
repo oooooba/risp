@@ -40,5 +40,11 @@ impl Exception {
     pub fn is_ereader_end_of_input_exception(&self) -> bool {
         self.kind == ExceptionKind::ReaderEndOfInputException
     }
-}
 
+    pub fn extract_env_from_continuation(&self) -> Option<EnvPtr> {
+        match self.kind {
+            ExceptionKind::Continuation(ref env) => Some(env.clone()),
+            _ => None,
+        }
+    }
+}

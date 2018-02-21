@@ -1,9 +1,15 @@
 use std::rc::Rc;
 use std::collections::HashMap;
 use std::iter::FromIterator;
+use std::env;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 
+use core::parse_and_eval;
 use core::value::{Value, ValuePtr, FuncKind};
 use evaluator::builtinfunc;
+use reader::tokenize;
 
 #[derive(PartialEq, Debug)]
 pub struct Env {
@@ -29,6 +35,30 @@ impl Env {
         Env::new(HashMap::from_iter(pairs), outer)
     }
 
+    pub fn load_library(outer: EnvPtr) -> EnvPtr {
+        let risp_home = env::var("RISP_HOME").unwrap();
+        let core_path: PathBuf = [&risp_home, "library", "core.clj"].iter().collect();
+        let mut file = File::open(core_path).unwrap();
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+        let mut tokens = tokenize(content, outer.clone()).unwrap();
+        let mut outer_env = outer;
+        loop {
+            let (result, rest_tokens) = parse_and_eval(tokens, outer_env.clone());
+            let env = match result {
+                Ok(_) => outer_env,
+                Err(exception) => exception.extract_env_from_continuation().unwrap_or(outer_env),
+            };
+            match rest_tokens {
+                None => return env,
+                Some(rest_tokens) => {
+                    tokens = rest_tokens;
+                }
+            }
+            outer_env = env;
+        }
+    }
+
     pub fn create_default() -> EnvPtr {
         let pairs = vec![
             ("(".to_string(), Value::create_keyword("(".to_string())),
@@ -50,12 +80,8 @@ impl Env {
             ("=".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_equal)),
                                                     vec!["x".to_string(), "y".to_string()],
                                                     Env::create_empty())),
-            ("not".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(|env| {
-                let val = env.lookup(&"%".to_string()).unwrap();
-                Ok(Value::create_boolean(*val == Value::create_boolean(false) || *val == Value::create_nil()))
-            })), vec!["%".to_string()], Env::create_empty())),
         ];
-        Env::new(HashMap::from_iter(pairs), None)
+        Env::load_library(Env::new(HashMap::from_iter(pairs), None))
     }
 
     pub fn lookup(&self, key: &String) -> Option<&ValuePtr> {
