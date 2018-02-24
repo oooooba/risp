@@ -73,25 +73,16 @@ pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 }
 
 pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    use self::ValueKind::*;
     assert!(ast.kind.is_list());
-    let (cond_expr, rest) = match ast.kind {
-        ListValue(ref car, ref cdr) => (car, cdr),
-        _ => unreachable!(),
-    };
-    let (true_expr, rest) = match rest.kind {
-        ListValue(ref car, ref cdr) => (car, cdr),
-        _ => unreachable!(),
-    };
-    let false_expr = match rest.kind {
-        ListValue(ref car, _) => car,
-        _ => rest,
-    };
+    assert!(ast[0].kind.matches_symbol("if"));
+    let cond_expr=&ast[1];
+    let true_expr=&ast[2];
+    let false_expr=&ast[3];
 
     let cond = eval(cond_expr.clone(), env.clone())?;
     match cond.kind {
-        BooleanValue(false) => eval(false_expr.clone(), env),
-        NilValue => eval(false_expr.clone(), env),
+        ValueKind::BooleanValue(false) => eval(false_expr.clone(), env),
+        ValueKind::NilValue => eval(false_expr.clone(), env),
         _ => eval(true_expr.clone(), env),
     }
 }

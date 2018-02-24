@@ -5,6 +5,18 @@ use core::value::{ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
+fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    if ast[0].kind.matches_symbol("if"){
+        specialform::eval_specialform_if(ast, env)
+    } else{
+        match ast.kind{
+            ValueKind::ListValue(ref car, ref cdr) => eval_list(car, cdr, env),
+            _=>unreachable!(),
+        }
+    }
+}
+
 fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     if car.kind.matches_symbol("let") {
@@ -13,8 +25,6 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
         return specialform::eval_specialform_quote(cdr, env);
     } else if car.kind.matches_symbol("def") {
         return specialform::eval_specialform_def(cdr, env);
-    } else if car.kind.matches_symbol("if") {
-        return specialform::eval_specialform_if(cdr, env);
     } else if car.kind.matches_symbol("fn") {
         return specialform::eval_specialform_fn(cdr, env);
     }
@@ -63,7 +73,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         }
         KeywordValue(_) => Ok(ast.clone()),
         ClosureValue(_, _, _) => Ok(ast.clone()),
-        ListValue(ref car, ref cdr) => eval_list(car, cdr, env),
+        ListValue(_, _) => eval_list_trampoline(&ast, env),
         NilValue => Ok(ast.clone()),
         MapValue(_, _) => unimplemented!(),
         BooleanValue(_) => Ok(ast.clone()),
