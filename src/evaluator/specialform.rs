@@ -75,9 +75,9 @@ pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     assert!(ast[0].kind.matches_symbol("if"));
-    let cond_expr=&ast[1];
-    let true_expr=&ast[2];
-    let false_expr=&ast[3];
+    let cond_expr = &ast[1];
+    let true_expr = &ast[2];
+    let false_expr = &ast[3];
 
     let cond = eval(cond_expr.clone(), env.clone())?;
     match cond.kind {

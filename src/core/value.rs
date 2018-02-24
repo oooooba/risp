@@ -206,18 +206,18 @@ impl Value {
     }
 }
 
-impl Index<usize> for Value{
-    type Output=ValuePtr;
+impl Index<usize> for Value {
+    type Output = ValuePtr;
 
-    fn index(&self, index: usize)->&ValuePtr{
+    fn index(&self, index: usize) -> &ValuePtr {
         use self::ValueKind::*;
-        match self.kind{
-            ListValue(ref car, _) if index==0 => car,
-            ListValue(_, ref cdr) if index==1 && !cdr.kind.is_list() => cdr,
-            ListValue(_, ref cdr) if cdr.kind.is_list() => &cdr[index-1],
-            ListValue(_, _)  => panic!(),
+        match self.kind {
+            ListValue(ref car, _) if index == 0 => car,
+            ListValue(_, ref cdr) if index == 1 && !cdr.kind.is_list() => cdr,
+            ListValue(_, ref cdr) if cdr.kind.is_list() => &cdr[index - 1],
+            ListValue(_, _) => panic!(),
             VectorValue(ref vector) => &vector[index],
-            _=> panic!(),
+            _ => panic!(),
         }
     }
 }

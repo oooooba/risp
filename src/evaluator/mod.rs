@@ -7,12 +7,12 @@ use core::env::{Env, EnvPtr};
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    if ast[0].kind.matches_symbol("if"){
+    if ast[0].kind.matches_symbol("if") {
         specialform::eval_specialform_if(ast, env)
-    } else{
-        match ast.kind{
+    } else {
+        match ast.kind {
             ValueKind::ListValue(ref car, ref cdr) => eval_list(car, cdr, env),
-            _=>unreachable!(),
+            _ => unreachable!(),
         }
     }
 }
