@@ -9,6 +9,8 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     assert!(ast.kind.is_list());
     if ast[0].kind.matches_symbol("if") {
         specialform::eval_specialform_if(ast, env)
+    } else if ast[0].kind.matches_symbol("fn") {
+        specialform::eval_specialform_fn(ast, env)
     } else {
         match ast.kind {
             ValueKind::ListValue(ref car, ref cdr) => eval_list(car, cdr, env),
@@ -25,8 +27,6 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
         return specialform::eval_specialform_quote(cdr, env);
     } else if car.kind.matches_symbol("def") {
         return specialform::eval_specialform_def(cdr, env);
-    } else if car.kind.matches_symbol("fn") {
-        return specialform::eval_specialform_fn(cdr, env);
     }
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {

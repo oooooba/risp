@@ -88,35 +88,29 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
 }
 
 pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    use self::ValueKind::*;
     assert!(ast.kind.is_list());
-    let (params, rest) = match ast.kind {
-        ListValue(ref car, ref cdr) => {
-            match car.kind {
-                VectorValue(ref params) => (params, cdr),
-                _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
-            }
-        }
-        _ => unreachable!(),
-    };
-    let body = match rest.kind {
-        ListValue(ref car, ref cdr) => {
-            assert!(cdr.kind.is_nil());
-            car
-        }
-        _ => unreachable!(),
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("fn"));
+
+    let param_vector = match iter.next() {
+        Some(ref vector) if vector.kind.is_vector() => vector.clone(),
+        Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), other.kind.as_type_str()), None)),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
     };
 
-    let mut param_list = vec![];
-    for param in params.iter() {
-        let symbol = match param.kind {
-            SymbolValue(ref s) => s.clone(),
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), param.kind.as_type_str()), None)),
+    let mut params = vec![];
+    for param in Value::iter(&param_vector) {
+        match param.get_as_symbol() {
+            Some(ref symbol) => params.push((*symbol).clone()),
+            None => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), param.kind.as_type_str()), None)),
         };
-        param_list.push(symbol);
     }
 
-    Ok(Value::create_closure(FuncKind::AstFunc(body.clone()), param_list, env))
+    let body_expr = match iter.next() {
+        Some(ref expr) => expr.clone(),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
+    };
+    Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), params, env))
 }
 
 #[cfg(test)]

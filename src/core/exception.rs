@@ -15,6 +15,7 @@ pub enum ExceptionKind {
     EvaluatorUndefinedSymbolException(String),
     EvaluatorTypeException(&'static str, &'static str), // (expected, actual)
     EvaluatorArityException(usize, usize), // (expected, actual)
+    EvaluatorIllegalFormException(&'static str), // (form)
     Continuation(EnvPtr),
 }
 

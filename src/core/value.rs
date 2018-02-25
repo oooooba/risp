@@ -2,6 +2,8 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::Index;
+use std::iter::Iterator;
+use std::slice::Iter;
 
 use core::exception::Exception;
 use core::env::EnvPtr;
@@ -65,6 +67,13 @@ impl ValueKind {
     pub fn is_map(&self) -> bool {
         match self {
             &ValueKind::MapValue(_, _) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_vector(&self) -> bool {
+        match self {
+            &ValueKind::VectorValue(_) => true,
             _ => false,
         }
     }
@@ -203,6 +212,53 @@ impl Value {
 
     pub fn create_vector(vector: Vec<ValuePtr>) -> ValuePtr {
         Value::new(ValueKind::VectorValue(vector))
+    }
+
+    pub fn iter(target: &ValuePtr) -> ValueIterator {
+        use self::ValueIteratorKind::*;
+        let iter = match target.kind {
+            ValueKind::ListValue(_, _) => ListIterator(target.clone()),
+            ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
+            _ => ListIterator(Value::create_nil())
+        };
+        ValueIterator(iter)
+    }
+
+    pub fn get_as_symbol<'a>(&'a self) -> Option<&'a String> {
+        match self.kind {
+            ValueKind::SymbolValue(ref symbol) => Some(symbol),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ValueIteratorKind<'a> {
+    ListIterator(ValuePtr),
+    VectorIterator(Iter<'a, ValuePtr>),
+}
+
+#[derive(Debug)]
+pub struct ValueIterator<'a>(ValueIteratorKind<'a>);
+
+impl<'a> Iterator for ValueIterator<'a> {
+    type Item = ValuePtr;
+
+    fn next(&mut self) -> Option<ValuePtr> {
+        use self::ValueIteratorKind::*;
+        let (val, next_cur) = match self.0 {
+            VectorIterator(ref mut iter) => return match iter.next() {
+                Some(ref val) => Some((*val).clone()),
+                None => None,
+            },
+            ListIterator(ref cur) => match cur.kind {
+                ValueKind::ListValue(ref car, ref cdr) => (Some(car.clone()), cdr.clone()),
+                ValueKind::NilValue => (None, cur.clone()),
+                _ => (Some(cur.clone()), Value::create_nil()),
+            },
+        };
+        self.0 = ListIterator(next_cur);
+        val
     }
 }
 
