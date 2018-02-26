@@ -56,7 +56,7 @@ impl ValueKind {
             _ => false,
         }
     }
-    
+
     pub fn is_list(&self) -> bool {
         match self {
             &ValueKind::ListValue(_, _) => true,
