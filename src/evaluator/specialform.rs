@@ -43,12 +43,17 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 }
 
 pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, Exception> {
-    use self::ValueKind::*;
     assert!(ast.kind.is_list());
-    Ok(match ast.kind {
-        ListValue(ref car, _) => car.clone(),
-        _ => unreachable!(),
-    })
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("quote"));
+
+    let val=match iter.next(){
+        Some(val)=> val,
+            None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("quote"), None)),
+    };
+
+    assert_eq!(iter.next(), None);
+    Ok(val)
 }
 
 pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
