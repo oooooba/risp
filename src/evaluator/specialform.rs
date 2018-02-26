@@ -79,16 +79,28 @@ pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 
 pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    assert!(ast[0].kind.matches_symbol("if"));
-    let cond_expr = &ast[1];
-    let true_expr = &ast[2];
-    let false_expr = &ast[3];
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("if"));
 
-    let cond = eval(cond_expr.clone(), env.clone())?;
+    let cond_expr = match iter.next() {
+        Some(cond_expr) => cond_expr,
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("if"), None)),
+    };
+    let true_expr = match iter.next() {
+        Some(true_expr) => true_expr,
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("if"), None)),
+    };
+    let false_expr = match iter.next() {
+        Some(false_expr) => false_expr,
+        None => Value::create_nil(),
+    };
+    assert_eq!(iter.next(), None);
+
+    let cond = eval(cond_expr, env.clone())?;
     match cond.kind {
-        ValueKind::BooleanValue(false) => eval(false_expr.clone(), env),
-        ValueKind::NilValue => eval(false_expr.clone(), env),
-        _ => eval(true_expr.clone(), env),
+        ValueKind::BooleanValue(false) => eval(false_expr, env),
+        ValueKind::NilValue => eval(false_expr, env),
+        _ => eval(true_expr, env),
     }
 }
 
