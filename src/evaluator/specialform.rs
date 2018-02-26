@@ -52,24 +52,24 @@ pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, 
 }
 
 pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    use self::ValueKind::*;
     assert!(ast.kind.is_list());
-    let (name, rest) = match ast.kind {
-        ListValue(ref car, ref cdr) => match car.kind {
-            SymbolValue(ref symbol) => (symbol.clone(), cdr),
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(
-                ValueKind::type_str_symbol(), car.kind.as_type_str()), None)),
-        }
-        _ => unreachable!(),
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("def"));
+
+    let symbol = match iter.next() {
+        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), other.kind.as_type_str()), None)),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("def"), None)),
     };
-    let expr = match rest.kind {
-        ListValue(ref car, _) => car,
-        _ => rest,
+
+    let body_expr = match iter.next() {
+        Some(body_expr) => body_expr,
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("def"), None)),
     };
-    let val = eval(expr.clone(), env.clone())?;
-    Err(Exception::new(
-        ExceptionKind::Continuation(Env::create(vec![(name, val)], Some(env))),
-        None))
+    let val = eval(body_expr, env.clone())?;
+
+    assert_eq!(iter.next(), None);
+    Err(Exception::new(ExceptionKind::Continuation(Env::create(vec![(symbol, val)], Some(env))), None))
 }
 
 pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {

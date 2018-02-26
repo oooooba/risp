@@ -50,6 +50,13 @@ impl ValueKind {
     pub fn type_str_boolean() -> &'static str { "Boolean" }
     pub fn type_str_vector() -> &'static str { "Vector" }
 
+    pub fn is_symbol(&self) -> bool {
+        match self {
+            &ValueKind::SymbolValue(_) => true,
+            _ => false,
+        }
+    }
+    
     pub fn is_list(&self) -> bool {
         match self {
             &ValueKind::ListValue(_, _) => true,
