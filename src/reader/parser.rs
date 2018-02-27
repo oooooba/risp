@@ -7,7 +7,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: ValuePtr) -> Parser {
-        assert!(tokens.kind.is_list() || tokens.kind.is_nil());
+        assert!(tokens.kind.is_pair() || tokens.kind.is_nil());
         Parser {
             tokens: tokens,
         }
@@ -16,7 +16,7 @@ impl Parser {
     pub fn pop_all(&mut self) -> Option<ValuePtr> {
         let tokens = match self.tokens.kind {
             ValueKind::NilValue => return None,
-            ValueKind::ListValue(_, _) => {
+            ValueKind::PairValue(_, _) => {
                 self.tokens.clone()
             }
             _ => unreachable!(),
@@ -28,7 +28,7 @@ impl Parser {
     fn peek(&self) -> Option<&ValuePtr> {
         match self.tokens.kind {
             ValueKind::NilValue => None,
-            ValueKind::ListValue(ref car, _) => Some(car),
+            ValueKind::PairValue(ref car, _) => Some(car),
             _ => unreachable!(),
         }
     }
@@ -36,7 +36,7 @@ impl Parser {
     fn pop(&mut self) -> Option<ValuePtr> {
         let (token, tokens) = match self.tokens.kind {
             ValueKind::NilValue => (None, self.tokens.clone()),
-            ValueKind::ListValue(ref car, ref cdr) => (Some(car.clone()), cdr.clone()),
+            ValueKind::PairValue(ref car, ref cdr) => (Some(car.clone()), cdr.clone()),
             _ => unreachable!(),
         };
         self.tokens = tokens;

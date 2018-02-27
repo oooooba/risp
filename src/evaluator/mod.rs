@@ -6,7 +6,7 @@ use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
+    assert!(ast.kind.is_pair());
     if ast[0].kind.matches_symbol("if") {
         specialform::eval_specialform_if(ast, env)
     } else if ast[0].kind.matches_symbol("fn") {
@@ -17,7 +17,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         specialform::eval_specialform_quote(ast, env)
     } else {
         match ast.kind {
-            ValueKind::ListValue(ref car, ref cdr) => eval_list(car, cdr, env),
+            ValueKind::PairValue(ref car, ref cdr) => eval_list(car, cdr, env),
             _ => unreachable!(),
         }
     }
@@ -40,7 +40,7 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
             let mut cur = cdr;
             for param in params.iter() {
                 let arg = match cur.kind {
-                    ListValue(ref arg, ref rest) => {
+                    PairValue(ref arg, ref rest) => {
                         cur = rest;
                         eval(arg.clone(), env.clone())?
                     }
@@ -73,7 +73,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         }
         KeywordValue(_) => Ok(ast.clone()),
         ClosureValue(_, _, _) => Ok(ast.clone()),
-        ListValue(_, _) => eval_list_trampoline(&ast, env),
+        PairValue(_, _) => eval_list_trampoline(&ast, env),
         NilValue => Ok(ast.clone()),
         MapValue(_, _) => unimplemented!(),
         BooleanValue(_) => Ok(ast.clone()),

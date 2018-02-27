@@ -5,9 +5,9 @@ use evaluator::eval;
 
 pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
-    assert!(ast.kind.is_list());
+    assert!(ast.kind.is_pair());
     let (bindings, rest) = match ast.kind {
-        ListValue(ref car, ref cdr) => {
+        PairValue(ref car, ref cdr) => {
             match car.kind {
                 VectorValue(ref bindings) => (bindings, cdr),
                 _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
@@ -33,7 +33,7 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     let let_env = Env::create(pairs, Some(env));
 
     let body = match rest.kind {
-        ListValue(ref car, ref cdr) => {
+        PairValue(ref car, ref cdr) => {
             assert!(cdr.kind.is_nil());
             car
         }
@@ -43,7 +43,7 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 }
 
 pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
+    assert!(ast.kind.is_pair());
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("quote"));
 
@@ -57,7 +57,7 @@ pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, 
 }
 
 pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
+    assert!(ast.kind.is_pair());
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("def"));
 
@@ -78,7 +78,7 @@ pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 }
 
 pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
+    assert!(ast.kind.is_pair());
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("if"));
 
@@ -105,7 +105,7 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
 }
 
 pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
+    assert!(ast.kind.is_pair());
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("fn"));
 

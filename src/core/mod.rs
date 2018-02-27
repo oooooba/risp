@@ -9,7 +9,7 @@ use reader::parse;
 use evaluator::eval;
 
 pub fn parse_and_eval(tokens: ValuePtr, env: EnvPtr) -> (Result<ValuePtr, Exception>, Option<ValuePtr>) {
-    assert!(tokens.kind.is_list() || tokens.kind.is_nil());
+    assert!(tokens.kind.is_pair() || tokens.kind.is_nil());
     let (ast, rest_tokens) = parse(tokens);
     let ast = match ast {
         Ok(ast) => ast,
