@@ -247,6 +247,24 @@ pub enum ValueIteratorKind<'a> {
 #[derive(Debug)]
 pub struct ValueIterator<'a>(ValueIteratorKind<'a>);
 
+impl<'a> ValueIterator<'a> {
+    pub fn rest(&mut self) -> ValuePtr {
+        use self::ValueIteratorKind::*;
+        let rest_val = match self.0 {
+            ListIterator(ref cur) => cur.clone(),
+            VectorIterator(ref mut iter) => {
+                let mut rest_val = vec![];
+                while let Some(val) = iter.next() {
+                    rest_val.push(val.clone());
+                }
+                return Value::create_vector(rest_val);
+            }
+        };
+        self.0 = ListIterator(Value::create_nil());
+        rest_val
+    }
+}
+
 impl<'a> Iterator for ValueIterator<'a> {
     type Item = ValuePtr;
 
@@ -306,6 +324,29 @@ mod tests {
             ]);
             let rhs_map_value = Value::create_map(map123, Value::create_nil());
             assert_eq!(lhs_map_value, rhs_map_value);
+        }
+    }
+
+    #[test]
+    fn test_iterator() {
+        {
+            let list_val = Value::create_list_from_vec(vec![
+                Value::create_integer(1),
+                Value::create_integer(2),
+                Value::create_integer(3),
+            ]);
+            let mut iter = Value::iter(&list_val);
+            assert_eq!(iter.next(), Some(Value::create_integer(1)));
+            assert_eq!(iter.rest(), Value::create_list_from_vec(vec![
+                Value::create_integer(2),
+                Value::create_integer(3),
+            ]));
+            assert_eq!(iter.next(), None);
+            assert_eq!(list_val, Value::create_list_from_vec(vec![
+                Value::create_integer(1),
+                Value::create_integer(2),
+                Value::create_integer(3),
+            ]));
         }
     }
 }
