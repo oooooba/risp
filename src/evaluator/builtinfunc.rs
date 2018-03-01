@@ -57,3 +57,12 @@ pub fn op_equal(env: EnvPtr) -> Result<ValuePtr, Exception> {
 
     Ok(Value::create_boolean(x_val == y_val))
 }
+
+pub fn cons(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let elem_val = env.lookup(&"%1".to_string()).unwrap();
+    let list_val = env.lookup(&"%2".to_string()).unwrap();
+    if !list_val.kind.is_pair() {
+        return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_pair(), list_val.kind.as_type_str()), None));
+    }
+    Ok(Value::create_pair(elem_val.clone(), list_val.clone()))
+}

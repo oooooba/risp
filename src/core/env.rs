@@ -80,6 +80,9 @@ impl Env {
             ("=".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_equal)),
                                                     vec!["x".to_string(), "y".to_string()],
                                                     Env::create_empty())),
+            ("cons".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::cons)),
+                                                       vec!["%1".to_string(), "%2".to_string()],
+                                                       Env::create_empty())),
         ];
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))
     }
