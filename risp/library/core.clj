@@ -5,3 +5,6 @@
         (if (= x nil)
           true
           false))))
+
+(def list
+  (fn [& l] l))
