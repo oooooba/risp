@@ -89,6 +89,10 @@ impl Env {
                                                        None,
                                                        FuncParam::new(vec!["%1".to_string(), "%2".to_string()], None),
                                                        Env::create_empty())),
+            ("first".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::builtinfunc_first)),
+                                                        None,
+                                                        FuncParam::new(vec!["%1".to_string()], None),
+                                                        Env::create_empty())),
         ];
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))
     }

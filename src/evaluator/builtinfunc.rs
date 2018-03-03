@@ -66,3 +66,16 @@ pub fn cons(env: EnvPtr) -> Result<ValuePtr, Exception> {
     }
     Ok(Value::create_pair(elem_val.clone(), list_val.clone()))
 }
+
+pub fn builtinfunc_first(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let val = env.lookup(&"%1".to_string()).unwrap();
+    match val.kind {
+        ValueKind::PairValue(ref car, _) => Ok(car.clone()),
+        ValueKind::VectorValue(ref vector) => if vector.len() == 0 {
+            Ok(Value::create_nil())
+        } else {
+            Ok(vector[0].clone())
+        }
+        _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()), None))
+    }
+}
