@@ -47,9 +47,9 @@ pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, 
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("quote"));
 
-    let val=match iter.next(){
-        Some(val)=> val,
-            None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("quote"), None)),
+    let val = match iter.next() {
+        Some(val) => val,
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("quote"), None)),
     };
 
     assert_eq!(iter.next(), None);
