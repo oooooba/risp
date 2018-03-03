@@ -157,15 +157,6 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     };
 
     let param = parse_fn_param_vec(&param_vector)?;
-    /*
-    let mut params = vec![];
-    for param in Value::iter(&param_vector) {
-        match param.get_as_symbol() {
-            Some(ref symbol) => params.push((*symbol).clone()),
-            None => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), param.kind.as_type_str()), None)),
-        };
-    }
-    */
 
     let body_expr = match iter.next() {
         Some(ref expr) => expr.clone(),
