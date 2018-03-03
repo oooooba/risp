@@ -30,13 +30,16 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
     }
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
-        ClosureValue(ref func, ref params, ref closure_env) => {
+        ClosureValue(ref func, ref funcname, ref params, ref closure_env) => {
             let len_params = params.len();
             let len_args = cdr.kind.length_list();
             if len_params != len_args {
                 return Err(Exception::new(ExceptionKind::EvaluatorArityException(len_params, len_args), None));
             }
             let mut pairs = vec![];
+            if let &Some(ref name) = funcname {
+                pairs.push((name.clone(), evaled_car.clone()));
+            }
             let mut cur = cdr;
             for param in params.iter() {
                 let arg = match cur.kind {
@@ -72,7 +75,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
             }
         }
         KeywordValue(_) => Ok(ast.clone()),
-        ClosureValue(_, _, _) => Ok(ast.clone()),
+        ClosureValue(_, _, _, _) => Ok(ast.clone()),
         PairValue(_, _) => eval_list_trampoline(&ast, env),
         NilValue => Ok(ast.clone()),
         MapValue(_, _) => unimplemented!(),
@@ -127,7 +130,7 @@ mod tests {
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
                 ("y".to_string(), Value::create_integer(2)),
-                ("f".to_string(), Value::create_closure(func, vec!["x".to_string()], closure_env)),
+                ("f".to_string(), Value::create_closure(func, None, vec!["x".to_string()], closure_env)),
             ], None);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),
@@ -141,7 +144,7 @@ mod tests {
             ], None);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
-                ("f".to_string(), Value::create_closure(func, vec!["x".to_string()], closure_env)),
+                ("f".to_string(), Value::create_closure(func, None, vec!["x".to_string()], closure_env)),
             ], None);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),

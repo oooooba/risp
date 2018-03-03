@@ -106,8 +106,18 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
 
 pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_pair());
-    let mut iter = Value::iter(ast);
+    let mut iter = Value::iter(ast).peekable();
     assert!(iter.next().unwrap().kind.matches_symbol("fn"));
+
+    let has_funcname = match iter.peek() {
+        Some(val) => val.kind.is_symbol(),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
+    };
+    let funcname = if has_funcname {
+        Some(iter.next().unwrap().get_as_symbol().unwrap().clone())
+    } else {
+        None
+    };
 
     let param_vector = match iter.next() {
         Some(ref vector) if vector.kind.is_vector() => vector.clone(),
@@ -127,7 +137,7 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
         Some(ref expr) => expr.clone(),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
     };
-    Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), params, env))
+    Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), funcname, params, env))
 }
 
 #[cfg(test)]

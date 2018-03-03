@@ -15,7 +15,7 @@ pub enum ValueKind {
     SymbolValue(String),
     KeywordValue(String),
     PairValue(ValuePtr, ValuePtr),
-    ClosureValue(FuncKind, Vec<String>, EnvPtr), // (body, params, env)
+    ClosureValue(FuncKind, Option<String>, Vec<String>, EnvPtr), // (body, funcname, params, env)
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
     BooleanValue(bool),
@@ -31,7 +31,7 @@ impl ValueKind {
             &SymbolValue(_) => ValueKind::type_str_symbol(),
             &KeywordValue(_) => ValueKind::type_str_keyword(),
             &PairValue(_, _) => ValueKind::type_str_pair(),
-            &ClosureValue(_, _, _) => ValueKind::type_str_closure(),
+            &ClosureValue(_, _, _, _) => ValueKind::type_str_closure(),
             &NilValue => ValueKind::type_str_nil(),
             &MapValue(_, _) => ValueKind::type_str_map(),
             &BooleanValue(_) => ValueKind::type_str_boolean(),
@@ -199,8 +199,8 @@ impl Value {
         list
     }
 
-    pub fn create_closure(func: FuncKind, params: Vec<String>, env: EnvPtr) -> ValuePtr {
-        Value::new(ValueKind::ClosureValue(func, params, env))
+    pub fn create_closure(func: FuncKind, funcname: Option<String>, params: Vec<String>, env: EnvPtr) -> ValuePtr {
+        Value::new(ValueKind::ClosureValue(func, funcname, params, env))
     }
 
     pub fn create_nil() -> ValuePtr {
