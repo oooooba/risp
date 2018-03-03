@@ -11,6 +11,7 @@ const CHAR_BACKSLASH: char = '\\';
 const CHAR_L_BRACKET: char = '[';
 const CHAR_R_BRACKET: char = ']';
 const CHAR_COLON: char = ':';
+const CHAR_AMP: char = '&';
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA
@@ -175,6 +176,9 @@ impl Tokenizer {
                 None
             } else if c == CHAR_COLON {
                 Some(self.tokenize_keyword())
+            } else if c == CHAR_AMP {
+                self.ahead(1);
+                Some(Ok(Value::create_keyword(CHAR_AMP.to_string())))
             } else {
                 Some(self.tokenize_symbol())
             };
