@@ -1,4 +1,4 @@
-use core::value::{Value, ValueKind, ValuePtr, FuncKind};
+use core::value::{Value, ValueKind, ValuePtr, FuncKind, FuncParam};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use evaluator::eval;
@@ -104,6 +104,37 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     }
 }
 
+fn parse_fn_param_vec(param_vec: &ValuePtr) -> Result<FuncParam, Exception> {
+    let mut params = vec![];
+    let mut declares_rest_param = false;
+    let mut iter = Value::iter(param_vec);
+
+    while let Some(param) = iter.next() {
+        match param.kind {
+            ValueKind::SymbolValue(ref symbol) => params.push(symbol.clone()),
+            ValueKind::KeywordValue(ref keyword) if keyword == "&" => {
+                declares_rest_param = true;
+                break;
+            }
+            _ => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
+        }
+    }
+
+    let mut rest_param = None;
+    if declares_rest_param {
+        match iter.next() {
+            Some(ref symbol) if symbol.kind.is_symbol() => rest_param = Some(symbol.get_as_symbol().unwrap().clone()),
+            _ => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
+        }
+    }
+
+    if iter.next() != None {
+        return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None));
+    }
+
+    Ok(FuncParam::new(params, rest_param))
+}
+
 pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_pair());
     let mut iter = Value::iter(ast).peekable();
@@ -125,6 +156,8 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
     };
 
+    let param = parse_fn_param_vec(&param_vector)?;
+    /*
     let mut params = vec![];
     for param in Value::iter(&param_vector) {
         match param.get_as_symbol() {
@@ -132,12 +165,13 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
             None => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), param.kind.as_type_str()), None)),
         };
     }
+    */
 
     let body_expr = match iter.next() {
         Some(ref expr) => expr.clone(),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
     };
-    Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), funcname, params, env))
+    Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), funcname, param, env))
 }
 
 #[cfg(test)]

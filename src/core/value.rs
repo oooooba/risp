@@ -15,7 +15,7 @@ pub enum ValueKind {
     SymbolValue(String),
     KeywordValue(String),
     PairValue(ValuePtr, ValuePtr),
-    ClosureValue(FuncKind, Option<String>, Vec<String>, EnvPtr), // (body, funcname, params, env)
+    ClosureValue(FuncKind, Option<String>, FuncParam, EnvPtr), // (body, funcname, param, env)
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
     BooleanValue(bool),
@@ -149,6 +149,21 @@ pub enum FuncKind {
     BuiltinFunc(Box<Fn(EnvPtr) -> Result<ValuePtr, Exception>>),
 }
 
+#[derive(Debug)]
+pub struct FuncParam {
+    pub params: Vec<String>,
+    pub rest_param: Option<String>,
+}
+
+impl FuncParam {
+    pub fn new(params: Vec<String>, rest_param: Option<String>) -> FuncParam {
+        FuncParam {
+            params: params,
+            rest_param: rest_param,
+        }
+    }
+}
+
 impl fmt::Debug for FuncKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::FuncKind::*;
@@ -199,8 +214,8 @@ impl Value {
         list
     }
 
-    pub fn create_closure(func: FuncKind, funcname: Option<String>, params: Vec<String>, env: EnvPtr) -> ValuePtr {
-        Value::new(ValueKind::ClosureValue(func, funcname, params, env))
+    pub fn create_closure(func: FuncKind, funcname: Option<String>, param: FuncParam, env: EnvPtr) -> ValuePtr {
+        Value::new(ValueKind::ClosureValue(func, funcname, param, env))
     }
 
     pub fn create_nil() -> ValuePtr {

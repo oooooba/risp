@@ -7,7 +7,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use core::parse_and_eval;
-use core::value::{Value, ValuePtr, FuncKind};
+use core::value::{Value, ValuePtr, FuncKind, FuncParam};
 use evaluator::builtinfunc;
 use reader::tokenize;
 
@@ -67,27 +67,27 @@ impl Env {
             ("]".to_string(), Value::create_keyword("]".to_string())),
             ("+".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_add_integer)),
                                                     None,
-                                                    vec!["%1".to_string(), "%2".to_string()],
+                                                    FuncParam::new(vec!["%1".to_string(), "%2".to_string()], None),
                                                     Env::create_empty())),
             ("-".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_sub_integer)),
                                                     None,
-                                                    vec!["%1".to_string(), "%2".to_string()],
+                                                    FuncParam::new(vec!["%1".to_string(), "%2".to_string()], None),
                                                     Env::create_empty())),
             ("*".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_mul_integer)),
                                                     None,
-                                                    vec!["%1".to_string(), "%2".to_string()],
+                                                    FuncParam::new(vec!["%1".to_string(), "%2".to_string()], None),
                                                     Env::create_empty())),
             ("/".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_div_integer)),
                                                     None,
-                                                    vec!["%1".to_string(), "%2".to_string()],
+                                                    FuncParam::new(vec!["%1".to_string(), "%2".to_string()], None),
                                                     Env::create_empty())),
             ("=".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::op_equal)),
                                                     None,
-                                                    vec!["x".to_string(), "y".to_string()],
+                                                    FuncParam::new(vec!["x".to_string(), "y".to_string()], None),
                                                     Env::create_empty())),
             ("cons".to_string(), Value::create_closure(FuncKind::BuiltinFunc(Box::new(builtinfunc::cons)),
                                                        None,
-                                                       vec!["%1".to_string(), "%2".to_string()],
+                                                       FuncParam::new(vec!["%1".to_string(), "%2".to_string()], None),
                                                        Env::create_empty())),
         ];
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))

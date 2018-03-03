@@ -1,7 +1,7 @@
 mod specialform;
 pub mod builtinfunc;
 
-use core::value::{ValueKind, ValuePtr, FuncKind};
+use core::value::{Value, ValueKind, ValuePtr, FuncKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
@@ -30,28 +30,52 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
     }
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
-        ClosureValue(ref func, ref funcname, ref params, ref closure_env) => {
-            let len_params = params.len();
-            let len_args = cdr.kind.length_list();
-            if len_params != len_args {
-                return Err(Exception::new(ExceptionKind::EvaluatorArityException(len_params, len_args), None));
+        ClosureValue(ref func, ref funcname, ref param, ref closure_env) => {
+            assert!(cdr.kind.is_pair());
+
+            let mut arg_iter = Value::iter(cdr);
+            let mut num_args = 0;
+
+            let mut unevaled_param_pairs = vec![];
+            for symbol in param.params.iter() {
+                if let Some(arg) = arg_iter.next() {
+                    unevaled_param_pairs.push((symbol, arg));
+                    num_args += 1;
+                } else {
+                    return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
+                }
             }
-            let mut pairs = vec![];
+
+            let mut unevaled_rest_args = vec![];
+            while let Some(arg) = arg_iter.next() {
+                unevaled_rest_args.push(arg);
+                num_args += 1;
+            }
+
+            if param.rest_param == None && unevaled_rest_args.len() > 0 {
+                return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
+            }
+
+            let mut evaled_param_pairs = vec![];
             if let &Some(ref name) = funcname {
-                pairs.push((name.clone(), evaled_car.clone()));
+                evaled_param_pairs.push((name.clone(), evaled_car.clone()));
             }
-            let mut cur = cdr;
-            for param in params.iter() {
-                let arg = match cur.kind {
-                    PairValue(ref arg, ref rest) => {
-                        cur = rest;
-                        eval(arg.clone(), env.clone())?
-                    }
-                    _ => eval(cur.clone(), env.clone())?,
-                };
-                pairs.push((param.clone(), arg));
+            for &(ref symbol, ref arg) in unevaled_param_pairs.iter() {
+                let val = eval(arg.clone(), env.clone())?;
+                evaled_param_pairs.push(((*symbol).clone(), val));
             }
-            let new_env = Env::create(pairs, Some(closure_env.clone()));
+
+            let mut evaled_rest_args = vec![];
+            for arg in unevaled_rest_args.iter() {
+                let val = eval(arg.clone(), env.clone())?;
+                evaled_rest_args.push(val);
+            }
+
+            if let Some(ref symbol) = param.rest_param {
+                evaled_param_pairs.push((symbol.clone(), Value::create_list_from_vec(evaled_rest_args)));
+            }
+
+            let new_env = Env::create(evaled_param_pairs, Some(closure_env.clone()));
             match func {
                 &FuncKind::BuiltinFunc(ref f) => f(new_env),
                 &FuncKind::AstFunc(ref f) => {
@@ -130,7 +154,7 @@ mod tests {
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
                 ("y".to_string(), Value::create_integer(2)),
-                ("f".to_string(), Value::create_closure(func, None, vec!["x".to_string()], closure_env)),
+                ("f".to_string(), Value::create_closure(func, None, FuncParam::new(vec!["x".to_string()], None), closure_env)),
             ], None);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),
@@ -144,7 +168,7 @@ mod tests {
             ], None);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
-                ("f".to_string(), Value::create_closure(func, None, vec!["x".to_string()], closure_env)),
+                ("f".to_string(), Value::create_closure(func, None, FuncParam::new(vec!["x".to_string()], None), closure_env)),
             ], None);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),
