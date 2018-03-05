@@ -79,3 +79,17 @@ pub fn builtinfunc_first(env: EnvPtr) -> Result<ValuePtr, Exception> {
         _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()), None))
     }
 }
+
+pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let val = env.lookup(&"%1".to_string()).unwrap();
+    match val.kind {
+        ValueKind::PairValue(_, ref cdr) => Ok(cdr.clone()),
+        ValueKind::NilValue => Ok(val.clone()),
+        ValueKind::VectorValue(_) => {
+            let mut iter = Value::iter(val);
+            iter.next();
+            Ok(iter.rest())
+        }
+        _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()), None))
+    }
+}
