@@ -93,3 +93,8 @@ pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
         _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()), None))
     }
 }
+
+pub fn builtinfunc_nil_q(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let val = env.lookup(&"%1".to_string()).unwrap();
+    Ok(Value::create_boolean(val.kind.is_nil()))
+}
