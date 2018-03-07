@@ -144,9 +144,11 @@ impl PartialEq for ValueKind {
     }
 }
 
+pub type BuitinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
+
 pub enum FuncKind {
     AstFunc(ValuePtr),
-    BuiltinFunc(Box<Fn(EnvPtr) -> Result<ValuePtr, Exception>>),
+    BuiltinFunc(Box<BuitinFuncType>),
 }
 
 #[derive(Debug)]
