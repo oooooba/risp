@@ -216,8 +216,8 @@ impl Value {
         list
     }
 
-    pub fn create_closure(func: FuncKind, funcname: Option<String>, param: FuncParam, env: EnvPtr) -> ValuePtr {
-        Value::new(ValueKind::ClosureValue(func, funcname, param, env))
+    pub fn create_closure(func: FuncKind, name: Option<String>, param: FuncParam, env: EnvPtr) -> ValuePtr {
+        Value::new(ValueKind::ClosureValue(func, name, param, env))
     }
 
     pub fn create_nil() -> ValuePtr {
