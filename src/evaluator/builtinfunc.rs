@@ -49,8 +49,8 @@ pub fn op_div_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
 }
 
 pub fn op_equal(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let x_str = "x".to_string();
-    let y_str = "y".to_string();
+    let x_str = "%1".to_string();
+    let y_str = "%2".to_string();
 
     let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
     let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
