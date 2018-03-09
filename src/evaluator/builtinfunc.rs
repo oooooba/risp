@@ -10,13 +10,13 @@ enum IntegerBuiltinOperatorKind {
 }
 
 fn op_common_integer(kind: IntegerBuiltinOperatorKind, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let lhs_val = env.lookup(&"%1".to_string()).unwrap();
+    let lhs_val = env.lookup_nth_param(1).unwrap();
     let lhs_int = match lhs_val.kind {
         ValueKind::IntegerValue(n) => n,
         _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), lhs_val.kind.as_type_str()), None)),
     };
 
-    let rhs_val = env.lookup(&"%2".to_string()).unwrap();
+    let rhs_val = env.lookup_nth_param(2).unwrap();
     let rhs_int = match rhs_val.kind {
         ValueKind::IntegerValue(n) => n,
         _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), rhs_val.kind.as_type_str()), None)),
@@ -49,18 +49,14 @@ pub fn op_div_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
 }
 
 pub fn op_equal(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let x_str = "%1".to_string();
-    let y_str = "%2".to_string();
-
-    let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
-    let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
-
+    let x_val = env.lookup_nth_param(1).unwrap();
+    let y_val = env.lookup_nth_param(2).unwrap();
     Ok(Value::create_boolean(x_val == y_val))
 }
 
 pub fn cons(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let elem_val = env.lookup(&"%1".to_string()).unwrap();
-    let list_val = env.lookup(&"%2".to_string()).unwrap();
+    let elem_val = env.lookup_nth_param(1).unwrap();
+    let list_val = env.lookup_nth_param(2).unwrap();
     if !list_val.kind.is_pair() {
         return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_pair(), list_val.kind.as_type_str()), None));
     }
@@ -68,7 +64,7 @@ pub fn cons(env: EnvPtr) -> Result<ValuePtr, Exception> {
 }
 
 pub fn builtinfunc_first(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let val = env.lookup(&"%1".to_string()).unwrap();
+    let val = env.lookup_nth_param(1).unwrap();
     match val.kind {
         ValueKind::PairValue(ref car, _) => Ok(car.clone()),
         ValueKind::VectorValue(ref vector) => if vector.len() == 0 {
@@ -81,7 +77,7 @@ pub fn builtinfunc_first(env: EnvPtr) -> Result<ValuePtr, Exception> {
 }
 
 pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let val = env.lookup(&"%1".to_string()).unwrap();
+    let val = env.lookup_nth_param(1).unwrap();
     match val.kind {
         ValueKind::PairValue(_, ref cdr) => Ok(cdr.clone()),
         ValueKind::NilValue => Ok(val.clone()),
@@ -95,6 +91,6 @@ pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
 }
 
 pub fn builtinfunc_nil_q(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let val = env.lookup(&"%1".to_string()).unwrap();
+    let val = env.lookup_nth_param(1).unwrap();
     Ok(Value::create_boolean(val.kind.is_nil()))
 }

@@ -87,6 +87,10 @@ impl Env {
             }
         }
     }
+
+    pub fn lookup_nth_param(&self, n: usize) -> Option<&ValuePtr> {
+        self.lookup(&format!("%{}", n).to_string())
+    }
 }
 
 fn prepare_builtinfunc(name: &str, f: Box<BuitinFuncType>, num_args: usize) -> (String, ValuePtr) {
