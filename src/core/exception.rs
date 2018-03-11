@@ -1,6 +1,8 @@
 use core::value::ValuePtr;
 use core::env::EnvPtr;
 
+use reader::Token;
+
 #[derive(PartialEq, Debug)]
 pub enum ExceptionKind {
     TokenizerInvalidLexemeException(String),
@@ -12,6 +14,8 @@ pub enum ExceptionKind {
     ParserInvalidStatusException,
     ParserUnexpectedKeywordException(ValuePtr),
     ParserUnterminatedTokensException(ValuePtr),
+    ParserUnterminatedTokens2Exception(Token), // (expected)
+    ParserEmptyTokensException,
     EvaluatorUndefinedSymbolException(String),
     EvaluatorTypeException(&'static str, &'static str), // (expected, actual)
     EvaluatorArityException(usize, usize), // (expected, actual)

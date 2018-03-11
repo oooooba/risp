@@ -1,6 +1,7 @@
 mod tokenizer;
 mod tokenizer2;
 mod parser;
+mod parser2;
 
 use std::io;
 use std::collections::LinkedList;
@@ -18,6 +19,8 @@ enum TokenKind {
     StringToken,
     SymbolToken,
     KeywordToken,
+    TrueToken,
+    FalseToken,
     LParenToken,
     RParenToken,
     LBracketToken,
@@ -40,6 +43,13 @@ impl Token {
 
 pub fn tokenize2(content: String, env: EnvPtr) -> Result<LinkedList<Token>, Exception> {
     tokenizer2::Tokenizer::new(content, env).tokenize()
+}
+
+pub fn parse2(tokens: LinkedList<Token>) -> (Result<ValuePtr, Exception>, Option<LinkedList<Token>>) {
+    let mut parser = parser2::Parser::new(tokens);
+    let result = parser.parse();
+    let rest_tokens = parser.pop_all();
+    (result, rest_tokens)
 }
 
 pub fn tokenize(content: String, env: EnvPtr) -> Result<ValuePtr, Exception> {
