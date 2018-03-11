@@ -1,13 +1,56 @@
 mod tokenizer;
+mod tokenizer2;
 mod parser;
+mod parser2;
 
 use std::io;
+use std::collections::LinkedList;
 
 use core::value::ValuePtr;
 use core::exception::{Exception, ExceptionKind};
 use core::env::EnvPtr;
+use core::exception::InfoKind;
 use self::tokenizer::Tokenizer;
 use self::parser::Parser;
+
+#[derive(PartialEq, Debug)]
+enum TokenKind {
+    IntegerToken,
+    StringToken,
+    SymbolToken,
+    KeywordToken,
+    TrueToken,
+    FalseToken,
+    LParenToken,
+    RParenToken,
+    LBracketToken,
+    RBracketToken,
+    AmpToken,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Token {
+    lexeme: String,
+    kind: TokenKind,
+    info: Option<InfoKind>,
+}
+
+impl Token {
+    fn new(lexeme: String, kind: TokenKind, info: Option<InfoKind>) -> Token {
+        Token { lexeme: lexeme, kind: kind, info: info }
+    }
+}
+
+pub fn tokenize2(content: String, env: EnvPtr) -> Result<LinkedList<Token>, Exception> {
+    tokenizer2::Tokenizer::new(content, env).tokenize()
+}
+
+pub fn parse2(tokens: LinkedList<Token>) -> (Result<ValuePtr, Exception>, Option<LinkedList<Token>>) {
+    let mut parser = parser2::Parser::new(tokens);
+    let result = parser.parse();
+    let rest_tokens = parser.pop_all();
+    (result, rest_tokens)
+}
 
 pub fn tokenize(content: String, env: EnvPtr) -> Result<ValuePtr, Exception> {
     Tokenizer::new(content, env).tokenize()
