@@ -13,7 +13,7 @@ use self::tokenizer::Tokenizer;
 use self::parser::Parser;
 
 #[derive(PartialEq, Debug)]
-enum TokenKind{
+enum TokenKind {
     IntegerToken,
     StringToken,
     SymbolToken,
@@ -26,15 +26,15 @@ enum TokenKind{
 }
 
 #[derive(PartialEq, Debug)]
-pub struct Token{
+pub struct Token {
     lexeme: String,
     kind: TokenKind,
     info: Option<InfoKind>,
 }
 
-impl Token{
-    fn new(lexeme: String, kind: TokenKind, info: Option<InfoKind>)->Token{
-        Token{ lexeme: lexeme, kind: kind, info: info }
+impl Token {
+    fn new(lexeme: String, kind: TokenKind, info: Option<InfoKind>) -> Token {
+        Token { lexeme: lexeme, kind: kind, info: info }
     }
 }
 
