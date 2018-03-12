@@ -20,7 +20,7 @@ fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA
 }
 
-fn is_digit(c: char)->bool{
+fn is_digit(c: char) -> bool {
     c.is_numeric()
 }
 
@@ -53,18 +53,18 @@ impl Tokenizer {
     }
 
     fn sub(&self, pos: usize, len: usize) -> &str {
-        &self.input.as_str()[pos..(pos+len)]
+        &self.input.as_str()[pos..(pos + len)]
     }
 
-    fn create_token(&self, kind: TokenKind, pos: usize, len: usize)->Token{
+    fn create_token(&self, kind: TokenKind, pos: usize, len: usize) -> Token {
         let lexeme = self.sub(pos, len).to_string();
-        let info=Some(InfoKind::TokenizerInfo(pos, len));
+        let info = Some(InfoKind::TokenizerInfo(pos, len));
         Token::new(lexeme, kind, info)
     }
 
-    fn create_invalid_lexeme_exception(&self, pos: usize, len: usize)->Exception{
-        let lexeme=self.sub(pos, len).to_string();
-        let info=Some(InfoKind::TokenizerInfo(pos, len));
+    fn create_invalid_lexeme_exception(&self, pos: usize, len: usize) -> Exception {
+        let lexeme = self.sub(pos, len).to_string();
+        let info = Some(InfoKind::TokenizerInfo(pos, len));
         Exception::new(ExceptionKind::TokenizerInvalidLexemeException(lexeme), info)
     }
 
@@ -104,9 +104,9 @@ impl Tokenizer {
             }
             self.ahead(1);
         }
-        let len=self.pos-pos;
+        let len = self.pos - pos;
         if let Some(kind) = err {
-            let info=Some(InfoKind::TokenizerInfo(pos, len));
+            let info = Some(InfoKind::TokenizerInfo(pos, len));
             Err(Exception::new(kind, info))
         } else {
             Ok(self.create_token(TokenKind::StringToken, pos, len))
@@ -122,18 +122,18 @@ impl Tokenizer {
             }
             self.ahead(1);
         }
-        let len=self.pos-pos;
-        Ok(self.create_token(TokenKind::SymbolToken,pos, len))
+        let len = self.pos - pos;
+        Ok(self.create_token(TokenKind::SymbolToken, pos, len))
     }
 
     fn tokenize_keyword(&mut self) -> Result<Token, Exception> {
         assert_eq!(self.peek(0).unwrap(), CHAR_COLON);
         let pos = self.pos;
-        match self.peek(1){
-            Some(c) if is_grouping_char(c) || is_delim_char(c)=>
+        match self.peek(1) {
+            Some(c) if is_grouping_char(c) || is_delim_char(c) =>
                 return Err(self.create_invalid_lexeme_exception(pos, 2)),
-            Some(_)=>(),
-            None=> return Err(self.create_invalid_lexeme_exception(pos, 1)),
+            Some(_) => (),
+            None => return Err(self.create_invalid_lexeme_exception(pos, 1)),
         }
 
         self.ahead(1);
@@ -143,12 +143,12 @@ impl Tokenizer {
             }
             self.ahead(1);
         }
-        let len=self.pos-pos;
-        Ok(self.create_token(TokenKind::KeywordToken,pos, len))
+        let len = self.pos - pos;
+        Ok(self.create_token(TokenKind::KeywordToken, pos, len))
     }
 
     fn tokenize_number(&mut self) -> Result<Token, Exception> {
-        assert!(is_digit(self.peek(0).unwrap()) || self.peek(0).unwrap()==CHAR_MINUS);
+        assert!(is_digit(self.peek(0).unwrap()) || self.peek(0).unwrap() == CHAR_MINUS);
         let pos = self.pos;
         self.ahead(1);
         let mut is_valid = true;
@@ -164,7 +164,7 @@ impl Tokenizer {
         }
         let len = self.pos - pos;
         if is_valid {
-            Ok(self.create_token(TokenKind::IntegerToken,pos, len))
+            Ok(self.create_token(TokenKind::IntegerToken, pos, len))
         } else {
             Err(self.create_invalid_lexeme_exception(pos, len))
         }
@@ -183,9 +183,9 @@ impl Tokenizer {
             } else if c == CHAR_D_QUOTE {
                 Some(self.tokenize_string()?)
             } else if is_grouping_char(c) {
-                let pos=self.pos;
+                let pos = self.pos;
                 self.ahead(1);
-                let kind=match c {
+                let kind = match c {
                     CHAR_L_PAREN => TokenKind::LParenToken,
                     CHAR_R_PAREN => TokenKind::RParenToken,
                     CHAR_L_BRACKET => TokenKind::LBracketToken,
@@ -196,7 +196,7 @@ impl Tokenizer {
             } else if c == CHAR_COLON {
                 Some(self.tokenize_keyword()?)
             } else if c == CHAR_AMP {
-                let pos=self.pos;
+                let pos = self.pos;
                 self.ahead(1);
                 Some(self.create_token(TokenKind::AmpToken, pos, 1))
             } else if is_delim_char(c) {
@@ -219,8 +219,8 @@ mod tests {
     use super::*;
     use core::env::Env;
 
-    fn s(x: &str)->String{ x.to_string() }
-    fn i(p: usize, l: usize)->Option<InfoKind>{ Some(InfoKind::TokenizerInfo(p, l)) }
+    fn s(x: &str) -> String { x.to_string() }
+    fn i(p: usize, l: usize) -> Option<InfoKind> { Some(InfoKind::TokenizerInfo(p, l)) }
 
     #[test]
     fn test_acceptance() {
@@ -228,22 +228,21 @@ mod tests {
                                   Env::create_default()).tokenize(),
                    Ok(LinkedList::from_iter(vec![
                        Token::new(s("123"), TokenKind::IntegerToken, i(0, 3)),
-                       Token::new(s("-456"), TokenKind::IntegerToken, i(4, 4)),
-            ])));
+                       Token::new(s("-456"), TokenKind::IntegerToken, i(4, 4)), ])));
         assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
                                   Env::create_default()).tokenize(),
                    Ok(LinkedList::from_iter(vec![
                        Token::new(s(r#""abc""#), TokenKind::StringToken, i(0, 5)),
                        Token::new(s(r#""d\ne\\f\"g""#), TokenKind::StringToken, i(6, 12)),
-                       Token::new(s("+"), TokenKind::SymbolToken, i(19,1)),
-                       Token::new(s("-"), TokenKind::SymbolToken, i(21,1)),
-                       Token::new(s("--"), TokenKind::SymbolToken, i(23,2)),
-                       Token::new(s("-h"), TokenKind::SymbolToken, i(26,2)),
+                       Token::new(s("+"), TokenKind::SymbolToken, i(19, 1)),
+                       Token::new(s("-"), TokenKind::SymbolToken, i(21, 1)),
+                       Token::new(s("--"), TokenKind::SymbolToken, i(23, 2)),
+                       Token::new(s("-h"), TokenKind::SymbolToken, i(26, 2)),
                    ])));
         assert_eq!(Tokenizer::new(":a".to_string(),
                                   Env::create_default()).tokenize(),
                    Ok(LinkedList::from_iter(vec![
-                       Token::new(s(":a"), TokenKind::KeywordToken, i(0,2)),
+                       Token::new(s(":a"), TokenKind::KeywordToken, i(0, 2)),
                    ])));
     }
 
