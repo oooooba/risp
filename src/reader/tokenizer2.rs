@@ -123,7 +123,13 @@ impl Tokenizer {
             self.ahead(1);
         }
         let len = self.pos - pos;
-        Ok(self.create_token(TokenKind::SymbolToken, pos, len))
+        let kind = match self.sub(pos, len) {
+            "true" => TokenKind::TrueToken,
+            "false" => TokenKind::TrueToken,
+            "nil" => TokenKind::TrueToken,
+            _ => TokenKind::SymbolToken,
+        };
+        Ok(self.create_token(kind, pos, len))
     }
 
     fn tokenize_keyword(&mut self) -> Result<Token, Exception> {
@@ -228,7 +234,8 @@ mod tests {
                                   Env::create_default()).tokenize(),
                    Ok(LinkedList::from_iter(vec![
                        Token::new(s("123"), TokenKind::IntegerToken, i(0, 3)),
-                       Token::new(s("-456"), TokenKind::IntegerToken, i(4, 4)), ])));
+                       Token::new(s("-456"), TokenKind::IntegerToken, i(4, 4)),
+                   ])));
         assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
                                   Env::create_default()).tokenize(),
                    Ok(LinkedList::from_iter(vec![
@@ -243,6 +250,11 @@ mod tests {
                                   Env::create_default()).tokenize(),
                    Ok(LinkedList::from_iter(vec![
                        Token::new(s(":a"), TokenKind::KeywordToken, i(0, 2)),
+                   ])));
+        assert_eq!(Tokenizer::new("true".to_string(),
+                                  Env::create_default()).tokenize(),
+                   Ok(LinkedList::from_iter(vec![
+                       Token::new(s("true"), TokenKind::TrueToken, i(0, 4)),
                    ])));
     }
 
