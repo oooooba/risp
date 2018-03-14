@@ -22,6 +22,7 @@ enum TokenKind {
     LBracketToken,
     RBracketToken,
     AmpToken,
+    QuoteToken,
 }
 
 #[derive(PartialEq, Debug)]

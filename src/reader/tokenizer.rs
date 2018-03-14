@@ -15,6 +15,7 @@ const CHAR_L_BRACKET: char = '[';
 const CHAR_R_BRACKET: char = ']';
 const CHAR_COLON: char = ':';
 const CHAR_AMP: char = '&';
+const CHAR_QUOTE: char = '\'';
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA
@@ -205,6 +206,10 @@ impl Tokenizer {
                 let pos = self.pos;
                 self.ahead(1);
                 Some(self.create_token(TokenKind::AmpToken, pos, 1))
+            } else if c == CHAR_QUOTE {
+                let pos = self.pos;
+                self.ahead(1);
+                Some(self.create_token(TokenKind::QuoteToken, pos, 1))
             } else if is_delim_char(c) {
                 self.ahead(1);
                 None

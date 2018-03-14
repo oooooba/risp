@@ -117,6 +117,16 @@ impl Parser {
         Ok(Value::create_keyword("&".to_string()))
     }
 
+    fn parse_quote(&mut self) -> Result<ValuePtr, Exception> {
+        assert_eq!(self.peek().unwrap().kind, TokenKind::QuoteToken);
+        self.pop();
+        let val = self.parse()?;
+        Ok(Value::create_list_from_vec(vec![
+            Value::create_symbol("quote".to_string()),
+            val,
+        ]))
+    }
+
     pub fn parse(&mut self) -> Result<ValuePtr, Exception> {
         use self::TokenKind::*;
         match self.peek() {
@@ -129,6 +139,7 @@ impl Parser {
             Some(&Token { kind: LParenToken, .. }) => self.parse_list(),
             Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
             Some(&Token { kind: AmpToken, .. }) => self.parse_amp(), // ToDo: fix
+            Some(&Token { kind: QuoteToken, .. }) => self.parse_quote(),
             None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
             _ => unimplemented!(),
         }
