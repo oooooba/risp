@@ -1,5 +1,4 @@
 use std::collections::LinkedList;
-use std::iter::FromIterator;
 
 use core::exception::{Exception, ExceptionKind, InfoKind};
 use core::env::EnvPtr;
@@ -178,7 +177,7 @@ impl Tokenizer {
     }
 
     pub fn tokenize(&mut self) -> Result<LinkedList<Token>, Exception> {
-        let mut tokens = Vec::new();
+        let mut tokens = LinkedList::new();
         while let Some(c) = self.peek(0) {
             let token = if is_digit(c) {
                 Some(self.tokenize_number()?)
@@ -217,17 +216,18 @@ impl Tokenizer {
                 Some(self.tokenize_symbol()?)
             };
             match token {
-                Some(token) => tokens.push(token),
+                Some(token) => tokens.push_back(token),
                 None => (),
             }
         }
-        Ok(LinkedList::from_iter(tokens))
+        Ok(tokens)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::FromIterator;
     use core::env::Env;
 
     fn s(x: &str) -> String { x.to_string() }
