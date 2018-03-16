@@ -4,42 +4,45 @@ use core::env::{Env, EnvPtr};
 use evaluator::eval;
 
 pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    use self::ValueKind::*;
     assert!(ast.kind.is_pair());
-    let (bindings, rest) = match ast.kind {
-        PairValue(ref car, ref cdr) => {
-            match car.kind {
-                VectorValue(ref bindings) => (bindings, cdr),
-                _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
-            }
-        }
-        _ => unreachable!(),
-    };
-    if bindings.len() % 2 != 0 {
-        return Err(Exception::new(ExceptionKind::EvaluatorArityException(bindings.len() + 1, bindings.len()), None));
-    }
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("let"));
 
-    let mut pairs = vec![];
-    for i in 0..(bindings.len() / 2) {
-        let key_i = i * 2;
-        let key = match bindings[key_i].kind {
-            SymbolValue(ref s) => s.clone(),
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), bindings[key_i].kind.as_type_str()), None)),
+    let bindings = match iter.next() {
+        Some(ref bindings) if bindings.kind.is_vector() => bindings.clone(),
+        Some(_) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("let"), None)),
+    };
+
+    let mut unevaled_pairs: Vec<(String, ValuePtr)> = vec![];
+    let mut bindings_iter = Value::iter(&bindings);
+    loop {
+        let symbol = match bindings_iter.next() {
+            Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+            Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), other.kind.as_type_str()), None)),
+            None => break,
         };
-        let val_i = i * 2 + 1;
-        let val = eval(bindings[val_i].clone(), Env::create(pairs.clone(), Some(env.clone())))?;
-        pairs.push((key, val));
+        let expr = match bindings_iter.next() {
+            Some(expr) => expr,
+            None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalArgumentException(
+                "number of forms in binding vector".to_string()), None)),
+        };
+        unevaled_pairs.push((symbol, expr));
     }
-    let let_env = Env::create(pairs, Some(env));
 
-    let body = match rest.kind {
-        PairValue(ref car, ref cdr) => {
-            assert!(cdr.kind.is_nil());
-            car
-        }
-        _ => unreachable!(),
-    };
-    eval(body.clone(), let_env)
+    let mut evaled_pairs = vec![];
+    for &(ref symbol, ref expr) in unevaled_pairs.iter() {
+        let tmp_env = Env::create(evaled_pairs.clone(), Some(env.clone()));
+        let val = eval(expr.clone(), tmp_env)?;
+        evaled_pairs.push(((*symbol).clone(), val));
+    }
+    let let_env = Env::create(evaled_pairs, Some(env));
+
+    let mut result_value = Value::create_nil();
+    while let Some(expr) = iter.next() {
+        result_value = eval(expr.clone(), let_env.clone())?;
+    }
+    Ok(result_value)
 }
 
 pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, Exception> {

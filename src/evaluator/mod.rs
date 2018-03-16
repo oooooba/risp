@@ -15,6 +15,8 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         specialform::eval_specialform_def(ast, env)
     } else if ast[0].kind.matches_symbol("quote") {
         specialform::eval_specialform_quote(ast, env)
+    } else if ast[0].kind.matches_symbol("let") {
+        specialform::eval_specialform_let(ast, env)
     } else {
         match ast.kind {
             ValueKind::PairValue(ref car, ref cdr) => eval_list(car, cdr, env),
@@ -25,9 +27,6 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
 
 fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
-    if car.kind.matches_symbol("let") {
-        return specialform::eval_specialform_let(cdr, env);
-    }
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
         ClosureValue(ref func, ref funcname, ref param, ref closure_env) => {
