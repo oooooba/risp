@@ -21,6 +21,7 @@ pub enum ExceptionKind {
     EvaluatorArityException(usize, usize), // (expected, actual)
     EvaluatorIllegalFormException(&'static str), // (form)
     EvaluatorIllegalArgumentException(String), // (message)
+    EvaluatorIllegalStateException(String, String), // (form, message)
     Continuation(EnvPtr),
 }
 

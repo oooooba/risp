@@ -168,6 +168,49 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), funcname, param, env))
 }
 
+pub fn eval_specialform_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_pair());
+    let mut iter = Value::iter(ast).peekable();
+    assert!(iter.next().unwrap().kind.matches_symbol("unquote"));
+
+    if !enables {
+        return Err(Exception::new(ExceptionKind::EvaluatorIllegalStateException(
+            "unquote".to_string(),
+            "not in quasiquote form".to_string(),
+        ), None));
+    }
+
+    match iter.next() {
+        Some(expr) => eval(expr, env),
+        None => Ok(Value::create_nil()),
+    }
+}
+
+fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    use self::ValueKind::*;
+    match ast.kind {
+        PairValue(ref car, _) if car.kind.matches_symbol("unquote") =>
+            eval_specialform_unquote(ast, env, true),
+        PairValue(ref car, ref cdr) => {
+            let car = eval_specialform_quasiquote_core(car, env.clone())?;
+            let cdr = eval_specialform_quasiquote_core(cdr, env)?;
+            Ok(Value::create_pair(car, cdr))
+        }
+        _ => Ok(ast.clone())
+    }
+}
+
+pub fn eval_specialform_quasiquote(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_pair());
+    let mut iter = Value::iter(ast).peekable();
+    assert!(iter.next().unwrap().kind.matches_symbol("quasiquote"));
+
+    match iter.next() {
+        Some(ref ast) => eval_specialform_quasiquote_core(ast, env),
+        None => Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("quasiquote"), None)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

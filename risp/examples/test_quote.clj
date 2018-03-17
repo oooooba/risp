@@ -1,0 +1,18 @@
+(= (quote 7) 7)
+(= (quote (1 2 3)) (list 1 2 3))
+(= (quote (1 2 (3 4))) (list 1 2 (list 3 4)))
+
+(= (quasiquote 7) 7)
+(= (quasiquote (1 2 3)) (list 1 2 3))
+(= (quasiquote (1 2 (3 4))) (list 1 2 (list 3 4)))
+(= (quasiquote (nil)) (list nil))
+
+(= (quasiquote (unquote 7)) 7)
+(= (let [a 8] (quasiquote a)) (quote a))
+(= (let [a 8] (quasiquote (unquote a))) 8)
+(= (let [a 8] (quasiquote (1 a 3))) (quote (1 a 3)))
+(= (let [a 8] (quasiquote (1 (unquote a) 3))) (list 1 8 3))
+(= (let [b (quote (1 "b" "d"))] (quasiquote (1 b 3))) (quote (1 b 3)))
+(= (let [b (quote (1 "b" "d"))] (quasiquote (1 (unquote b) 3)))
+   (list 1 (list 1 "b" "d") 3))
+(= (quasiquote ((unquote 1) (unquote 2))) (list 1 2))

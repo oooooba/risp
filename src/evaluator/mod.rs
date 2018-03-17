@@ -17,6 +17,10 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         specialform::eval_specialform_quote(ast, env)
     } else if ast[0].kind.matches_symbol("let") {
         specialform::eval_specialform_let(ast, env)
+    } else if ast[0].kind.matches_symbol("quasiquote") {
+        specialform::eval_specialform_quasiquote(ast, env)
+    } else if ast[0].kind.matches_symbol("unquote") {
+        specialform::eval_specialform_unquote(ast, env, false)
     } else {
         match ast.kind {
             ValueKind::PairValue(ref car, ref cdr) => eval_list(car, cdr, env),
