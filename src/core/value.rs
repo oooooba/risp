@@ -17,7 +17,7 @@ pub enum ValueKind {
     ListValue(ListKind),
     ClosureValue(FuncKind, Option<String>, FuncParam, EnvPtr), // (body, funcname, param, env)
     NilValue,
-    MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
+    MapValue(HashMap<String, ValuePtr>),
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
 }
@@ -39,7 +39,7 @@ impl ValueKind {
             &ListValue(_) => ValueKind::type_str_list(),
             &ClosureValue(_, _, _, _) => ValueKind::type_str_closure(),
             &NilValue => ValueKind::type_str_nil(),
-            &MapValue(_, _) => ValueKind::type_str_map(),
+            &MapValue(_) => ValueKind::type_str_map(),
             &BooleanValue(_) => ValueKind::type_str_boolean(),
             &VectorValue(_) => ValueKind::type_str_vector(),
         }
@@ -79,7 +79,7 @@ impl ValueKind {
 
     pub fn is_map(&self) -> bool {
         match self {
-            &ValueKind::MapValue(_, _) => true,
+            &ValueKind::MapValue(_) => true,
             _ => false,
         }
     }
@@ -89,19 +89,6 @@ impl ValueKind {
             &ValueKind::VectorValue(_) => true,
             _ => false,
         }
-    }
-
-    pub fn flatten_map(&self) -> HashMap<String, ValuePtr> {
-        let (map, extra_map) = match self {
-            &ValueKind::NilValue => return HashMap::new(),
-            &ValueKind::MapValue(ref map, ref extra_map) => (map, extra_map),
-            _ => unreachable!(),
-        };
-        let mut result_map = extra_map.kind.flatten_map();
-        for (k, v) in map.iter() {
-            result_map.insert(k.clone(), v.clone());
-        }
-        result_map
     }
 
     pub fn matches_symbol(&self, expected: &str) -> bool {
@@ -122,7 +109,7 @@ impl PartialEq for ValueKind {
             (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) => lhs == rhs,
             (&ListValue(ref lhs), &ListValue(ref rhs)) => lhs == rhs,
             (&NilValue, &NilValue) => true,
-            (&MapValue(_, _), &MapValue(_, _)) => self.flatten_map() == other.flatten_map(),
+            (&MapValue(ref lhs), &MapValue(ref rhs)) => lhs == rhs,
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
             _ => false,
@@ -214,9 +201,8 @@ impl Value {
         Value::new(ValueKind::NilValue)
     }
 
-    pub fn create_map(map: HashMap<String, ValuePtr>, extra_map: ValuePtr) -> ValuePtr {
-        assert!(extra_map.kind.is_map() || extra_map.kind.is_nil());
-        Value::new(ValueKind::MapValue(map, extra_map))
+    pub fn create_map(map: HashMap<String, ValuePtr>) -> ValuePtr {
+        Value::new(ValueKind::MapValue(map))
     }
 
     pub fn create_boolean(boolean: bool) -> ValuePtr {
@@ -315,27 +301,6 @@ impl Index<usize> for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::iter::FromIterator;
-
-    #[test]
-    fn test_map_value() {
-        {
-            let map1 = HashMap::from_iter(vec![("x".to_string(), Value::create_integer(1))]);
-            let map2 = HashMap::from_iter(vec![("y".to_string(), Value::create_integer(2))]);
-            let map3 = HashMap::from_iter(vec![("z".to_string(), Value::create_integer(3))]);
-            let lhs_map_value = Value::create_map(map1,
-                                                  Value::create_map(map2,
-                                                                    Value::create_map(map3,
-                                                                                      Value::create_nil())));
-            let map123 = HashMap::from_iter(vec![
-                ("x".to_string(), Value::create_integer(1)),
-                ("y".to_string(), Value::create_integer(2)),
-                ("z".to_string(), Value::create_integer(3)),
-            ]);
-            let rhs_map_value = Value::create_map(map123, Value::create_nil());
-            assert_eq!(lhs_map_value, rhs_map_value);
-        }
-    }
 
     #[test]
     fn test_iterator() {

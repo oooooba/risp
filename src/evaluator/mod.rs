@@ -103,7 +103,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         ClosureValue(_, _, _, _) => Ok(ast.clone()),
         ListValue(_) => eval_list_trampoline(&ast, env),
         NilValue => Ok(ast.clone()),
-        MapValue(_, _) => unimplemented!(),
+        MapValue(_) => Ok(ast.clone()),
         BooleanValue(_) => Ok(ast.clone()),
         VectorValue(_) => Ok(ast.clone()),
     }
