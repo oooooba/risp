@@ -16,3 +16,6 @@
 (= (let [b (quote (1 "b" "d"))] (quasiquote (1 (unquote b) 3)))
    (list 1 (list 1 "b" "d") 3))
 (= (quasiquote ((unquote 1) (unquote 2))) (list 1 2))
+
+(= (let [b (quote (1 "b" "d"))] (quasiquote (1 (splice-unquote b) 3)))
+   (list 1 1 "b" "d" 3))

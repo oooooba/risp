@@ -17,6 +17,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         Some(symbol) if symbol.kind.matches_symbol("let") => return specialform::eval_specialform_let(ast, env),
         Some(symbol) if symbol.kind.matches_symbol("quasiquote") => return specialform::eval_specialform_quasiquote(ast, env),
         Some(symbol) if symbol.kind.matches_symbol("unquote") => return specialform::eval_specialform_unquote(ast, env, false),
+        Some(symbol) if symbol.kind.matches_symbol("splice-unquote") => return specialform::eval_specialform_splice_unquote(ast, env, false),
         None => return Ok(Value::create_list(EmptyList)),
         _ => (),
     }

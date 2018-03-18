@@ -186,17 +186,50 @@ pub fn eval_specialform_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> R
     }
 }
 
-fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+pub fn eval_specialform_splice_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    let mut iter = Value::iter(ast).peekable();
+    assert!(iter.next().unwrap().kind.matches_symbol("splice-unquote"));
+
+    if !enables {
+        return Err(Exception::new(ExceptionKind::EvaluatorIllegalStateException(
+            "splice-unquote".to_string(),
+            "not in quasiquote form".to_string(),
+        ), None));
+    }
+
+    match iter.next() {
+        Some(expr) => eval(expr, env),
+        None => Ok(Value::create_nil()),
+    }
+}
+
+fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<(ValuePtr, bool), Exception> {
     use self::ValueKind::*;
     match ast.kind {
         ListValue(ListKind::ConsList(ref car, _)) if car.kind.matches_symbol("unquote") =>
-            eval_specialform_unquote(ast, env, true),
+            eval_specialform_unquote(ast, env, true).map(|val| (val, false)),
+        ListValue(ListKind::ConsList(ref car, _)) if car.kind.matches_symbol("splice-unquote") =>
+            eval_specialform_splice_unquote(ast, env, true).map(|val| (val, true)),
         ListValue(ListKind::ConsList(ref car, ref cdr)) => {
-            let car = eval_specialform_quasiquote_core(car, env.clone())?;
-            let cdr = eval_specialform_quasiquote_core(cdr, env)?;
-            Ok(Value::create_list(ListKind::ConsList(car, cdr)))
+            let (car_val, splices) = eval_specialform_quasiquote_core(car, env.clone())?;
+            let (cdr_val, _) = eval_specialform_quasiquote_core(cdr, env)?;
+            if splices {
+                let mut iter = Value::iter(&car_val);
+                let mut stack = vec![];
+                while let Some(item) = iter.next() {
+                    stack.push(item);
+                }
+                let mut list = cdr_val;
+                while let Some(item) = stack.pop() {
+                    list = Value::create_list(ListKind::ConsList(item, list));
+                }
+                Ok((list, false))
+            } else {
+                Ok((Value::create_list(ListKind::ConsList(car_val, cdr_val)), false))
+            }
         }
-        _ => Ok(ast.clone())
+        _ => Ok((ast.clone(), false))
     }
 }
 
@@ -206,7 +239,7 @@ pub fn eval_specialform_quasiquote(ast: &ValuePtr, env: EnvPtr) -> Result<ValueP
     assert!(iter.next().unwrap().kind.matches_symbol("quasiquote"));
 
     match iter.next() {
-        Some(ref ast) => eval_specialform_quasiquote_core(ast, env),
+        Some(ref ast) => eval_specialform_quasiquote_core(ast, env).map(|t| t.0),
         None => Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("quasiquote"), None)),
     }
 }
