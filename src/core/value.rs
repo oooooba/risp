@@ -14,12 +14,18 @@ pub enum ValueKind {
     StringValue(String),
     SymbolValue(String),
     KeywordValue(String),
-    PairValue(ValuePtr, ValuePtr),
+    ListValue(ListKind),
     ClosureValue(FuncKind, Option<String>, FuncParam, EnvPtr), // (body, funcname, param, env)
     NilValue,
     MapValue(HashMap<String, ValuePtr>, ValuePtr), // (map, extra_map), extra_map must be MapValue or NilValue
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ListKind {
+    ConsList(ValuePtr, ValuePtr), // (car, cdr), cdr must be ListValue
+    EmptyList,
 }
 
 impl ValueKind {
@@ -30,7 +36,7 @@ impl ValueKind {
             &StringValue(_) => ValueKind::type_str_string(),
             &SymbolValue(_) => ValueKind::type_str_symbol(),
             &KeywordValue(_) => ValueKind::type_str_keyword(),
-            &PairValue(_, _) => ValueKind::type_str_pair(),
+            &ListValue(_) => ValueKind::type_str_list(),
             &ClosureValue(_, _, _, _) => ValueKind::type_str_closure(),
             &NilValue => ValueKind::type_str_nil(),
             &MapValue(_, _) => ValueKind::type_str_map(),
@@ -43,7 +49,7 @@ impl ValueKind {
     pub fn type_str_string() -> &'static str { "String" }
     pub fn type_str_symbol() -> &'static str { "Symbol" }
     pub fn type_str_keyword() -> &'static str { "Keyword" }
-    pub fn type_str_pair() -> &'static str { "Pair" }
+    pub fn type_str_list() -> &'static str { "List" }
     pub fn type_str_closure() -> &'static str { "Closure" }
     pub fn type_str_nil() -> &'static str { "Nil" }
     pub fn type_str_map() -> &'static str { "Map" }
@@ -57,9 +63,9 @@ impl ValueKind {
         }
     }
 
-    pub fn is_pair(&self) -> bool {
+    pub fn is_list(&self) -> bool {
         match self {
-            &ValueKind::PairValue(_, _) => true,
+            &ValueKind::ListValue(_) => true,
             _ => false,
         }
     }
@@ -98,26 +104,6 @@ impl ValueKind {
         result_map
     }
 
-    pub fn length_list(&self) -> usize {
-        assert!(self.is_pair() || self.is_nil());
-        let mut len = 0;
-        let mut p = self;
-        loop {
-            match p {
-                &ValueKind::PairValue(_, ref cdr) => {
-                    len += 1;
-                    p = &cdr.kind;
-                }
-                &ValueKind::NilValue => break,
-                _ => {
-                    len += 1;
-                    break;
-                }
-            }
-        }
-        len
-    }
-
     pub fn matches_symbol(&self, expected: &str) -> bool {
         match self {
             &ValueKind::SymbolValue(ref actual) => expected == actual.as_str(),
@@ -134,7 +120,7 @@ impl PartialEq for ValueKind {
             (&StringValue(ref lhs), &StringValue(ref rhs)) => lhs == rhs,
             (&SymbolValue(ref lhs), &SymbolValue(ref rhs)) => lhs == rhs,
             (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) => lhs == rhs,
-            (&PairValue(ref lhs_car, ref lhs_cdr), &PairValue(ref rhs_car, ref rhs_cdr)) => lhs_car == rhs_car && lhs_cdr == rhs_cdr,
+            (&ListValue(ref lhs), &ListValue(ref rhs)) => lhs == rhs,
             (&NilValue, &NilValue) => true,
             (&MapValue(_, _), &MapValue(_, _)) => self.flatten_map() == other.flatten_map(),
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
@@ -204,14 +190,18 @@ impl Value {
         Value::new(ValueKind::KeywordValue(keyword))
     }
 
-    pub fn create_pair(car: ValuePtr, cdr: ValuePtr) -> ValuePtr {
-        Value::new(ValueKind::PairValue(car, cdr))
+    pub fn create_list(list: ListKind) -> ValuePtr {
+        if let ListKind::ConsList(_, ref cdr) = list {
+            assert!(cdr.kind.is_list());
+        }
+        Value::new(ValueKind::ListValue(list))
     }
 
     pub fn create_list_from_vec(mut values: Vec<ValuePtr>) -> ValuePtr {
-        let mut list = Value::create_nil();
+        use self::ListKind::*;
+        let mut list = Value::create_list(EmptyList);
         while let Some(value) = values.pop() {
-            list = Value::create_pair(value, list);
+            list = Value::create_list(ConsList(value, list));
         }
         list
     }
@@ -240,9 +230,9 @@ impl Value {
     pub fn iter(target: &ValuePtr) -> ValueIterator {
         use self::ValueIteratorKind::*;
         let iter = match target.kind {
-            ValueKind::PairValue(_, _) => ListIterator(target.clone()),
+            ValueKind::ListValue(_) => ListIterator(target.clone()),
             ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
-            _ => ListIterator(Value::create_nil())
+            _ => unimplemented!(),
         };
         ValueIterator(iter)
     }
@@ -277,7 +267,7 @@ impl<'a> ValueIterator<'a> {
                 return Value::create_vector(rest_val);
             }
         };
-        self.0 = ListIterator(Value::create_nil());
+        self.0 = ListIterator(Value::create_list(ListKind::EmptyList));
         rest_val
     }
 }
@@ -293,9 +283,12 @@ impl<'a> Iterator for ValueIterator<'a> {
                 None => None,
             },
             ListIterator(ref cur) => match cur.kind {
-                ValueKind::PairValue(ref car, ref cdr) => (Some(car.clone()), cdr.clone()),
-                ValueKind::NilValue => (None, cur.clone()),
-                _ => (Some(cur.clone()), Value::create_nil()),
+                ValueKind::ListValue(ListKind::EmptyList) => return None,
+                ValueKind::ListValue(ListKind::ConsList(ref car, ref cdr)) => {
+                    assert!(cdr.kind.is_list());
+                    (Some(car.clone()), cdr.clone())
+                }
+                _ => unimplemented!(),
             },
         };
         self.0 = ListIterator(next_cur);
@@ -309,10 +302,10 @@ impl Index<usize> for Value {
     fn index(&self, index: usize) -> &ValuePtr {
         use self::ValueKind::*;
         match self.kind {
-            PairValue(ref car, _) if index == 0 => car,
-            PairValue(_, ref cdr) if index == 1 && !cdr.kind.is_pair() => cdr,
-            PairValue(_, ref cdr) if cdr.kind.is_pair() => &cdr[index - 1],
-            PairValue(_, _) => panic!(),
+            ListValue(ListKind::EmptyList) => panic!(),
+            ListValue(ListKind::ConsList(ref car, _)) if index == 0 => car,
+            ListValue(ListKind::ConsList(_, ref cdr)) if index > 0 && cdr.kind.is_list() => &cdr[index - 1],
+            ListValue(_) => panic!(),
             VectorValue(ref vector) => &vector[index],
             _ => panic!(),
         }

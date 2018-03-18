@@ -1,32 +1,29 @@
 mod specialform;
 pub mod builtinfunc;
 
-use core::value::{Value, ValueKind, ValuePtr, FuncKind};
+use core::value::{Value, ValueKind, ValuePtr, FuncKind, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_pair());
-    if ast[0].kind.matches_symbol("if") {
-        specialform::eval_specialform_if(ast, env)
-    } else if ast[0].kind.matches_symbol("fn") {
-        specialform::eval_specialform_fn(ast, env)
-    } else if ast[0].kind.matches_symbol("def") {
-        specialform::eval_specialform_def(ast, env)
-    } else if ast[0].kind.matches_symbol("quote") {
-        specialform::eval_specialform_quote(ast, env)
-    } else if ast[0].kind.matches_symbol("let") {
-        specialform::eval_specialform_let(ast, env)
-    } else if ast[0].kind.matches_symbol("quasiquote") {
-        specialform::eval_specialform_quasiquote(ast, env)
-    } else if ast[0].kind.matches_symbol("unquote") {
-        specialform::eval_specialform_unquote(ast, env, false)
-    } else {
-        match ast.kind {
-            ValueKind::PairValue(ref car, ref cdr) => eval_list(car, cdr, env),
-            _ => unreachable!(),
-        }
+    assert!(ast.kind.is_list());
+    use self::ListKind::*;
+    let mut iter = Value::iter(ast).peekable();
+    match iter.peek() {
+        Some(symbol) if symbol.kind.matches_symbol("if") => return specialform::eval_specialform_if(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("fn") => return specialform::eval_specialform_fn(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("def") => return specialform::eval_specialform_def(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("quote") => return specialform::eval_specialform_quote(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("let") => return specialform::eval_specialform_let(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("quasiquote") => return specialform::eval_specialform_quasiquote(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("unquote") => return specialform::eval_specialform_unquote(ast, env, false),
+        None => return Ok(Value::create_list(EmptyList)),
+        _ => (),
     }
+    let mut iter = Value::iter(ast);
+    let car = iter.next().unwrap();
+    let cdr = iter.rest();
+    eval_list(&car, &cdr, env)
 }
 
 fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -34,7 +31,7 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
         ClosureValue(ref func, ref funcname, ref param, ref closure_env) => {
-            assert!(cdr.kind.is_pair());
+            assert!(cdr.kind.is_list());
 
             let mut arg_iter = Value::iter(cdr);
             let mut num_args = 0;
@@ -103,7 +100,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         }
         KeywordValue(_) => Ok(ast.clone()),
         ClosureValue(_, _, _, _) => Ok(ast.clone()),
-        PairValue(_, _) => eval_list_trampoline(&ast, env),
+        ListValue(_) => eval_list_trampoline(&ast, env),
         NilValue => Ok(ast.clone()),
         MapValue(_, _) => unimplemented!(),
         BooleanValue(_) => Ok(ast.clone()),

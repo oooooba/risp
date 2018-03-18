@@ -1,4 +1,4 @@
-use core::value::{Value, ValueKind, ValuePtr};
+use core::value::{Value, ValueKind, ValuePtr, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::EnvPtr;
 
@@ -57,16 +57,17 @@ pub fn op_equal(env: EnvPtr) -> Result<ValuePtr, Exception> {
 pub fn cons(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let elem_val = env.lookup_nth_param(1).unwrap();
     let list_val = env.lookup_nth_param(2).unwrap();
-    if !list_val.kind.is_pair() {
-        return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_pair(), list_val.kind.as_type_str()), None));
+    if !list_val.kind.is_list() {
+        return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_list(), list_val.kind.as_type_str()), None));
     }
-    Ok(Value::create_pair(elem_val.clone(), list_val.clone()))
+    Ok(Value::create_list(ListKind::ConsList(elem_val.clone(), list_val.clone())))
 }
 
 pub fn builtinfunc_first(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let val = env.lookup_nth_param(1).unwrap();
     match val.kind {
-        ValueKind::PairValue(ref car, _) => Ok(car.clone()),
+        ValueKind::ListValue(ListKind::EmptyList) => Ok(Value::create_nil()),
+        ValueKind::ListValue(ListKind::ConsList(ref car, _)) => Ok(car.clone()),
         ValueKind::VectorValue(ref vector) => if vector.len() == 0 {
             Ok(Value::create_nil())
         } else {
@@ -79,8 +80,9 @@ pub fn builtinfunc_first(env: EnvPtr) -> Result<ValuePtr, Exception> {
 pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let val = env.lookup_nth_param(1).unwrap();
     match val.kind {
-        ValueKind::PairValue(_, ref cdr) => Ok(cdr.clone()),
-        ValueKind::NilValue => Ok(val.clone()),
+        ValueKind::ListValue(ListKind::ConsList(_, ref cdr)) => Ok(cdr.clone()),
+        ValueKind::ListValue(ListKind::EmptyList) => Ok(val.clone()),
+        ValueKind::NilValue => Ok(Value::create_list(ListKind::EmptyList)),
         ValueKind::VectorValue(_) => {
             let mut iter = Value::iter(val);
             iter.next();
