@@ -19,3 +19,10 @@
 
 (= (let [b (quote (1 "b" "d"))] (quasiquote (1 (splice-unquote b) 3)))
    (list 1 1 "b" "d" 3))
+
+(= (quote abc) (quote abc))
+(not (= (quote abc) (quote abcd)))
+(not (= (quote abc) "abc"))
+(not (= "abc" (quote abc)))
+(not (= (quote abc) nil))
+(not (= nil (quote abc)))
