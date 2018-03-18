@@ -1,4 +1,4 @@
-use core::value::{Value, ValueKind, ValuePtr, FuncKind, FuncParam, ListKind};
+use core::value::{Value, ValueKind, ValuePtr, FuncKind, FuncParam, ListKind, ValueIterator};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use evaluator::eval;
@@ -168,14 +168,12 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), funcname, param, env))
 }
 
-pub fn eval_specialform_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast).peekable();
-    assert!(iter.next().unwrap().kind.matches_symbol("unquote"));
+fn eval_specialform_unquote_common(mut iter: ValueIterator, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
+    let name = iter.next().unwrap().get_as_symbol().unwrap().clone();
 
     if !enables {
         return Err(Exception::new(ExceptionKind::EvaluatorIllegalStateException(
-            "unquote".to_string(),
+            name,
             "not in quasiquote form".to_string(),
         ), None));
     }
@@ -186,22 +184,16 @@ pub fn eval_specialform_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> R
     }
 }
 
+pub fn eval_specialform_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    assert!(Value::iter(ast).peekable().peek().unwrap().kind.matches_symbol("unquote"));
+    eval_specialform_unquote_common(Value::iter(ast), env, enables)
+}
+
 pub fn eval_specialform_splice_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast).peekable();
-    assert!(iter.next().unwrap().kind.matches_symbol("splice-unquote"));
-
-    if !enables {
-        return Err(Exception::new(ExceptionKind::EvaluatorIllegalStateException(
-            "splice-unquote".to_string(),
-            "not in quasiquote form".to_string(),
-        ), None));
-    }
-
-    match iter.next() {
-        Some(expr) => eval(expr, env),
-        None => Ok(Value::create_nil()),
-    }
+    assert!(Value::iter(ast).peekable().peek().unwrap().kind.matches_symbol("splice-unquote"));
+    eval_specialform_unquote_common(Value::iter(ast), env, enables)
 }
 
 fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<(ValuePtr, bool), Exception> {
