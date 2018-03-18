@@ -4,6 +4,7 @@ use std::fmt;
 use std::ops::Index;
 use std::iter::Iterator;
 use std::slice::Iter;
+use std::string::ToString;
 
 use core::exception::Exception;
 use core::env::EnvPtr;
@@ -117,6 +118,24 @@ impl PartialEq for ValueKind {
     }
 }
 
+impl ToString for ValueKind {
+    fn to_string(&self) -> String {
+        use self::ValueKind::*;
+        match self {
+            &IntegerValue(ref n) => n.to_string(),
+            &StringValue(ref s) => format!(r#""{}""#, s),
+            &SymbolValue(ref s) => s.clone(),
+            &KeywordValue(ref k) => format!(":{}", k),
+            &ListValue(_) => "LIST".to_string(), // ToDo: fix
+            &ClosureValue(_, _, _, _) => "CLOSURE".to_string(), // ToDo: fix
+            &NilValue => "nil".to_string(),
+            &MapValue(_) => "MAP".to_string(), // ToDo: fix
+            &BooleanValue(ref b) => b.to_string(),
+            &VectorValue(_) => "VECTOR".to_string(), // ToDo: fix
+        }
+    }
+}
+
 pub type BuitinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
 
 pub enum FuncKind {
@@ -152,6 +171,12 @@ impl fmt::Debug for FuncKind {
 #[derive(PartialEq, Debug)]
 pub struct Value {
     pub kind: ValueKind,
+}
+
+impl ToString for Value {
+    fn to_string(&self) -> String {
+        self.kind.to_string()
+    }
 }
 
 pub type ValuePtr = Rc<Value>;

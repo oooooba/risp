@@ -16,7 +16,10 @@ fn main() {
             Ok(tokens) => {
                 println!("read ok: {:?}", tokens);
                 match evaluator::eval(tokens, env.clone()) {
-                    Ok(v) => println!("eval ok: {:?}", v),
+                    Ok(v) => {
+                        println!("eval ok: {:?}", v);
+                        println!("eval ok: {}", v.to_string());
+                    }
                     Err(err) => println!("eval err: {:?}", err),
                 }
             }
