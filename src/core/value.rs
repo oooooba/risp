@@ -139,9 +139,43 @@ impl ToString for ValueKind {
 
 impl Hash for ValueKind {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        use std::mem::transmute;
-        let addr: usize = unsafe { transmute(self) };
-        addr.hash(state);
+        use self::ValueKind::*;
+        match self {
+            &IntegerValue(_) => self.to_string().hash(state),
+            &StringValue(_) => self.to_string().hash(state),
+            &SymbolValue(_) => self.to_string().hash(state),
+            &KeywordValue(_) => self.to_string().hash(state),
+            &ListValue(ref l) => {
+                use self::ListKind::*;
+                let mut iter = l;
+                while let &ConsList(ref car, ref cdr) = iter {
+                    car.hash(state);
+                    iter = match cdr.kind {
+                        ListValue(ref l) => l,
+                        _ => unreachable!(),
+                    }
+                }
+            }
+            &ClosureValue(ref f, ref n, ref p, ref e) => {
+                f.hash(state);
+                n.hash(state);
+                p.hash(state);
+                e.hash(state);
+            }
+            &NilValue => self.to_string().hash(state),
+            &MapValue(ref m) => {
+                for (key, val) in m.iter() {
+                    key.hash(state);
+                    val.hash(state);
+                }
+            }
+            &BooleanValue(_) => self.to_string().hash(state),
+            &VectorValue(ref v) => {
+                for item in v.iter() {
+                    item.hash(state);
+                }
+            }
+        }
     }
 }
 
@@ -271,6 +305,17 @@ impl Value {
 
     pub fn create_map(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
         Value::new(ValueKind::MapValue(map))
+    }
+
+    pub fn create_map_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
+        assert_eq!(values.len() % 2, 0);
+        let mut map = HashMap::new();
+        for i in 0..(values.len() / 2) {
+            let key = values[i * 2].clone();
+            let val = values[i * 2 + 1].clone();
+            map.insert(key, val);
+        }
+        Value::create_map(map)
     }
 
     pub fn create_boolean(boolean: bool) -> ValuePtr {

@@ -1,6 +1,8 @@
 mod specialform;
 pub mod builtinfunc;
 
+use std::collections::HashMap;
+
 use core::value::{Value, ValueKind, ValuePtr, FuncKind, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
@@ -88,6 +90,21 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
     }
 }
 
+fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_map());
+    if let ValueKind::MapValue(ref map) = ast.kind {
+        let mut evaled_map = HashMap::new();
+        for (key, val) in map.iter() {
+            let key = eval(key.clone(), env.clone())?;
+            let val = eval(val.clone(), env.clone())?;
+            evaled_map.insert(key, val);
+        }
+        Ok(Value::create_map(evaled_map))
+    } else {
+        unreachable!()
+    }
+}
+
 pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     match ast.kind {
@@ -103,7 +120,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         ClosureValue(_, _, _, _) => Ok(ast.clone()),
         ListValue(_) => eval_list_trampoline(&ast, env),
         NilValue => Ok(ast.clone()),
-        MapValue(_) => Ok(ast.clone()),
+        MapValue(_) => eval_map(&ast, env),
         BooleanValue(_) => Ok(ast.clone()),
         VectorValue(_) => Ok(ast.clone()),
     }

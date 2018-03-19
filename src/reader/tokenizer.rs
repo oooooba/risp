@@ -15,6 +15,8 @@ const CHAR_R_BRACKET: char = ']';
 const CHAR_COLON: char = ':';
 const CHAR_AMP: char = '&';
 const CHAR_QUOTE: char = '\'';
+const CHAR_L_CURLY: char = '{';
+const CHAR_R_CURLY: char = '}';
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA
@@ -26,7 +28,8 @@ fn is_digit(c: char) -> bool {
 
 fn is_grouping_char(c: char) -> bool {
     c == CHAR_L_PAREN || c == CHAR_R_PAREN ||
-        c == CHAR_L_BRACKET || c == CHAR_R_BRACKET
+        c == CHAR_L_BRACKET || c == CHAR_R_BRACKET ||
+        c == CHAR_L_CURLY || c == CHAR_R_CURLY
 }
 
 pub struct Tokenizer {
@@ -196,6 +199,8 @@ impl Tokenizer {
                     CHAR_R_PAREN => TokenKind::RParenToken,
                     CHAR_L_BRACKET => TokenKind::LBracketToken,
                     CHAR_R_BRACKET => TokenKind::RBracketToken,
+                    CHAR_L_CURLY => TokenKind::LCurlyToken,
+                    CHAR_R_CURLY => TokenKind::RCurlyToken,
                     _ => unreachable!(),
                 };
                 Some(self.create_token(kind, pos, 1))

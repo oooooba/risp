@@ -111,6 +111,13 @@ impl Parser {
         })
     }
 
+    fn parse_map(&mut self) -> Result<ValuePtr, Exception> {
+        assert_eq!(self.peek().unwrap().kind, TokenKind::LCurlyToken);
+        self.parse_sequence(TokenKind::LCurlyToken, TokenKind::RCurlyToken, &|v| {
+            Ok(Value::create_map_from_vec(v))
+        })
+    }
+
     fn parse_amp(&mut self) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, TokenKind::AmpToken);
         self.pop();
@@ -140,6 +147,7 @@ impl Parser {
             Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
             Some(&Token { kind: AmpToken, .. }) => self.parse_amp(), // ToDo: fix
             Some(&Token { kind: QuoteToken, .. }) => self.parse_quote(),
+            Some(&Token { kind: LCurlyToken, .. }) => self.parse_map(),
             None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
             _ => unimplemented!(),
         }

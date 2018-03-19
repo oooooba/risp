@@ -23,6 +23,8 @@ enum TokenKind {
     RBracketToken,
     AmpToken,
     QuoteToken,
+    LCurlyToken,
+    RCurlyToken,
 }
 
 #[derive(PartialEq, Debug)]
