@@ -5,11 +5,12 @@ use std::ops::Index;
 use std::iter::Iterator;
 use std::slice::Iter;
 use std::string::ToString;
+use std::hash::{Hash, Hasher};
 
 use core::exception::Exception;
 use core::env::EnvPtr;
 
-#[derive(Debug)]
+#[derive(Debug, Eq)]
 pub enum ValueKind {
     IntegerValue(isize),
     StringValue(String),
@@ -18,12 +19,12 @@ pub enum ValueKind {
     ListValue(ListKind),
     ClosureValue(FuncKind, Option<String>, FuncParam, EnvPtr), // (body, funcname, param, env)
     NilValue,
-    MapValue(HashMap<String, ValuePtr>),
+    MapValue(HashMap<ValuePtr, ValuePtr>),
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Eq, Hash)]
 pub enum ListKind {
     ConsList(ValuePtr, ValuePtr), // (car, cdr), cdr must be ListValue
     EmptyList,
@@ -136,6 +137,14 @@ impl ToString for ValueKind {
     }
 }
 
+impl Hash for ValueKind {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use std::mem::transmute;
+        let addr: usize = unsafe { transmute(self) };
+        addr.hash(state);
+    }
+}
+
 pub type BuitinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
 
 pub enum FuncKind {
@@ -143,7 +152,41 @@ pub enum FuncKind {
     BuiltinFunc(Box<BuitinFuncType>),
 }
 
-#[derive(Debug)]
+impl Eq for FuncKind {}
+
+impl PartialEq for FuncKind {
+    fn eq(&self, other: &FuncKind) -> bool {
+        use self::FuncKind::*;
+        use std::mem::transmute;
+        match (self, other) {
+            (&AstFunc(ref lhs), &AstFunc(ref rhs)) => lhs == rhs,
+            (&BuiltinFunc(ref lhs), &BuiltinFunc(ref rhs)) => {
+                unsafe {
+                    let addr_lhs: usize = transmute(lhs);
+                    let addr_rhs: usize = transmute(rhs);
+                    addr_lhs == addr_rhs
+                }
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Hash for FuncKind {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use self::FuncKind::*;
+        use std::mem::transmute;
+        match self {
+            &AstFunc(ref f) => f.hash(state),
+            &BuiltinFunc(ref f) => {
+                let addr: usize = unsafe { transmute(f) };
+                addr.hash(state);
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct FuncParam {
     pub params: Vec<String>,
     pub rest_param: Option<String>,
@@ -168,7 +211,7 @@ impl fmt::Debug for FuncKind {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Value {
     pub kind: ValueKind,
 }
@@ -226,7 +269,7 @@ impl Value {
         Value::new(ValueKind::NilValue)
     }
 
-    pub fn create_map(map: HashMap<String, ValuePtr>) -> ValuePtr {
+    pub fn create_map(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
         Value::new(ValueKind::MapValue(map))
     }
 

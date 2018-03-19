@@ -5,16 +5,26 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use std::hash::{Hash, Hasher};
 
 use core::parse_and_eval;
 use core::value::{Value, ValuePtr, BuitinFuncType, FuncKind, FuncParam};
 use evaluator::builtinfunc;
 use reader::tokenize;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Eq)]
 pub struct Env {
     pub map: HashMap<String, ValuePtr>,
     pub outer: Option<EnvPtr>,
+}
+
+impl Hash for Env {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use std::mem::transmute;
+        let addr: usize = unsafe { transmute(&self.map) };
+        addr.hash(state);
+        self.outer.hash(state);
+    }
 }
 
 pub type EnvPtr = Rc<Env>;
