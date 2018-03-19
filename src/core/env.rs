@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::hash::{Hash, Hasher};
 
 use core::parse_and_eval;
-use core::value::{Value, ValuePtr, BuitinFuncType, FuncKind, FuncParam};
+use core::value::{Value, ValuePtr, BuiltinFuncType, FuncKind, FuncParam};
 use evaluator::builtinfunc;
 use reader::tokenize;
 
@@ -103,7 +103,7 @@ impl Env {
     }
 }
 
-fn prepare_builtinfunc(name: &str, f: Box<BuitinFuncType>, num_args: usize) -> (String, ValuePtr) {
+fn prepare_builtinfunc(name: &str, f: Box<BuiltinFuncType>, num_args: usize) -> (String, ValuePtr) {
     let name = name.to_string();
     let mut params = vec![];
     for i in 0..num_args {

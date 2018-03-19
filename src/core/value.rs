@@ -145,11 +145,11 @@ impl Hash for ValueKind {
     }
 }
 
-pub type BuitinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
+pub type BuiltinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
 
 pub enum FuncKind {
     AstFunc(ValuePtr),
-    BuiltinFunc(Box<BuitinFuncType>),
+    BuiltinFunc(Box<BuiltinFuncType>),
 }
 
 impl Eq for FuncKind {}
