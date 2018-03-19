@@ -20,9 +20,10 @@ pub struct Env {
 
 impl Hash for Env {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        use std::mem::transmute;
-        let addr: usize = unsafe { transmute(&self.map) };
-        addr.hash(state);
+        for (key, val) in self.map.iter() {
+            key.hash(state);
+            val.hash(state);
+        }
         self.outer.hash(state);
     }
 }
