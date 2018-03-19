@@ -127,12 +127,78 @@ impl ToString for ValueKind {
             &StringValue(ref s) => format!(r#""{}""#, s),
             &SymbolValue(ref s) => s.clone(),
             &KeywordValue(ref k) => format!(":{}", k),
-            &ListValue(_) => "LIST".to_string(), // ToDo: fix
-            &ClosureValue(_, _, _, _) => "CLOSURE".to_string(), // ToDo: fix
+            &ListValue(ref l) => {
+                use self::ListKind::*;
+                let mut text = String::new();
+                text.push('(');
+                let mut iter = l;
+                let mut is_first = true;
+                while let &ConsList(ref car, ref cdr) = iter {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        text.push(' ');
+                    }
+                    text.push_str(&car.to_string());
+                    iter = match cdr.kind {
+                        ListValue(ref l) => l,
+                        _ => unreachable!(),
+                    }
+                }
+                text.push(')');
+                text
+            }
+            &ClosureValue(ref f, ref n, ref p, ref e) => {
+                use std::mem::transmute;
+                let mut text = String::new();
+                text.push('<');
+                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncKind, usize>(f) }));
+                text.push_str(", ");
+                match n {
+                    &Some(ref name) => text.push_str(name),
+                    &None => text.push_str("<anon>"),
+                }
+                text.push_str(", ");
+                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncParam, usize>(p) }));
+                text.push_str(", ");
+                text.push_str(&format!("{:x}", unsafe { transmute::<&EnvPtr, usize>(e) }));
+                text.push('>');
+                text
+            }
             &NilValue => "nil".to_string(),
-            &MapValue(_) => "MAP".to_string(), // ToDo: fix
+            &MapValue(ref m) => {
+                let mut text = String::new();
+                text.push('{');
+                let mut is_first = true;
+                for (key, val) in m.iter() {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        text.push_str(", ");
+                    }
+                    text.push_str(&key.to_string());
+                    text.push(' ');
+                    text.push_str(&val.to_string());
+                }
+                text.push('}');
+                text
+            }
             &BooleanValue(ref b) => b.to_string(),
-            &VectorValue(_) => "VECTOR".to_string(), // ToDo: fix
+            &VectorValue(ref v) => {
+                let mut text = String::new();
+                text.push('[');
+                let mut is_first = true;
+                for item in v.iter() {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        text.push(' ');
+                    }
+                    text.push_str(&item.to_string());
+                }
+                text.push(']');
+                text
+            }
         }
     }
 }
