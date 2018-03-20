@@ -17,9 +17,10 @@ const CHAR_AMP: char = '&';
 const CHAR_QUOTE: char = '\'';
 const CHAR_L_CURLY: char = '{';
 const CHAR_R_CURLY: char = '}';
+const CHAR_SEMICOLON: char = ';';
 
 fn is_delim_char(c: char) -> bool {
-    c.is_whitespace() || c == CHAR_COMMA
+    c.is_whitespace() || c == CHAR_COMMA || c == CHAR_SEMICOLON
 }
 
 fn is_digit(c: char) -> bool {
@@ -179,6 +180,17 @@ impl Tokenizer {
         }
     }
 
+    fn skip_line_comment(&mut self) {
+        assert!(self.peek(0).unwrap() == CHAR_SEMICOLON);
+        self.ahead(1);
+        while let Some(c) = self.peek(0) {
+            self.ahead(1);
+            if c == '\n' {
+                break
+            }
+        }
+    }
+
     pub fn tokenize(&mut self) -> Result<LinkedList<Token>, Exception> {
         let mut tokens = LinkedList::new();
         while let Some(c) = self.peek(0) {
@@ -214,6 +226,9 @@ impl Tokenizer {
                 let pos = self.pos;
                 self.ahead(1);
                 Some(self.create_token(TokenKind::QuoteToken, pos, 1))
+            } else if c == CHAR_SEMICOLON {
+                self.skip_line_comment();
+                None
             } else if is_delim_char(c) {
                 self.ahead(1);
                 None
