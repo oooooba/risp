@@ -105,6 +105,20 @@ fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     }
 }
 
+fn eval_vector(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_vector());
+    if let ValueKind::VectorValue(ref vector) = ast.kind {
+        let mut evaled_vector = vec![];
+        for item in vector.iter() {
+            let val = eval(item.clone(), env.clone())?;
+            evaled_vector.push(val);
+        }
+        Ok(Value::create_vector(evaled_vector))
+    } else {
+        unreachable!()
+    }
+}
+
 pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     match ast.kind {
@@ -122,7 +136,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         NilValue => Ok(ast.clone()),
         MapValue(_) => eval_map(&ast, env),
         BooleanValue(_) => Ok(ast.clone()),
-        VectorValue(_) => Ok(ast.clone()),
+        VectorValue(_) => eval_vector(&ast, env),
     }
 }
 
