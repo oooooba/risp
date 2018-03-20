@@ -72,10 +72,6 @@ impl Env {
 
     pub fn create_default() -> EnvPtr {
         let pairs = vec![
-            ("(".to_string(), Value::create_keyword("(".to_string())),
-            (")".to_string(), Value::create_keyword(")".to_string())),
-            ("[".to_string(), Value::create_keyword("[".to_string())),
-            ("]".to_string(), Value::create_keyword("]".to_string())),
             prepare_builtinfunc("+", Box::new(builtinfunc::op_add_integer), 2),
             prepare_builtinfunc("-", Box::new(builtinfunc::op_sub_integer), 2),
             prepare_builtinfunc("*", Box::new(builtinfunc::op_mul_integer), 2),
