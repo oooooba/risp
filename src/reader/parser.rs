@@ -154,6 +154,16 @@ impl Parser {
         ]))
     }
 
+    fn parse_splice_unquote(&mut self) -> Result<ValuePtr, Exception> {
+        assert_eq!(self.peek().unwrap().kind, TokenKind::TildeAtToken);
+        self.pop();
+        let val = self.parse()?;
+        Ok(Value::create_list_from_vec(vec![
+            Value::create_symbol("splice-unquote".to_string()),
+            val,
+        ]))
+    }
+
     pub fn parse(&mut self) -> Result<ValuePtr, Exception> {
         use self::TokenKind::*;
         match self.peek() {
@@ -169,6 +179,7 @@ impl Parser {
             Some(&Token { kind: QuoteToken, .. }) => self.parse_quote(),
             Some(&Token { kind: BackQuoteToken, .. }) => self.parse_back_quote(),
             Some(&Token { kind: TildeToken, .. }) => self.parse_unquote(),
+            Some(&Token { kind: TildeAtToken, .. }) => self.parse_splice_unquote(),
             Some(&Token { kind: LCurlyToken, .. }) => self.parse_map(),
             None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
             _ => unimplemented!(),

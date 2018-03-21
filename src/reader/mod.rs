@@ -25,6 +25,7 @@ enum TokenKind {
     QuoteToken,
     BackQuoteToken,
     TildeToken,
+    TildeAtToken,
     LCurlyToken,
     RCurlyToken,
 }

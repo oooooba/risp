@@ -20,6 +20,7 @@ const CHAR_R_CURLY: char = '}';
 const CHAR_SEMICOLON: char = ';';
 const CHAR_BACK_QUOTE: char = '`';
 const CHAR_TILDE: char = '~';
+const CHAR_AT: char = '@';
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA || c == CHAR_SEMICOLON
@@ -234,8 +235,12 @@ impl Tokenizer {
                 Some(self.create_token(TokenKind::BackQuoteToken, pos, 1))
             } else if c == CHAR_TILDE {
                 let pos = self.pos;
-                self.ahead(1);
-                Some(self.create_token(TokenKind::TildeToken, pos, 1))
+                let (kind, len) = match self.peek(1) {
+                    Some(c) if c == CHAR_AT => (TokenKind::TildeAtToken, 2),
+                    _ => (TokenKind::TildeToken, 1),
+                };
+                self.ahead(len);
+                Some(self.create_token(kind, pos, len))
             } else if c == CHAR_SEMICOLON {
                 self.skip_line_comment();
                 None
