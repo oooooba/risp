@@ -23,6 +23,7 @@ enum TokenKind {
     RBracketToken,
     AmpToken,
     QuoteToken,
+    BackQuoteToken,
     LCurlyToken,
     RCurlyToken,
 }

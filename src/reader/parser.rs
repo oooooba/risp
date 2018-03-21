@@ -134,6 +134,16 @@ impl Parser {
         ]))
     }
 
+    fn parse_back_quote(&mut self) -> Result<ValuePtr, Exception> {
+        assert_eq!(self.peek().unwrap().kind, TokenKind::BackQuoteToken);
+        self.pop();
+        let val = self.parse()?;
+        Ok(Value::create_list_from_vec(vec![
+            Value::create_symbol("quasiquote".to_string()),
+            val,
+        ]))
+    }
+
     pub fn parse(&mut self) -> Result<ValuePtr, Exception> {
         use self::TokenKind::*;
         match self.peek() {
@@ -147,6 +157,7 @@ impl Parser {
             Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
             Some(&Token { kind: AmpToken, .. }) => self.parse_amp(), // ToDo: fix
             Some(&Token { kind: QuoteToken, .. }) => self.parse_quote(),
+            Some(&Token { kind: BackQuoteToken, .. }) => self.parse_back_quote(),
             Some(&Token { kind: LCurlyToken, .. }) => self.parse_map(),
             None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
             _ => unimplemented!(),

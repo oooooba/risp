@@ -18,6 +18,7 @@ const CHAR_QUOTE: char = '\'';
 const CHAR_L_CURLY: char = '{';
 const CHAR_R_CURLY: char = '}';
 const CHAR_SEMICOLON: char = ';';
+const CHAR_BACK_QUOTE: char = '`';
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == CHAR_COMMA || c == CHAR_SEMICOLON
@@ -226,6 +227,10 @@ impl Tokenizer {
                 let pos = self.pos;
                 self.ahead(1);
                 Some(self.create_token(TokenKind::QuoteToken, pos, 1))
+            } else if c == CHAR_BACK_QUOTE {
+                let pos = self.pos;
+                self.ahead(1);
+                Some(self.create_token(TokenKind::BackQuoteToken, pos, 1))
             } else if c == CHAR_SEMICOLON {
                 self.skip_line_comment();
                 None
