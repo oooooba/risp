@@ -124,42 +124,13 @@ impl Parser {
         Ok(Value::create_keyword("&".to_string()))
     }
 
-    fn parse_quote(&mut self) -> Result<ValuePtr, Exception> {
-        assert_eq!(self.peek().unwrap().kind, TokenKind::QuoteToken);
+    fn parse_quote_family_reader_macro(&mut self, kind: TokenKind, symbol: &'static str)
+                                       -> Result<ValuePtr, Exception> {
+        assert_eq!(self.peek().unwrap().kind, kind);
         self.pop();
         let val = self.parse()?;
         Ok(Value::create_list_from_vec(vec![
-            Value::create_symbol("quote".to_string()),
-            val,
-        ]))
-    }
-
-    fn parse_back_quote(&mut self) -> Result<ValuePtr, Exception> {
-        assert_eq!(self.peek().unwrap().kind, TokenKind::BackQuoteToken);
-        self.pop();
-        let val = self.parse()?;
-        Ok(Value::create_list_from_vec(vec![
-            Value::create_symbol("quasiquote".to_string()),
-            val,
-        ]))
-    }
-
-    fn parse_unquote(&mut self) -> Result<ValuePtr, Exception> {
-        assert_eq!(self.peek().unwrap().kind, TokenKind::TildeToken);
-        self.pop();
-        let val = self.parse()?;
-        Ok(Value::create_list_from_vec(vec![
-            Value::create_symbol("unquote".to_string()),
-            val,
-        ]))
-    }
-
-    fn parse_splice_unquote(&mut self) -> Result<ValuePtr, Exception> {
-        assert_eq!(self.peek().unwrap().kind, TokenKind::TildeAtToken);
-        self.pop();
-        let val = self.parse()?;
-        Ok(Value::create_list_from_vec(vec![
-            Value::create_symbol("splice-unquote".to_string()),
+            Value::create_symbol(symbol.to_string()),
             val,
         ]))
     }
@@ -176,10 +147,14 @@ impl Parser {
             Some(&Token { kind: LParenToken, .. }) => self.parse_list(),
             Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
             Some(&Token { kind: AmpToken, .. }) => self.parse_amp(), // ToDo: fix
-            Some(&Token { kind: QuoteToken, .. }) => self.parse_quote(),
-            Some(&Token { kind: BackQuoteToken, .. }) => self.parse_back_quote(),
-            Some(&Token { kind: TildeToken, .. }) => self.parse_unquote(),
-            Some(&Token { kind: TildeAtToken, .. }) => self.parse_splice_unquote(),
+            Some(&Token { kind: QuoteToken, .. }) =>
+                self.parse_quote_family_reader_macro(QuoteToken, "quote"),
+            Some(&Token { kind: BackQuoteToken, .. }) =>
+                self.parse_quote_family_reader_macro(BackQuoteToken, "quasiquote"),
+            Some(&Token { kind: TildeToken, .. }) =>
+                self.parse_quote_family_reader_macro(TildeToken, "unquote"),
+            Some(&Token { kind: TildeAtToken, .. }) =>
+                self.parse_quote_family_reader_macro(TildeAtToken, "splice-unquote"),
             Some(&Token { kind: LCurlyToken, .. }) => self.parse_map(),
             None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
             _ => unimplemented!(),
