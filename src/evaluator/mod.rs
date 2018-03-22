@@ -26,10 +26,10 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     let mut iter = Value::iter(ast);
     let car = iter.next().unwrap();
     let cdr = iter.rest();
-    eval_list(&car, &cdr, env)
+    eval_list(&car, &cdr, env, !car.is_macro)
 }
 
-fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
@@ -64,13 +64,21 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Ex
                 evaled_param_pairs.push((name.clone(), evaled_car.clone()));
             }
             for &(ref symbol, ref arg) in unevaled_param_pairs.iter() {
-                let val = eval(arg.clone(), env.clone())?;
+                let val = if evals_cdr {
+                    eval(arg.clone(), env.clone())?
+                } else {
+                    arg.clone()
+                };
                 evaled_param_pairs.push(((*symbol).clone(), val));
             }
 
             let mut evaled_rest_args = vec![];
             for arg in unevaled_rest_args.iter() {
-                let val = eval(arg.clone(), env.clone())?;
+                let val = if evals_cdr {
+                    eval(arg.clone(), env.clone())?
+                } else {
+                    arg.clone()
+                };
                 evaled_rest_args.push(val);
             }
 
@@ -272,5 +280,18 @@ mod tests {
             ]),
             Value::create_symbol("y".to_string()),
         ]), env), Ok(Value::create_integer(3)));
+    }
+
+    #[test]
+    fn test_macro() {
+        let outer_env = Some(Env::create_default());
+        let macro_body = Value::create_integer(1);
+        let funcparam = FuncParam { params: vec![], rest_param: None };
+        let closure = Value::create_closure_for_macro(FuncKind::AstFunc(macro_body), None, funcparam, Env::create_empty());
+        let env = Env::create(vec![("one".to_string(), closure)], outer_env);
+        assert_eq!(eval(Value::create_list_from_vec(vec![
+            Value::create_symbol("one".to_string()),
+        ]), env),
+                   Ok(Value::create_integer(1)));
     }
 }

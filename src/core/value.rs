@@ -278,6 +278,7 @@ impl fmt::Debug for FuncKind {
 #[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Value {
     pub kind: ValueKind,
+    pub is_macro: bool,
 }
 
 impl ToString for Value {
@@ -290,7 +291,11 @@ pub type ValuePtr = Rc<Value>;
 
 impl Value {
     fn new(kind: ValueKind) -> ValuePtr {
-        Rc::new(Value { kind: kind })
+        Rc::new(Value { kind: kind, is_macro: false })
+    }
+
+    fn new_macro(kind: ValueKind) -> ValuePtr {
+        Rc::new(Value { kind: kind, is_macro: true })
     }
 
     pub fn create_integer(integer: isize) -> ValuePtr {
@@ -327,6 +332,10 @@ impl Value {
 
     pub fn create_closure(func: FuncKind, name: Option<String>, param: FuncParam, env: EnvPtr) -> ValuePtr {
         Value::new(ValueKind::ClosureValue(func, name, param, env))
+    }
+
+    pub fn create_closure_for_macro(func: FuncKind, name: Option<String>, param: FuncParam, env: EnvPtr) -> ValuePtr {
+        Value::new_macro(ValueKind::ClosureValue(func, name, param, env))
     }
 
     pub fn create_nil() -> ValuePtr {
