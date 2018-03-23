@@ -1,4 +1,4 @@
-use core::value::{Value, ValueKind, ValuePtr, FuncKind, FuncParam, ListKind, ValueIterator, Applicable};
+use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ApplicableParam, ListKind, ValueIterator, Applicable};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use evaluator::eval;
@@ -107,7 +107,7 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     }
 }
 
-fn parse_fn_param_vec(param_vec: &ValuePtr) -> Result<FuncParam, Exception> {
+fn parse_fn_param_vec(param_vec: &ValuePtr) -> Result<ApplicableParam, Exception> {
     let mut params = vec![];
     let mut declares_rest_param = false;
     let mut iter = Value::iter(param_vec);
@@ -135,7 +135,7 @@ fn parse_fn_param_vec(param_vec: &ValuePtr) -> Result<FuncParam, Exception> {
         return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None));
     }
 
-    Ok(FuncParam::new(params, rest_param))
+    Ok(ApplicableParam::new(params, rest_param))
 }
 
 pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -165,7 +165,7 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
         Some(ref expr) => expr.clone(),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
     };
-    let applicable = Applicable::new(funcname, param, FuncKind::AstFunc(body_expr.clone()));
+    let applicable = Applicable::new(funcname, param, ApplicableBodyKind::AstBody(body_expr.clone()));
     Ok(Value::create_closure(applicable, env))
 }
 

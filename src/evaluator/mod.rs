@@ -3,7 +3,7 @@ pub mod builtinfunc;
 
 use std::collections::HashMap;
 
-use core::value::{Value, ValueKind, ValuePtr, FuncKind, ListKind};
+use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
@@ -90,8 +90,8 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Re
 
             let new_env = Env::create(evaled_param_pairs, Some(closure_env.clone()));
             match applicable.body {
-                FuncKind::BuiltinFunc(ref f) => f(new_env),
-                FuncKind::AstFunc(ref f) => {
+                ApplicableBodyKind::BuiltinBody(ref f) => f(new_env),
+                ApplicableBodyKind::AstBody(ref f) => {
                     eval(f.clone(), new_env)
                 }
             }
@@ -189,11 +189,11 @@ mod tests {
                        Ok(Value::create_string("abc".to_string())));
         }
         {
-            let func = FuncKind::BuiltinFunc(Box::new(builtin_func));
+            let func = ApplicableBodyKind::BuiltinBody(Box::new(builtin_func));
             let closure_env = Env::create(vec![
                 ("y".to_string(), Value::create_integer(3)),
             ], None);
-            let applicable = Applicable::new(None, FuncParam::new(vec!["x".to_string()], None), func);
+            let applicable = Applicable::new(None, ApplicableParam::new(vec!["x".to_string()], None), func);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
                 ("y".to_string(), Value::create_integer(2)),
@@ -205,11 +205,11 @@ mod tests {
             ]), env), Ok(Value::create_integer(7)));
         }
         {
-            let func = FuncKind::AstFunc(Value::create_symbol("x".to_string()));
+            let func = ApplicableBodyKind::AstBody(Value::create_symbol("x".to_string()));
             let closure_env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(2)),
             ], None);
-            let applicable = Applicable::new(None, FuncParam::new(vec!["x".to_string()], None), func);
+            let applicable = Applicable::new(None, ApplicableParam::new(vec!["x".to_string()], None), func);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
                 ("f".to_string(), Value::create_closure(applicable, closure_env)),
@@ -290,8 +290,8 @@ mod tests {
     fn test_macro() {
         let outer_env = Some(Env::create_default());
         let macro_body = Value::create_integer(1);
-        let funcparam = FuncParam { params: vec![], rest_param: None };
-        let applicable = Applicable::new(None, funcparam, FuncKind::AstFunc(macro_body));
+        let funcparam = ApplicableParam { params: vec![], rest_param: None };
+        let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
         let closure = Value::create_closure_for_macro(applicable, Env::create_empty());
         let env = Env::create(vec![("one".to_string(), closure)], outer_env);
         assert_eq!(eval(Value::create_list_from_vec(vec![

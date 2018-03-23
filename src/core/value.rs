@@ -33,12 +33,12 @@ pub enum ListKind {
 #[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Applicable {
     pub name: Option<String>,
-    pub param: FuncParam,
-    pub body: FuncKind,
+    pub param: ApplicableParam,
+    pub body: ApplicableBodyKind,
 }
 
 impl Applicable {
-    pub fn new(name: Option<String>, param: FuncParam, body: FuncKind) -> Applicable {
+    pub fn new(name: Option<String>, param: ApplicableParam, body: ApplicableBodyKind) -> Applicable {
         Applicable {
             name: name,
             param: param,
@@ -169,14 +169,14 @@ impl ToString for ValueKind {
                 use std::mem::transmute;
                 let mut text = String::new();
                 text.push('<');
-                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncKind, usize>(&a.body) }));
+                text.push_str(&format!("{:x}", unsafe { transmute::<&ApplicableBodyKind, usize>(&a.body) }));
                 text.push_str(", ");
                 match a.name {
                     Some(ref name) => text.push_str(name),
                     None => text.push_str("<anon>"),
                 }
                 text.push_str(", ");
-                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncParam, usize>(&a.param) }));
+                text.push_str(&format!("{:x}", unsafe { transmute::<&ApplicableParam, usize>(&a.param) }));
                 text.push_str(", ");
                 text.push_str(&format!("{:x}", unsafe { transmute::<&EnvPtr, usize>(e) }));
                 text.push('>');
@@ -228,20 +228,20 @@ impl Hash for ValueKind {
 
 pub type BuiltinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
 
-pub enum FuncKind {
-    AstFunc(ValuePtr),
-    BuiltinFunc(Box<BuiltinFuncType>),
+pub enum ApplicableBodyKind {
+    AstBody(ValuePtr),
+    BuiltinBody(Box<BuiltinFuncType>),
 }
 
-impl Eq for FuncKind {}
+impl Eq for ApplicableBodyKind {}
 
-impl PartialEq for FuncKind {
-    fn eq(&self, other: &FuncKind) -> bool {
-        use self::FuncKind::*;
+impl PartialEq for ApplicableBodyKind {
+    fn eq(&self, other: &ApplicableBodyKind) -> bool {
+        use self::ApplicableBodyKind::*;
         use std::mem::transmute;
         match (self, other) {
-            (&AstFunc(ref lhs), &AstFunc(ref rhs)) => lhs == rhs,
-            (&BuiltinFunc(ref lhs), &BuiltinFunc(ref rhs)) => {
+            (&AstBody(ref lhs), &AstBody(ref rhs)) => lhs == rhs,
+            (&BuiltinBody(ref lhs), &BuiltinBody(ref rhs)) => {
                 unsafe {
                     let addr_lhs: usize = transmute(lhs);
                     let addr_rhs: usize = transmute(rhs);
@@ -253,13 +253,13 @@ impl PartialEq for FuncKind {
     }
 }
 
-impl Hash for FuncKind {
+impl Hash for ApplicableBodyKind {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        use self::FuncKind::*;
+        use self::ApplicableBodyKind::*;
         use std::mem::transmute;
         match self {
-            &AstFunc(ref f) => f.hash(state),
-            &BuiltinFunc(ref f) => {
+            &AstBody(ref f) => f.hash(state),
+            &BuiltinBody(ref f) => {
                 let addr: usize = unsafe { transmute(f) };
                 addr.hash(state);
             }
@@ -268,26 +268,26 @@ impl Hash for FuncKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct FuncParam {
+pub struct ApplicableParam {
     pub params: Vec<String>,
     pub rest_param: Option<String>,
 }
 
-impl FuncParam {
-    pub fn new(params: Vec<String>, rest_param: Option<String>) -> FuncParam {
-        FuncParam {
+impl ApplicableParam {
+    pub fn new(params: Vec<String>, rest_param: Option<String>) -> ApplicableParam {
+        ApplicableParam {
             params: params,
             rest_param: rest_param,
         }
     }
 }
 
-impl fmt::Debug for FuncKind {
+impl fmt::Debug for ApplicableBodyKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::FuncKind::*;
+        use self::ApplicableBodyKind::*;
         match self {
-            &AstFunc(ref ast) => write!(f, "<AstFunc> :- {:?}", ast),
-            &BuiltinFunc(_) => write!(f, "<BuiltinFunc>"),
+            &AstBody(ref ast) => write!(f, "<AstFunc> :- {:?}", ast),
+            &BuiltinBody(_) => write!(f, "<BuiltinFunc>"),
         }
     }
 }
