@@ -17,7 +17,7 @@ pub enum ValueKind {
     SymbolValue(String),
     KeywordValue(String),
     ListValue(ListKind),
-    ClosureValue(FuncKind, Option<String>, FuncParam, EnvPtr), // (body, funcname, param, env)
+    ClosureValue(Applicable, EnvPtr),
     NilValue,
     MapValue(HashMap<ValuePtr, ValuePtr>),
     BooleanValue(bool),
@@ -30,6 +30,23 @@ pub enum ListKind {
     EmptyList,
 }
 
+#[derive(PartialEq, Debug, Eq, Hash)]
+pub struct Applicable {
+    pub name: Option<String>,
+    pub param: FuncParam,
+    pub body: FuncKind,
+}
+
+impl Applicable {
+    pub fn new(name: Option<String>, param: FuncParam, body: FuncKind) -> Applicable {
+        Applicable {
+            name: name,
+            param: param,
+            body: body,
+        }
+    }
+}
+
 impl ValueKind {
     pub fn as_type_str(&self) -> &'static str {
         use self::ValueKind::*;
@@ -39,7 +56,7 @@ impl ValueKind {
             &SymbolValue(_) => ValueKind::type_str_symbol(),
             &KeywordValue(_) => ValueKind::type_str_keyword(),
             &ListValue(_) => ValueKind::type_str_list(),
-            &ClosureValue(_, _, _, _) => ValueKind::type_str_closure(),
+            &ClosureValue(_, _) => ValueKind::type_str_closure(),
             &NilValue => ValueKind::type_str_nil(),
             &MapValue(_) => ValueKind::type_str_map(),
             &BooleanValue(_) => ValueKind::type_str_boolean(),
@@ -148,18 +165,18 @@ impl ToString for ValueKind {
                 text.push(')');
                 text
             }
-            &ClosureValue(ref f, ref n, ref p, ref e) => {
+            &ClosureValue(ref a, ref e) => {
                 use std::mem::transmute;
                 let mut text = String::new();
                 text.push('<');
-                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncKind, usize>(f) }));
+                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncKind, usize>(&a.body) }));
                 text.push_str(", ");
-                match n {
-                    &Some(ref name) => text.push_str(name),
-                    &None => text.push_str("<anon>"),
+                match a.name {
+                    Some(ref name) => text.push_str(name),
+                    None => text.push_str("<anon>"),
                 }
                 text.push_str(", ");
-                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncParam, usize>(p) }));
+                text.push_str(&format!("{:x}", unsafe { transmute::<&FuncParam, usize>(&a.param) }));
                 text.push_str(", ");
                 text.push_str(&format!("{:x}", unsafe { transmute::<&EnvPtr, usize>(e) }));
                 text.push('>');
@@ -330,12 +347,12 @@ impl Value {
         list
     }
 
-    pub fn create_closure(func: FuncKind, name: Option<String>, param: FuncParam, env: EnvPtr) -> ValuePtr {
-        Value::new(ValueKind::ClosureValue(func, name, param, env))
+    pub fn create_closure(applicable: Applicable, env: EnvPtr) -> ValuePtr {
+        Value::new(ValueKind::ClosureValue(applicable, env))
     }
 
-    pub fn create_closure_for_macro(func: FuncKind, name: Option<String>, param: FuncParam, env: EnvPtr) -> ValuePtr {
-        Value::new_macro(ValueKind::ClosureValue(func, name, param, env))
+    pub fn create_closure_for_macro(applicable: Applicable, env: EnvPtr) -> ValuePtr {
+        Value::new_macro(ValueKind::ClosureValue(applicable, env))
     }
 
     pub fn create_nil() -> ValuePtr {

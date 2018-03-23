@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::hash::{Hash, Hasher};
 
 use core::parse_and_eval;
-use core::value::{Value, ValuePtr, BuiltinFuncType, FuncKind, FuncParam};
+use core::value::{Value, ValuePtr, BuiltinFuncType, FuncKind, FuncParam, Applicable};
 use evaluator::builtinfunc;
 use reader::tokenize;
 
@@ -108,6 +108,7 @@ fn prepare_builtinfunc(name: &str, f: Box<BuiltinFuncType>, num_args: usize) -> 
     }
     let param = FuncParam::new(params, None);
     let env = Env::create_empty();
-    let closure = Value::create_closure(FuncKind::BuiltinFunc(f), None, param, env);
+    let applicable = Applicable::new(None, param, FuncKind::BuiltinFunc(f));
+    let closure = Value::create_closure(applicable, env);
     (name, closure)
 }

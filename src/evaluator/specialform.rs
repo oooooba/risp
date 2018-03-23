@@ -1,4 +1,4 @@
-use core::value::{Value, ValueKind, ValuePtr, FuncKind, FuncParam, ListKind, ValueIterator};
+use core::value::{Value, ValueKind, ValuePtr, FuncKind, FuncParam, ListKind, ValueIterator, Applicable};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use evaluator::eval;
@@ -165,7 +165,8 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
         Some(ref expr) => expr.clone(),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
     };
-    Ok(Value::create_closure(FuncKind::AstFunc(body_expr.clone()), funcname, param, env))
+    let applicable = Applicable::new(funcname, param, FuncKind::AstFunc(body_expr.clone()));
+    Ok(Value::create_closure(applicable, env))
 }
 
 fn eval_specialform_unquote_common(mut iter: ValueIterator, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {

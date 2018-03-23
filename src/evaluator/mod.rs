@@ -33,8 +33,10 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Re
     use self::ValueKind::*;
     let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
-        ClosureValue(ref func, ref funcname, ref param, ref closure_env) => {
+        ClosureValue(ref applicable, ref closure_env) => {
             assert!(cdr.kind.is_list());
+
+            let param = &applicable.param;
 
             let mut arg_iter = Value::iter(cdr);
             let mut num_args = 0;
@@ -60,7 +62,7 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Re
             }
 
             let mut evaled_param_pairs = vec![];
-            if let &Some(ref name) = funcname {
+            if let Some(ref name) = applicable.name {
                 evaled_param_pairs.push((name.clone(), evaled_car.clone()));
             }
             for &(ref symbol, ref arg) in unevaled_param_pairs.iter() {
@@ -87,9 +89,9 @@ fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Re
             }
 
             let new_env = Env::create(evaled_param_pairs, Some(closure_env.clone()));
-            match func {
-                &FuncKind::BuiltinFunc(ref f) => f(new_env),
-                &FuncKind::AstFunc(ref f) => {
+            match applicable.body {
+                FuncKind::BuiltinFunc(ref f) => f(new_env),
+                FuncKind::AstFunc(ref f) => {
                     eval(f.clone(), new_env)
                 }
             }
@@ -139,7 +141,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
             }
         }
         KeywordValue(_) => Ok(ast.clone()),
-        ClosureValue(_, _, _, _) => Ok(ast.clone()),
+        ClosureValue(_, _) => Ok(ast.clone()),
         ListValue(_) => eval_list_trampoline(&ast, env),
         NilValue => Ok(ast.clone()),
         MapValue(_) => eval_map(&ast, env),
@@ -191,10 +193,11 @@ mod tests {
             let closure_env = Env::create(vec![
                 ("y".to_string(), Value::create_integer(3)),
             ], None);
+            let applicable = Applicable::new(None, FuncParam::new(vec!["x".to_string()], None), func);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
                 ("y".to_string(), Value::create_integer(2)),
-                ("f".to_string(), Value::create_closure(func, None, FuncParam::new(vec!["x".to_string()], None), closure_env)),
+                ("f".to_string(), Value::create_closure(applicable, closure_env)),
             ], None);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),
@@ -206,9 +209,10 @@ mod tests {
             let closure_env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(2)),
             ], None);
+            let applicable = Applicable::new(None, FuncParam::new(vec!["x".to_string()], None), func);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
-                ("f".to_string(), Value::create_closure(func, None, FuncParam::new(vec!["x".to_string()], None), closure_env)),
+                ("f".to_string(), Value::create_closure(applicable, closure_env)),
             ], None);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("f".to_string()),
@@ -287,7 +291,8 @@ mod tests {
         let outer_env = Some(Env::create_default());
         let macro_body = Value::create_integer(1);
         let funcparam = FuncParam { params: vec![], rest_param: None };
-        let closure = Value::create_closure_for_macro(FuncKind::AstFunc(macro_body), None, funcparam, Env::create_empty());
+        let applicable = Applicable::new(None, funcparam, FuncKind::AstFunc(macro_body));
+        let closure = Value::create_closure_for_macro(applicable, Env::create_empty());
         let env = Env::create(vec![("one".to_string(), closure)], outer_env);
         assert_eq!(eval(Value::create_list_from_vec(vec![
             Value::create_symbol("one".to_string()),
