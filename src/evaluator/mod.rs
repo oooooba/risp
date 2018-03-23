@@ -25,13 +25,18 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     }
     let mut iter = Value::iter(ast);
     let car = iter.next().unwrap();
+    let evaled_car = eval(car.clone(), env.clone())?;
     let cdr = iter.rest();
-    eval_list(&car, &cdr, env, !car.is_macro)
+    if evaled_car.is_macro {
+        let new_ast = eval_list(&evaled_car, &cdr, env.clone(), false)?;
+        eval(new_ast, env)
+    } else {
+        eval_list(&evaled_car, &cdr, env, true)
+    }
 }
 
-fn eval_list(car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Result<ValuePtr, Exception> {
+fn eval_list(evaled_car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
-    let evaled_car = eval(car.clone(), env.clone())?;
     match evaled_car.kind {
         ClosureValue(ref applicable, ref closure_env) => {
             assert!(cdr.kind.is_list());
@@ -288,15 +293,56 @@ mod tests {
 
     #[test]
     fn test_macro() {
-        let outer_env = Some(Env::create_default());
-        let macro_body = Value::create_integer(1);
-        let funcparam = ApplicableParam { params: vec![], rest_param: None };
-        let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
-        let closure = Value::create_closure_for_macro(applicable, Env::create_empty());
-        let env = Env::create(vec![("one".to_string(), closure)], outer_env);
-        assert_eq!(eval(Value::create_list_from_vec(vec![
-            Value::create_symbol("one".to_string()),
-        ]), env),
-                   Ok(Value::create_integer(1)));
+        {
+            let outer_env = Some(Env::create_default());
+            let macro_body = Value::create_integer(1);
+            let funcparam = ApplicableParam { params: vec![], rest_param: None };
+            let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
+            let closure = Value::create_closure_for_macro(applicable, Env::create_empty());
+            let env = Env::create(vec![("one".to_string(), closure)], outer_env);
+            assert_eq!(eval(Value::create_list_from_vec(vec![
+                Value::create_symbol("one".to_string()),
+            ]), env),
+                       Ok(Value::create_integer(1)));
+        }
+        {
+            let outer_env = Some(Env::create_default());
+
+            let s_pred = "pred".to_string();
+            let s_a = "a".to_string();
+            let s_b = "b".to_string();
+            let s_unquote = "unquote".to_string();
+
+            let macro_body = Value::create_list_from_vec(vec![
+                Value::create_symbol("quasiquote".to_string()),
+                Value::create_list_from_vec(vec![
+                    Value::create_symbol("if".to_string()),
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol(s_unquote.clone()),
+                        Value::create_symbol(s_pred.clone()),
+                    ]),
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol(s_unquote.clone()),
+                        Value::create_symbol(s_b.clone()),
+                    ]),
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol(s_unquote.clone()),
+                        Value::create_symbol(s_a.clone()),
+                    ]),
+                ]),
+            ]);
+            let funcparam = ApplicableParam { params: vec![s_pred, s_a, s_b], rest_param: None };
+            let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
+
+            let closure = Value::create_closure_for_macro(applicable, Env::create_empty());
+            let env = Env::create(vec![("unless".to_string(), closure)], outer_env);
+            assert_eq!(eval(Value::create_list_from_vec(vec![
+                Value::create_symbol("unless".to_string()),
+                Value::create_boolean(false),
+                Value::create_integer(7),
+                Value::create_integer(8),
+            ]), env),
+                       Ok(Value::create_integer(7)));
+        }
     }
 }
