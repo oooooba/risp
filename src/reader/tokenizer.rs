@@ -132,8 +132,8 @@ impl Tokenizer {
         let len = self.pos - pos;
         let kind = match self.sub(pos, len) {
             "true" => TokenKind::TrueToken,
-            "false" => TokenKind::TrueToken,
-            "nil" => TokenKind::TrueToken,
+            "false" => TokenKind::FalseToken,
+            "nil" => TokenKind::NilToken,
             _ => TokenKind::SymbolToken,
         };
         Ok(self.create_token(kind, pos, len))

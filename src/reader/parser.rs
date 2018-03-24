@@ -78,6 +78,12 @@ impl Parser {
         Ok(Value::create_boolean(b))
     }
 
+    fn parse_nil(&mut self) -> Result<ValuePtr, Exception> {
+        assert!(self.peek().unwrap().kind == TokenKind::NilToken);
+        self.pop();
+        Ok(Value::create_nil())
+    }
+
     fn parse_sequence<F>(&mut self, begin_token: TokenKind, end_token: TokenKind, f: &F) -> Result<ValuePtr, Exception>
         where F: Fn(Vec<ValuePtr>) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, begin_token);
@@ -144,6 +150,7 @@ impl Parser {
             Some(&Token { kind: KeywordToken, .. }) => self.parse_keyword(),
             Some(&Token { kind: TrueToken, .. }) => self.parse_boolean(),
             Some(&Token { kind: FalseToken, .. }) => self.parse_boolean(),
+            Some(&Token { kind: NilToken, .. }) => self.parse_nil(),
             Some(&Token { kind: LParenToken, .. }) => self.parse_list(),
             Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
             Some(&Token { kind: AmpToken, .. }) => self.parse_amp(), // ToDo: fix

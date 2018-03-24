@@ -17,6 +17,7 @@ enum TokenKind {
     KeywordToken,
     TrueToken,
     FalseToken,
+    NilToken,
     LParenToken,
     RParenToken,
     LBracketToken,
