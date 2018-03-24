@@ -27,81 +27,86 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     let car = iter.next().unwrap();
     let evaled_car = eval(car.clone(), env.clone())?;
     let cdr = iter.rest();
-    if evaled_car.is_macro {
-        let new_ast = eval_list(&evaled_car, &cdr, env.clone(), false)?;
+    if evaled_car.kind.is_closure() {
+        apply(&evaled_car, &cdr, env)
+    } else if evaled_car.kind.is_macro() {
+        let new_ast = apply(&evaled_car, &cdr, env.clone())?;
         eval(new_ast, env)
     } else {
-        eval_list(&evaled_car, &cdr, env, true)
+        Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_closure(), evaled_car.kind.as_type_str()), None))
     }
 }
 
-fn eval_list(evaled_car: &ValuePtr, cdr: &ValuePtr, env: EnvPtr, evals_cdr: bool) -> Result<ValuePtr, Exception> {
-    use self::ValueKind::*;
-    match evaled_car.kind {
-        ClosureValue(ref applicable, ref closure_env) => {
-            assert!(cdr.kind.is_list());
+fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(applicable_val.kind.is_closure() || applicable_val.kind.is_macro());
+    assert!(args_val.kind.is_list());
+    let (applicable, closure_env) = match applicable_val.kind {
+        ValueKind::ClosureValue(ref applicable, ref closure_env) => (applicable, Some(closure_env.clone())),
+        ValueKind::MacroValue(ref applicable) => (applicable, None),
+        _ => unreachable!(),
+    };
+    let processes_closure = closure_env != None;
+    let param = &applicable.param;
+    let mut arg_iter = Value::iter(args_val);
+    let mut num_args = 0;
 
-            let param = &applicable.param;
-
-            let mut arg_iter = Value::iter(cdr);
-            let mut num_args = 0;
-
-            let mut unevaled_param_pairs = vec![];
-            for symbol in param.params.iter() {
-                if let Some(arg) = arg_iter.next() {
-                    unevaled_param_pairs.push((symbol, arg));
-                    num_args += 1;
-                } else {
-                    return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
-                }
-            }
-
-            let mut unevaled_rest_args = vec![];
-            while let Some(arg) = arg_iter.next() {
-                unevaled_rest_args.push(arg);
-                num_args += 1;
-            }
-
-            if param.rest_param == None && unevaled_rest_args.len() > 0 {
-                return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
-            }
-
-            let mut evaled_param_pairs = vec![];
-            if let Some(ref name) = applicable.name {
-                evaled_param_pairs.push((name.clone(), evaled_car.clone()));
-            }
-            for &(ref symbol, ref arg) in unevaled_param_pairs.iter() {
-                let val = if evals_cdr {
-                    eval(arg.clone(), env.clone())?
-                } else {
-                    arg.clone()
-                };
-                evaled_param_pairs.push(((*symbol).clone(), val));
-            }
-
-            let mut evaled_rest_args = vec![];
-            for arg in unevaled_rest_args.iter() {
-                let val = if evals_cdr {
-                    eval(arg.clone(), env.clone())?
-                } else {
-                    arg.clone()
-                };
-                evaled_rest_args.push(val);
-            }
-
-            if let Some(ref symbol) = param.rest_param {
-                evaled_param_pairs.push((symbol.clone(), Value::create_list_from_vec(evaled_rest_args)));
-            }
-
-            let new_env = Env::create(evaled_param_pairs, Some(closure_env.clone()));
-            match applicable.body {
-                ApplicableBodyKind::BuiltinBody(ref f) => f(new_env),
-                ApplicableBodyKind::AstBody(ref f) => {
-                    eval(f.clone(), new_env)
-                }
-            }
+    let mut unevaled_param_pairs = vec![];
+    for symbol in param.params.iter() {
+        if let Some(arg) = arg_iter.next() {
+            unevaled_param_pairs.push((symbol, arg));
+            num_args += 1;
+        } else {
+            return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
         }
-        _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_closure(), evaled_car.kind.as_type_str()), None)),
+    }
+
+    let mut unevaled_rest_args = vec![];
+    while let Some(arg) = arg_iter.next() {
+        unevaled_rest_args.push(arg);
+        num_args += 1;
+    }
+
+    if param.rest_param == None && unevaled_rest_args.len() > 0 {
+        return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
+    }
+
+    let mut evaled_param_pairs = vec![];
+    if let Some(ref name) = applicable.name {
+        evaled_param_pairs.push((name.clone(), applicable_val.clone()));
+    }
+    for &(ref symbol, ref arg) in unevaled_param_pairs.iter() {
+        let val = if processes_closure {
+            eval(arg.clone(), env.clone())?
+        } else {
+            arg.clone()
+        };
+        evaled_param_pairs.push(((*symbol).clone(), val));
+    }
+
+    let mut evaled_rest_args = vec![];
+    for arg in unevaled_rest_args.iter() {
+        let val = if processes_closure {
+            eval(arg.clone(), env.clone())?
+        } else {
+            arg.clone()
+        };
+        evaled_rest_args.push(val);
+    }
+
+    if let Some(ref symbol) = param.rest_param {
+        evaled_param_pairs.push((symbol.clone(), Value::create_list_from_vec(evaled_rest_args)));
+    }
+
+    let new_env = if processes_closure {
+        Env::create(evaled_param_pairs, closure_env)
+    } else {
+        Env::create(evaled_param_pairs, Some(env))
+    };
+    match applicable.body {
+        ApplicableBodyKind::BuiltinBody(ref f) => f(new_env),
+        ApplicableBodyKind::AstBody(ref f) => {
+            eval(f.clone(), new_env)
+        }
     }
 }
 
@@ -152,6 +157,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         MapValue(_) => eval_map(&ast, env),
         BooleanValue(_) => Ok(ast.clone()),
         VectorValue(_) => eval_vector(&ast, env),
+        MacroValue(_) => unreachable!(),
     }
 }
 
@@ -298,8 +304,8 @@ mod tests {
             let macro_body = Value::create_integer(1);
             let funcparam = ApplicableParam { params: vec![], rest_param: None };
             let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
-            let closure = Value::create_closure_for_macro(applicable, Env::create_empty());
-            let env = Env::create(vec![("one".to_string(), closure)], outer_env);
+            let macro_val = Value::create_macro(applicable);
+            let env = Env::create(vec![("one".to_string(), macro_val)], outer_env);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("one".to_string()),
             ]), env),
@@ -334,7 +340,7 @@ mod tests {
             let funcparam = ApplicableParam { params: vec![s_pred, s_a, s_b], rest_param: None };
             let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
 
-            let closure = Value::create_closure_for_macro(applicable, Env::create_empty());
+            let closure = Value::create_macro(applicable);
             let env = Env::create(vec![("unless".to_string(), closure)], outer_env);
             assert_eq!(eval(Value::create_list_from_vec(vec![
                 Value::create_symbol("unless".to_string()),

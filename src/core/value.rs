@@ -22,6 +22,7 @@ pub enum ValueKind {
     MapValue(HashMap<ValuePtr, ValuePtr>),
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
+    MacroValue(Applicable),
 }
 
 #[derive(PartialEq, Debug, Eq, Hash)]
@@ -61,6 +62,7 @@ impl ValueKind {
             &MapValue(_) => ValueKind::type_str_map(),
             &BooleanValue(_) => ValueKind::type_str_boolean(),
             &VectorValue(_) => ValueKind::type_str_vector(),
+            &MacroValue(_) => unreachable!(),
         }
     }
 
@@ -89,6 +91,13 @@ impl ValueKind {
         }
     }
 
+    pub fn is_closure(&self) -> bool {
+        match self {
+            &ValueKind::ClosureValue(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_nil(&self) -> bool {
         match self {
             &ValueKind::NilValue => true,
@@ -106,6 +115,13 @@ impl ValueKind {
     pub fn is_vector(&self) -> bool {
         match self {
             &ValueKind::VectorValue(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_macro(&self) -> bool {
+        match self {
+            &ValueKind::MacroValue(_) => true,
             _ => false,
         }
     }
@@ -216,6 +232,7 @@ impl ToString for ValueKind {
                 text.push(']');
                 text
             }
+            &MacroValue(_) => unimplemented!(),
         }
     }
 }
@@ -295,7 +312,6 @@ impl fmt::Debug for ApplicableBodyKind {
 #[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Value {
     pub kind: ValueKind,
-    pub is_macro: bool,
 }
 
 impl ToString for Value {
@@ -308,11 +324,7 @@ pub type ValuePtr = Rc<Value>;
 
 impl Value {
     fn new(kind: ValueKind) -> ValuePtr {
-        Rc::new(Value { kind: kind, is_macro: false })
-    }
-
-    fn new_macro(kind: ValueKind) -> ValuePtr {
-        Rc::new(Value { kind: kind, is_macro: true })
+        Rc::new(Value { kind: kind })
     }
 
     pub fn create_integer(integer: isize) -> ValuePtr {
@@ -351,10 +363,6 @@ impl Value {
         Value::new(ValueKind::ClosureValue(applicable, env))
     }
 
-    pub fn create_closure_for_macro(applicable: Applicable, env: EnvPtr) -> ValuePtr {
-        Value::new_macro(ValueKind::ClosureValue(applicable, env))
-    }
-
     pub fn create_nil() -> ValuePtr {
         Value::new(ValueKind::NilValue)
     }
@@ -380,6 +388,10 @@ impl Value {
 
     pub fn create_vector(vector: Vec<ValuePtr>) -> ValuePtr {
         Value::new(ValueKind::VectorValue(vector))
+    }
+
+    pub fn create_macro(applicable: Applicable) -> ValuePtr {
+        Value::new(ValueKind::MacroValue(applicable))
     }
 
     pub fn iter(target: &ValuePtr) -> ValueIterator {
