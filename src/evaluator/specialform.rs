@@ -237,6 +237,36 @@ pub fn eval_specialform_quasiquote(ast: &ValuePtr, env: EnvPtr) -> Result<ValueP
     }
 }
 
+pub fn eval_specialform_defmacro(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("defmacro"));
+
+    let symbol = match iter.next() {
+        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), other.kind.as_type_str()), None)),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("defmacro"), None)),
+    };
+
+    let param_vector = match iter.next() {
+        Some(ref vector) if vector.kind.is_vector() => vector.clone(),
+        Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), other.kind.as_type_str()), None)),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("defmacro"), None)),
+    };
+    let param = parse_fn_param_vec(&param_vector)?;
+
+    let body_expr = match iter.next() {
+        Some(ref expr) => expr.clone(),
+        None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("defmacro"), None)),
+    };
+    assert_eq!(iter.next(), None);
+
+    let applicable = Applicable::new(None, param, ApplicableBodyKind::AstBody(body_expr));
+    let val = Value::create_macro(applicable);
+
+    Err(Exception::new(ExceptionKind::Continuation(Env::create(vec![(symbol, val)], Some(env))), None))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

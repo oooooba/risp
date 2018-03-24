@@ -1,0 +1,11 @@
+(defmacro one [] 1)
+(= (one) 1)
+(defmacro two [] 2)
+(= (two) 2)
+
+(defmacro unless [pred a b] `(if ~pred ~b ~a))
+(= (unless false 7 8) 7)
+(= (unless true 7 8) 8)
+(defmacro unless2 [pred a b] `(if (not ~pred) ~a ~b))
+(= (unless2 false 7 8) 7)
+(= (unless2 true 7 8) 8)
