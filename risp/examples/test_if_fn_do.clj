@@ -10,3 +10,10 @@
      (let [plus7 (gen-plusX 7)]
        (plus7 8)))
    15)
+
+(def gen-plus5 (fn [] (fn [b] (+ 5 b))))
+(def plus5 (gen-plus5))
+(= (plus5 7) 12)
+(def gen-plusX (fn [x] (fn [b] (+ x b))))
+(def plus5 (gen-plusX 5))
+(= (plus5 8) 13)

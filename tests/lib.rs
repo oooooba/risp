@@ -13,7 +13,6 @@ use risp::reader::tokenize;
 
 #[test]
 fn test_examples() {
-    let env = Env::create_default();
     let expected_value = Value::create_boolean(true);
 
     let risp_home = env::var("RISP_HOME").unwrap();
@@ -25,10 +24,14 @@ fn test_examples() {
         let mut file = File::open(path).unwrap();
         let mut content = String::new();
         file.read_to_string(&mut content).unwrap();
+        let mut env = Env::create_default();
         let mut tokens = tokenize(content, env.clone()).unwrap();
         loop {
-            let (val, rest_tokens) = parse_and_eval(tokens, env.clone());
-            assert_eq!(val.unwrap(), expected_value);
+            let (result, rest_tokens) = parse_and_eval(tokens, env.clone());
+            match result {
+                Ok(val) => assert_eq!(val, expected_value),
+                Err(exception) => env = exception.extract_env_from_continuation().unwrap(),
+            };
             match rest_tokens {
                 None => break,
                 Some(rest_tokens) => {
