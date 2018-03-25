@@ -1,41 +1,127 @@
-use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ApplicableParam, ListKind, ValueIterator, Applicable};
+use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ApplicableParam, ListKind, ValueIterator, Applicable,
+                  Pattern, PatternKind, PatternPtr};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use evaluator::eval;
+
+fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
+    use self::ValueKind::*;
+
+    match pattern.kind {
+        SymbolValue(_) => Ok(Pattern::create_symbol(pattern.clone())),
+        VectorValue(_) => {
+            let mut iter = Value::iter(pattern);
+            let mut declares_rest_param = false;
+            let mut patterns = vec![];
+            while let Some(ref pattern) = iter.next() {
+                match pattern.kind {
+                    KeywordValue(ref keyword) if keyword == "&" => {
+                        declares_rest_param = true;
+                        break;
+                    }
+                    _ => patterns.push(parse_pattern(pattern)?),
+                }
+            }
+
+            let rest_param = if declares_rest_param {
+                match iter.next() {
+                    Some(ref symbol) if symbol.kind.is_symbol() => Some(Pattern::create_symbol(symbol.clone())),
+                    _ => unimplemented!(),
+                }
+            } else {
+                None
+            };
+
+            if iter.next() != None {
+                unimplemented!()
+            }
+
+            Ok(Pattern::create_vector(patterns, rest_param, None))
+        }
+        _ => unimplemented!(),
+    }
+}
+
+fn match_pattern_and_expr(pattern: &PatternPtr, expr: &ValuePtr) -> Result<Vec<(ValuePtr, ValuePtr)>, Exception> {
+    use self::PatternKind::*;
+    let mut pairs = vec![];
+
+    match pattern.kind {
+        SymbolPattern(ref symbol) => {
+            assert!(symbol.kind.is_symbol());
+            pairs.push((symbol.clone(), expr.clone()));
+        }
+        VectorPattern(ref patterns, ref rest_pattern) => {
+            if !(expr.kind.is_list() || expr.kind.is_vector()) { // ToDo: fix to accept streaming-like data
+                unimplemented!()
+            }
+            let mut expr_iter = Value::iter(expr);
+            for pattern in patterns.iter() {
+                match expr_iter.next() {
+                    Some(ref expr) => pairs.append(&mut match_pattern_and_expr(pattern, expr)?),
+                    None => unimplemented!(), // exception
+                }
+            }
+            if let &Some(ref rest_pattern) = rest_pattern {
+                pairs.append(&mut match_pattern_and_expr(rest_pattern, &expr_iter.rest())?);
+            }
+        }
+    }
+
+    if let Some(ref as_symbol) = pattern.as_symbol {
+        assert!(as_symbol.kind.is_symbol());
+        pairs.push((as_symbol.clone(), expr.clone()));
+    }
+    Ok(pairs)
+}
+
+fn split_let_binding_form(form: &ValuePtr) -> Result<(ValuePtr, ValuePtr), Exception> {
+    assert!(form.kind.is_vector());
+    let mut patterns = vec![];
+    let mut exprs = vec![];
+    let mut iter = Value::iter(form);
+    loop {
+        let pattern = match iter.next() {
+            Some(ref symbol) if symbol.kind.is_symbol() => symbol.clone(),
+            Some(ref vector) if vector.kind.is_vector() => vector.clone(),
+            Some(_) => unimplemented!(), // exception
+            None => break,
+        };
+        patterns.push(pattern);
+
+        match iter.next() {
+            Some(expr) => exprs.push(expr),
+            None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalArgumentException(
+                "number of forms in binding vector".to_string()), None)),
+        };
+    }
+    assert_eq!(patterns.len(), exprs.len());
+    Ok((Value::create_vector(patterns), Value::create_vector(exprs)))
+}
 
 pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("let"));
 
-    let bindings = match iter.next() {
-        Some(ref bindings) if bindings.kind.is_vector() => bindings.clone(),
+    let (patterns, exprs) = match iter.next() {
+        Some(ref form) if form.kind.is_vector() => split_let_binding_form(form)?,
         Some(_) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("let"), None)),
     };
 
-    let mut unevaled_pairs: Vec<(String, ValuePtr)> = vec![];
-    let mut bindings_iter = Value::iter(&bindings);
-    loop {
-        let symbol = match bindings_iter.next() {
-            Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
-            Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), other.kind.as_type_str()), None)),
-            None => break,
-        };
-        let expr = match bindings_iter.next() {
-            Some(expr) => expr,
-            None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalArgumentException(
-                "number of forms in binding vector".to_string()), None)),
-        };
-        unevaled_pairs.push((symbol, expr));
-    }
+    let patterns = parse_pattern(&patterns)?;
+    let unevaled_pairs = match_pattern_and_expr(&patterns, &exprs)?;
 
     let mut evaled_pairs = vec![];
     for &(ref symbol, ref expr) in unevaled_pairs.iter() {
+        assert!(symbol.kind.is_symbol());
+        let symbol = symbol.get_as_symbol().unwrap().clone();
         let tmp_env = Env::create(evaled_pairs.clone(), Some(env.clone()));
         let val = eval(expr.clone(), tmp_env)?;
-        evaled_pairs.push(((*symbol).clone(), val));
+        evaled_pairs.push((symbol, val));
     }
+
     let let_env = Env::create(evaled_pairs, Some(env));
 
     let mut result_value = Value::create_nil();
