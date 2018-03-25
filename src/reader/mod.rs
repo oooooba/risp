@@ -22,7 +22,6 @@ enum TokenKind {
     RParenToken,
     LBracketToken,
     RBracketToken,
-    AmpToken,
     QuoteToken,
     BackQuoteToken,
     TildeToken,

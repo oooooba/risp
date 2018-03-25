@@ -13,7 +13,6 @@ const CHAR_BACKSLASH: char = '\\';
 const CHAR_L_BRACKET: char = '[';
 const CHAR_R_BRACKET: char = ']';
 const CHAR_COLON: char = ':';
-const CHAR_AMP: char = '&';
 const CHAR_QUOTE: char = '\'';
 const CHAR_L_CURLY: char = '{';
 const CHAR_R_CURLY: char = '}';
@@ -221,10 +220,6 @@ impl Tokenizer {
                 Some(self.create_token(kind, pos, 1))
             } else if c == CHAR_COLON {
                 Some(self.tokenize_keyword()?)
-            } else if c == CHAR_AMP {
-                let pos = self.pos;
-                self.ahead(1);
-                Some(self.create_token(TokenKind::AmpToken, pos, 1))
             } else if c == CHAR_QUOTE {
                 let pos = self.pos;
                 self.ahead(1);

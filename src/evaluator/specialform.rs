@@ -14,13 +14,11 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
             let mut declares_rest_param = false;
             let mut patterns = vec![];
             while let Some(ref pattern) = iter.next() {
-                match pattern.kind {
-                    KeywordValue(ref keyword) if keyword == "&" => {
-                        declares_rest_param = true;
-                        break;
-                    }
-                    _ => patterns.push(parse_pattern(pattern)?),
+                if pattern.kind.matches_symbol("&") {
+                    declares_rest_param = true;
+                    break;
                 }
+                patterns.push(parse_pattern(pattern)?);
             }
 
             let rest_param = if declares_rest_param {
@@ -200,11 +198,11 @@ fn parse_fn_param_vec(param_vec: &ValuePtr) -> Result<ApplicableParam, Exception
 
     while let Some(param) = iter.next() {
         match param.kind {
-            ValueKind::SymbolValue(ref symbol) => params.push(symbol.clone()),
-            ValueKind::KeywordValue(ref keyword) if keyword == "&" => {
+            ValueKind::SymbolValue(ref symbol) if symbol == "&" => {
                 declares_rest_param = true;
                 break;
             }
+            ValueKind::SymbolValue(ref symbol) => params.push(symbol.clone()),
             _ => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
         }
     }

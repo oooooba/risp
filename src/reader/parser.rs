@@ -124,12 +124,6 @@ impl Parser {
         })
     }
 
-    fn parse_amp(&mut self) -> Result<ValuePtr, Exception> {
-        assert_eq!(self.peek().unwrap().kind, TokenKind::AmpToken);
-        self.pop();
-        Ok(Value::create_keyword("&".to_string()))
-    }
-
     fn parse_quote_family_reader_macro(&mut self, kind: TokenKind, symbol: &'static str)
                                        -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, kind);
@@ -153,7 +147,6 @@ impl Parser {
             Some(&Token { kind: NilToken, .. }) => self.parse_nil(),
             Some(&Token { kind: LParenToken, .. }) => self.parse_list(),
             Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
-            Some(&Token { kind: AmpToken, .. }) => self.parse_amp(), // ToDo: fix
             Some(&Token { kind: QuoteToken, .. }) =>
                 self.parse_quote_family_reader_macro(QuoteToken, "quote"),
             Some(&Token { kind: BackQuoteToken, .. }) =>
