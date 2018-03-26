@@ -286,12 +286,11 @@ impl Hash for ApplicableBodyKind {
 
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
-    VectorPattern(Vec<PatternPtr>, Option<PatternPtr>),
+    VectorPattern(Vec<PatternPtr>, Option<PatternPtr>, Option<PatternPtr>),
 }
 
 pub struct Pattern {
     pub kind: PatternKind,
-    pub as_symbol: Option<ValuePtr>,
 }
 
 pub type PatternPtr = Box<Pattern>;
@@ -301,15 +300,13 @@ impl Pattern {
         assert!(symbol.kind.is_symbol());
         Box::new(Pattern {
             kind: PatternKind::SymbolPattern(symbol),
-            as_symbol: None,
         })
     }
 
     pub fn create_vector(patterns: Vec<PatternPtr>, rest_pattern: Option<PatternPtr>,
-                         as_symbol: Option<ValuePtr>) -> PatternPtr {
+                         as_symbol: Option<PatternPtr>) -> PatternPtr {
         Box::new(Pattern {
-            kind: PatternKind::VectorPattern(patterns, rest_pattern),
-            as_symbol: as_symbol,
+            kind: PatternKind::VectorPattern(patterns, rest_pattern, as_symbol),
         })
     }
 }

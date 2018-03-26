@@ -49,7 +49,7 @@ fn match_pattern_and_expr(pattern: &PatternPtr, expr: &ValuePtr) -> Result<Vec<(
             assert!(symbol.kind.is_symbol());
             pairs.push((symbol.clone(), expr.clone()));
         }
-        VectorPattern(ref patterns, ref rest_pattern) => {
+        VectorPattern(ref patterns, ref rest_pattern, ref as_symbol) => {
             if !(expr.kind.is_list() || expr.kind.is_vector()) { // ToDo: fix to accept streaming-like data
                 unimplemented!()
             }
@@ -63,13 +63,13 @@ fn match_pattern_and_expr(pattern: &PatternPtr, expr: &ValuePtr) -> Result<Vec<(
             if let &Some(ref rest_pattern) = rest_pattern {
                 pairs.append(&mut match_pattern_and_expr(rest_pattern, &expr_iter.rest())?);
             }
+
+            if let &Some(ref pattern) = as_symbol {
+                pairs.append(&mut match_pattern_and_expr(pattern, expr)?);
+            }
         }
     }
 
-    if let Some(ref as_symbol) = pattern.as_symbol {
-        assert!(as_symbol.kind.is_symbol());
-        pairs.push((as_symbol.clone(), expr.clone()));
-    }
     Ok(pairs)
 }
 
