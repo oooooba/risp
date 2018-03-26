@@ -289,6 +289,38 @@ pub enum PatternKind {
     VectorPattern(Vec<PatternPtr>, Option<PatternPtr>, Option<PatternPtr>),
 }
 
+impl ToString for PatternKind {
+    fn to_string(&self) -> String {
+        use self::PatternKind::*;
+        match self {
+            &SymbolPattern(ref s) => s.to_string(),
+            &VectorPattern(ref v, ref r, ref s) => {
+                let mut text = String::new();
+                text.push('[');
+                let mut is_first = true;
+                for item in v.iter() {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        text.push(' ');
+                    }
+                    text.push_str(&item.to_string());
+                }
+                if let &Some(ref rest) = r {
+                    text.push_str(" & ");
+                    text.push_str(&rest.to_string());
+                }
+                if let &Some(ref symbol) = s {
+                    text.push_str(" :as ");
+                    text.push_str(&symbol.to_string());
+                }
+                text.push(']');
+                text
+            }
+        }
+    }
+}
+
 pub struct Pattern {
     pub kind: PatternKind,
 }
@@ -311,6 +343,11 @@ impl Pattern {
     }
 }
 
+impl ToString for Pattern {
+    fn to_string(&self) -> String {
+        self.kind.to_string()
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct ApplicableParam {
