@@ -81,6 +81,7 @@ impl Env {
             prepare_builtinfunc("first", Box::new(builtinfunc::builtinfunc_first), 1),
             prepare_builtinfunc("rest", Box::new(builtinfunc::builtinfunc_rest), 1),
             prepare_builtinfunc("nil?", Box::new(builtinfunc::builtinfunc_nil_q), 1),
+            prepare_builtinfunc("println", Box::new(builtinfunc::builtinfunc_println), 1),
         ];
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))
     }

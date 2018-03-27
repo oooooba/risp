@@ -96,3 +96,9 @@ pub fn builtinfunc_nil_q(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let val = env.lookup_nth_param(1).unwrap();
     Ok(Value::create_boolean(val.kind.is_nil()))
 }
+
+pub fn builtinfunc_println(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let val = env.lookup_nth_param(1).unwrap();
+    println!("{}", val.to_string());
+    Ok(Value::create_nil())
+}
