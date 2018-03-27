@@ -129,12 +129,16 @@ fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
 fn eval_vector(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_vector());
     if let ValueKind::VectorValue(ref vector) = ast.kind {
-        let mut evaled_vector = vec![];
-        for item in vector.iter() {
-            let val = eval(item.clone(), env.clone())?;
-            evaled_vector.push(val);
+        if ast.is_literal {
+            let mut evaled_vector = vec![];
+            for item in vector.iter() {
+                let val = eval(item.clone(), env.clone())?;
+                evaled_vector.push(val);
+            }
+            Ok(Value::create_vector(evaled_vector))
+        } else {
+            Ok(ast.clone())
         }
-        Ok(Value::create_vector(evaled_vector))
     } else {
         unreachable!()
     }

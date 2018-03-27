@@ -377,6 +377,7 @@ impl fmt::Debug for ApplicableBodyKind {
 #[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Value {
     pub kind: ValueKind,
+    pub is_literal: bool,
 }
 
 impl ToString for Value {
@@ -389,7 +390,11 @@ pub type ValuePtr = Rc<Value>;
 
 impl Value {
     fn new(kind: ValueKind) -> ValuePtr {
-        Rc::new(Value { kind: kind })
+        Rc::new(Value { kind: kind, is_literal: false })
+    }
+
+    fn new_literal(kind: ValueKind) -> ValuePtr {
+        Rc::new(Value { kind: kind, is_literal: true })
     }
 
     pub fn create_integer(integer: isize) -> ValuePtr {
@@ -453,6 +458,10 @@ impl Value {
 
     pub fn create_vector(vector: Vec<ValuePtr>) -> ValuePtr {
         Value::new(ValueKind::VectorValue(vector))
+    }
+
+    pub fn create_vector_literal(vector: Vec<ValuePtr>) -> ValuePtr {
+        Value::new_literal(ValueKind::VectorValue(vector))
     }
 
     pub fn create_macro(applicable: Applicable) -> ValuePtr {

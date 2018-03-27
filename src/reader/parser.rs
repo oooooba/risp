@@ -113,7 +113,7 @@ impl Parser {
     fn parse_vector(&mut self) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, TokenKind::LBracketToken);
         self.parse_sequence(TokenKind::LBracketToken, TokenKind::RBracketToken, &|v| {
-            Ok(Value::create_vector(v))
+            Ok(Value::create_vector_literal(v))
         })
     }
 
@@ -232,7 +232,7 @@ mod tests {
             Token::new(s(r#""abc""#), StringToken, None),
             Token::new(s("]"), RBracketToken, None),
         ])).parse(), Ok(
-            Value::create_vector(vec![
+            Value::create_vector_literal(vec![
                 Value::create_integer(123),
                 Value::create_string("abc".to_string()),
             ])
