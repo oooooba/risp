@@ -40,32 +40,32 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
     }
 }
 
-fn match_pattern_and_expr(pattern: &PatternPtr, expr: &ValuePtr) -> Result<Vec<(ValuePtr, ValuePtr)>, Exception> {
+fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<Vec<(String, ValuePtr)>, Exception> {
     use self::PatternKind::*;
     let mut pairs = vec![];
 
     match pattern.kind {
         SymbolPattern(ref symbol) => {
             assert!(symbol.kind.is_symbol());
-            pairs.push((symbol.clone(), expr.clone()));
+            pairs.push((symbol.get_as_symbol().unwrap().clone(), value.clone()));
         }
         VectorPattern(ref patterns, ref rest_pattern, ref as_symbol) => {
-            if !(expr.kind.is_list() || expr.kind.is_vector()) { // ToDo: fix to accept streaming-like data
+            if !(value.kind.is_list() || value.kind.is_vector()) { // ToDo: fix to accept streaming-like data
                 unimplemented!()
             }
-            let mut expr_iter = Value::iter(expr);
+            let mut value_iter = Value::iter(value);
             for pattern in patterns.iter() {
-                match expr_iter.next() {
-                    Some(ref expr) => pairs.append(&mut match_pattern_and_expr(pattern, expr)?),
-                    None => unimplemented!(), // exception
+                match value_iter.next() {
+                    Some(ref value) => pairs.append(&mut bind_pattern_to_value(pattern, value)?),
+                    None => unimplemented!(), // nil
                 }
             }
             if let &Some(ref rest_pattern) = rest_pattern {
-                pairs.append(&mut match_pattern_and_expr(rest_pattern, &expr_iter.rest())?);
+                pairs.append(&mut bind_pattern_to_value(rest_pattern, &value_iter.rest())?);
             }
 
             if let &Some(ref pattern) = as_symbol {
-                pairs.append(&mut match_pattern_and_expr(pattern, expr)?);
+                pairs.append(&mut bind_pattern_to_value(pattern, value)?);
             }
         }
     }
@@ -73,7 +73,7 @@ fn match_pattern_and_expr(pattern: &PatternPtr, expr: &ValuePtr) -> Result<Vec<(
     Ok(pairs)
 }
 
-fn split_let_binding_form(form: &ValuePtr) -> Result<(ValuePtr, ValuePtr), Exception> {
+fn split_let_binding_form(form: &ValuePtr) -> Result<(Vec<ValuePtr>, Vec<ValuePtr>), Exception> {
     assert!(form.kind.is_vector());
     let mut patterns = vec![];
     let mut exprs = vec![];
@@ -94,7 +94,7 @@ fn split_let_binding_form(form: &ValuePtr) -> Result<(ValuePtr, ValuePtr), Excep
         };
     }
     assert_eq!(patterns.len(), exprs.len());
-    Ok((Value::create_vector(patterns), Value::create_vector(exprs)))
+    Ok((patterns, exprs))
 }
 
 pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -102,22 +102,26 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("let"));
 
-    let (patterns, exprs) = match iter.next() {
+    let (unparsed_patterns, unevaled_exprs) = match iter.next() {
         Some(ref form) if form.kind.is_vector() => split_let_binding_form(form)?,
         Some(_) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("let"), None)),
     };
 
-    let patterns = parse_pattern(&patterns)?;
-    let unevaled_pairs = match_pattern_and_expr(&patterns, &exprs)?;
+    let mut patterns = vec![];
+    for pattern in unparsed_patterns.iter() {
+        patterns.push(parse_pattern(pattern)?);
+    }
 
     let mut evaled_pairs = vec![];
-    for &(ref symbol, ref expr) in unevaled_pairs.iter() {
-        assert!(symbol.kind.is_symbol());
-        let symbol = symbol.get_as_symbol().unwrap().clone();
+    assert_eq!(patterns.len(), unevaled_exprs.len());
+    for i in 0..(patterns.len()) {
+        let expr = &unevaled_exprs[i];
         let tmp_env = Env::create(evaled_pairs.clone(), Some(env.clone()));
         let val = eval(expr.clone(), tmp_env)?;
-        evaled_pairs.push((symbol, val));
+        let pattern = &patterns[i];
+        let mut pairs = bind_pattern_to_value(pattern, &val)?;
+        evaled_pairs.append(&mut pairs);
     }
 
     let let_env = Env::create(evaled_pairs, Some(env));
