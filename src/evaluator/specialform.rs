@@ -11,30 +11,37 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
         SymbolValue(_) => Ok(Pattern::create_symbol(pattern.clone())),
         VectorValue(_) => {
             let mut iter = Value::iter(pattern);
-            let mut declares_rest_param = false;
             let mut patterns = vec![];
-            while let Some(ref pattern) = iter.next() {
-                if pattern.kind.matches_symbol("&") {
-                    declares_rest_param = true;
-                    break;
+            let mut rest_patterns = vec![];
+            let mut as_symbol = None;
+            loop {
+                let pattern = match iter.next() {
+                    Some(pattern) => pattern,
+                    None => break,
+                };
+                if pattern.kind.matches_keyword("as") {
+                    match iter.next() {
+                        Some(ref symbol) if symbol.kind.is_symbol() => {
+                            as_symbol = Some(parse_pattern(&symbol)?);
+                            break;
+                        }
+                        _ => unimplemented!(),
+                    }
+                } else if pattern.kind.matches_symbol("&") {
+                    match iter.next() {
+                        Some(ref pattern) => rest_patterns.push(parse_pattern(pattern)?),
+                        None => unimplemented!(),
+                    }
+                } else {
+                    patterns.push(parse_pattern(&pattern)?);
                 }
-                patterns.push(parse_pattern(pattern)?);
             }
-
-            let rest_param = if declares_rest_param {
-                match iter.next() {
-                    Some(ref symbol) if symbol.kind.is_symbol() => Some(Pattern::create_symbol(symbol.clone())),
-                    _ => unimplemented!(),
-                }
-            } else {
-                None
-            };
 
             if iter.next() != None {
                 unimplemented!()
             }
 
-            Ok(Pattern::create_vector(patterns, rest_param, None))
+            Ok(Pattern::create_vector(patterns, rest_patterns, as_symbol))
         }
         _ => unimplemented!(),
     }
@@ -49,7 +56,7 @@ fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<Vec<(
             assert!(symbol.kind.is_symbol());
             pairs.push((symbol.get_as_symbol().unwrap().clone(), value.clone()));
         }
-        VectorPattern(ref patterns, ref rest_pattern, ref as_symbol) => {
+        VectorPattern(ref patterns, ref rest_patterns, ref as_symbol) => {
             if !(value.kind.is_list() || value.kind.is_vector()) { // ToDo: fix to accept streaming-like data
                 unimplemented!()
             }
@@ -60,8 +67,9 @@ fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<Vec<(
                     None => unimplemented!(), // nil
                 }
             }
-            if let &Some(ref rest_pattern) = rest_pattern {
-                pairs.append(&mut bind_pattern_to_value(rest_pattern, &value_iter.rest())?);
+            let rest_value = value_iter.rest();
+            for rest_pattern in rest_patterns {
+                pairs.append(&mut bind_pattern_to_value(rest_pattern, &rest_value)?);
             }
 
             if let &Some(ref pattern) = as_symbol {

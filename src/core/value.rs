@@ -132,6 +132,13 @@ impl ValueKind {
             _ => false,
         }
     }
+
+    pub fn matches_keyword(&self, expected: &str) -> bool {
+        match self {
+            &ValueKind::KeywordValue(ref actual) => expected == actual.as_str(),
+            _ => false,
+        }
+    }
 }
 
 impl PartialEq for ValueKind {
@@ -286,7 +293,7 @@ impl Hash for ApplicableBodyKind {
 
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
-    VectorPattern(Vec<PatternPtr>, Option<PatternPtr>, Option<PatternPtr>),
+    VectorPattern(Vec<PatternPtr>, Vec<PatternPtr>, Option<PatternPtr>),
 }
 
 impl ToString for PatternKind {
@@ -306,9 +313,9 @@ impl ToString for PatternKind {
                     }
                     text.push_str(&item.to_string());
                 }
-                if let &Some(ref rest) = r {
+                for p in r.iter() {
                     text.push_str(" & ");
-                    text.push_str(&rest.to_string());
+                    text.push_str(&p.to_string());
                 }
                 if let &Some(ref symbol) = s {
                     text.push_str(" :as ");
@@ -335,10 +342,10 @@ impl Pattern {
         })
     }
 
-    pub fn create_vector(patterns: Vec<PatternPtr>, rest_pattern: Option<PatternPtr>,
+    pub fn create_vector(patterns: Vec<PatternPtr>, rest_patterns: Vec<PatternPtr>,
                          as_symbol: Option<PatternPtr>) -> PatternPtr {
         Box::new(Pattern {
-            kind: PatternKind::VectorPattern(patterns, rest_pattern, as_symbol),
+            kind: PatternKind::VectorPattern(patterns, rest_patterns, as_symbol),
         })
     }
 }
