@@ -48,61 +48,30 @@ fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<
     };
     let processes_closure = closure_env != None;
     let param = &applicable.param;
-    let mut arg_iter = Value::iter(args_val);
-    let mut num_args = 0;
 
-    let mut unevaled_param_pairs = vec![];
-    for symbol in param.params.iter() {
-        if let Some(arg) = arg_iter.next() {
-            unevaled_param_pairs.push((symbol, arg));
-            num_args += 1;
+    let mut evaled_args = vec![];
+    for arg in Value::iter(args_val) {
+        let val = if processes_closure {
+            eval(arg.clone(), env.clone())?
         } else {
-            return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
-        }
+            arg.clone()
+        };
+        evaled_args.push(val);
     }
+    let evaled_args_val = Value::create_list_from_vec(evaled_args);
 
-    let mut unevaled_rest_args = vec![];
-    while let Some(arg) = arg_iter.next() {
-        unevaled_rest_args.push(arg);
-        num_args += 1;
-    }
-
-    if param.rest_param == None && unevaled_rest_args.len() > 0 {
-        return Err(Exception::new(ExceptionKind::EvaluatorArityException(param.params.len(), num_args), None));
-    }
-
-    let mut evaled_param_pairs = vec![];
+    let mut evaled_pairs = vec![];
     if let Some(ref name) = applicable.name {
-        evaled_param_pairs.push((name.clone(), applicable_val.clone()));
+        evaled_pairs.push((name.clone(), applicable_val.clone()));
     }
-    for &(ref symbol, ref arg) in unevaled_param_pairs.iter() {
-        let val = if processes_closure {
-            eval(arg.clone(), env.clone())?
-        } else {
-            arg.clone()
-        };
-        evaled_param_pairs.push(((*symbol).clone(), val));
-    }
-
-    let mut evaled_rest_args = vec![];
-    for arg in unevaled_rest_args.iter() {
-        let val = if processes_closure {
-            eval(arg.clone(), env.clone())?
-        } else {
-            arg.clone()
-        };
-        evaled_rest_args.push(val);
-    }
-
-    if let Some(ref symbol) = param.rest_param {
-        evaled_param_pairs.push((symbol.clone(), Value::create_list_from_vec(evaled_rest_args)));
-    }
+    evaled_pairs.append(&mut specialform::bind_pattern_to_value(param, &evaled_args_val)?);
 
     let new_env = if processes_closure {
-        Env::create(evaled_param_pairs, closure_env)
+        Env::create(evaled_pairs, closure_env)
     } else {
-        Env::create(evaled_param_pairs, Some(env))
+        Env::create(evaled_pairs, Some(env))
     };
+
     match applicable.body {
         ApplicableBodyKind::BuiltinBody(ref f) => f(new_env),
         ApplicableBodyKind::AstBody(ref f) => {
@@ -209,7 +178,10 @@ mod tests {
             let closure_env = Env::create(vec![
                 ("y".to_string(), Value::create_integer(3)),
             ], None);
-            let applicable = Applicable::new(None, ApplicableParam::new(vec!["x".to_string()], None), func);
+            let param = Pattern::create_vector(vec![
+                Pattern::create_symbol(Value::create_symbol("x".to_string()))
+            ], vec![], None);
+            let applicable = Applicable::new(None, param, func);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
                 ("y".to_string(), Value::create_integer(2)),
@@ -225,7 +197,10 @@ mod tests {
             let closure_env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(2)),
             ], None);
-            let applicable = Applicable::new(None, ApplicableParam::new(vec!["x".to_string()], None), func);
+            let param = Pattern::create_vector(vec![
+                Pattern::create_symbol(Value::create_symbol("x".to_string()))
+            ], vec![], None);
+            let applicable = Applicable::new(None, param, func);
             let env = Env::create(vec![
                 ("x".to_string(), Value::create_integer(1)),
                 ("f".to_string(), Value::create_closure(applicable, closure_env)),
@@ -307,7 +282,7 @@ mod tests {
         {
             let outer_env = Some(Env::create_default());
             let macro_body = Value::create_integer(1);
-            let funcparam = ApplicableParam { params: vec![], rest_param: None };
+            let funcparam = Pattern::create_vector(vec![], vec![], None);
             let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
             let macro_val = Value::create_macro(applicable);
             let env = Env::create(vec![("one".to_string(), macro_val)], outer_env);
@@ -342,7 +317,11 @@ mod tests {
                     ]),
                 ]),
             ]);
-            let funcparam = ApplicableParam { params: vec![s_pred, s_a, s_b], rest_param: None };
+            let funcparam = Pattern::create_vector(vec![
+                Pattern::create_symbol(Value::create_symbol(s_pred)),
+                Pattern::create_symbol(Value::create_symbol(s_a)),
+                Pattern::create_symbol(Value::create_symbol(s_b)),
+            ], vec![], None);
             let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
 
             let closure = Value::create_macro(applicable);

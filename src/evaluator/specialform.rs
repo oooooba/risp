@@ -1,4 +1,4 @@
-use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ApplicableParam, ListKind, ValueIterator, Applicable,
+use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ListKind, ValueIterator, Applicable,
                   Pattern, PatternKind, PatternPtr};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
@@ -47,7 +47,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
     }
 }
 
-fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<Vec<(String, ValuePtr)>, Exception> {
+pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<Vec<(String, ValuePtr)>, Exception> {
     use self::PatternKind::*;
     let mut pairs = vec![];
 
@@ -203,37 +203,6 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     }
 }
 
-fn parse_fn_param_vec(param_vec: &ValuePtr) -> Result<ApplicableParam, Exception> {
-    let mut params = vec![];
-    let mut declares_rest_param = false;
-    let mut iter = Value::iter(param_vec);
-
-    while let Some(param) = iter.next() {
-        match param.kind {
-            ValueKind::SymbolValue(ref symbol) if symbol == "&" => {
-                declares_rest_param = true;
-                break;
-            }
-            ValueKind::SymbolValue(ref symbol) => params.push(symbol.clone()),
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
-        }
-    }
-
-    let mut rest_param = None;
-    if declares_rest_param {
-        match iter.next() {
-            Some(ref symbol) if symbol.kind.is_symbol() => rest_param = Some(symbol.get_as_symbol().unwrap().clone()),
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
-        }
-    }
-
-    if iter.next() != None {
-        return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None));
-    }
-
-    Ok(ApplicableParam::new(params, rest_param))
-}
-
 pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     let mut iter = Value::iter(ast).peekable();
@@ -254,8 +223,7 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
         Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), other.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("fn"), None)),
     };
-
-    let param = parse_fn_param_vec(&param_vector)?;
+    let param = parse_pattern(&param_vector)?;
 
     let body_expr = match iter.next() {
         Some(ref expr) => expr.clone(),
@@ -349,7 +317,7 @@ pub fn eval_specialform_defmacro(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr
         Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), other.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException("defmacro"), None)),
     };
-    let param = parse_fn_param_vec(&param_vector)?;
+    let param = parse_pattern(&param_vector)?;
 
     let body_expr = match iter.next() {
         Some(ref expr) => expr.clone(),

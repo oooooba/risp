@@ -34,12 +34,12 @@ pub enum ListKind {
 #[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Applicable {
     pub name: Option<String>,
-    pub param: ApplicableParam,
+    pub param: PatternPtr,
     pub body: ApplicableBodyKind,
 }
 
 impl Applicable {
-    pub fn new(name: Option<String>, param: ApplicableParam, body: ApplicableBodyKind) -> Applicable {
+    pub fn new(name: Option<String>, param: PatternPtr, body: ApplicableBodyKind) -> Applicable {
         Applicable {
             name: name,
             param: param,
@@ -199,7 +199,7 @@ impl ToString for ValueKind {
                     None => text.push_str("<anon>"),
                 }
                 text.push_str(", ");
-                text.push_str(&format!("{:x}", unsafe { transmute::<&ApplicableParam, usize>(&a.param) }));
+                text.push_str(&format!("{:x}", unsafe { transmute::<&PatternPtr, usize>(&a.param) }));
                 text.push_str(", ");
                 text.push_str(&format!("{:x}", unsafe { transmute::<&EnvPtr, usize>(e) }));
                 text.push('>');
@@ -291,6 +291,7 @@ impl Hash for ApplicableBodyKind {
     }
 }
 
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
     VectorPattern(Vec<PatternPtr>, Vec<PatternPtr>, Option<PatternPtr>),
@@ -328,6 +329,7 @@ impl ToString for PatternKind {
     }
 }
 
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Pattern {
     pub kind: PatternKind,
 }
