@@ -11,3 +11,7 @@ $ cargo run  # run interactively
 $ cargo test # run test
 ```
 See `risp/examples` directory.
+They are based on tests code of mal (<cite>[https://github.com/kanaka/mal][1]</cite>) and 4Clojure (<cite>[http://www.4clojure.com][2]</cite>).
+
+[1]:https://github.com/kanaka/mal
+[2]:http://www.4clojure.com/
