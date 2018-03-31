@@ -341,6 +341,79 @@ pub fn eval_specialform_do(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     eval_specialform_do_core(iter, env)
 }
 
+fn parse_try_form(mut iter: ValueIterator)
+                  -> Result<(Vec<ValuePtr>, Vec<ValuePtr>, Option<ValuePtr>), Exception> {
+    let mut try_exprs = vec![];
+    let mut catch_clauses = vec![];
+    let mut finally_clause = None;
+
+    while let Some(expr) = iter.next() {
+        if expr.kind.is_list() || expr.kind.is_vector() {
+            match Value::iter(&expr).peekable().peek() {
+                Some(ref symbol) if symbol.kind.matches_symbol("catch") => {
+                    catch_clauses.push(expr.clone());
+                    break;
+                }
+                Some(ref symbol) if symbol.kind.matches_symbol("finally") => {
+                    finally_clause = Some(expr.clone());
+                    break;
+                }
+                _ => (),
+            }
+        }
+        try_exprs.push(expr.clone());
+    }
+
+    if finally_clause.is_some() {
+        assert_eq!(catch_clauses.len(), 0);
+        if iter.next().is_none() {
+            return Ok((try_exprs, catch_clauses, finally_clause));
+        } else {
+            unimplemented!()
+        }
+    }
+
+    while let Some(expr) = iter.next() {
+        assert!(expr.kind.is_list() || expr.kind.is_vector());
+        match Value::iter(&expr).peekable().peek() {
+            Some(ref symbol) if symbol.kind.matches_symbol("catch") => catch_clauses.push(expr.clone()),
+            Some(ref symbol) if symbol.kind.matches_symbol("finally") => {
+                finally_clause = Some(expr.clone());
+                break;
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    if iter.next().is_none() {
+        Ok((try_exprs, catch_clauses, finally_clause))
+    } else {
+        unimplemented!()
+    }
+}
+
+pub fn eval_specialform_try(ast: &ValuePtr, _: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("try"));
+
+    let (try_exprs, catch_clauses, finally_clause) = parse_try_form(iter)?;
+    println!("-----------------");
+    for te in try_exprs.iter() {
+        println!("te: {:?}", te.to_string());
+    }
+    for cc in catch_clauses.iter() {
+        println!("cc: {:?}", cc.to_string());
+    }
+    if let Some(fc) = finally_clause {
+        println!("fc: {:?}", fc.to_string());
+    }
+    println!("+++++++++++++++++");
+
+    Ok(Value::create_boolean(true))
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;

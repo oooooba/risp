@@ -1,0 +1,17 @@
+(try)
+(try (catch))
+(try (finally))
+(try (catch) (finally))
+(try (catch) (catch) (finally))
+
+(try ())
+(try () (catch))
+(try () (finally))
+(try () (catch) (finally))
+(try () (catch) (catch) (finally))
+
+(try () 1)
+(try () 1 (catch))
+(try () 1 (finally))
+(try () 1 (catch) (finally))
+(try () 1 (catch) (catch) (finally))
