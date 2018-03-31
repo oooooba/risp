@@ -17,3 +17,8 @@
 (def gen-plusX (fn [x] (fn [b] (+ x b))))
 (def plus5 (gen-plusX 5))
 (= (plus5 8) 13)
+
+(= (do) nil)
+(= (do (println "println output1")) nil)
+(= (do (println "println output2") 7) 7)
+(= (do (println "println output3") (println "println output4") (+ 1 2)) 3)

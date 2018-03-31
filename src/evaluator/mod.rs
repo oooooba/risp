@@ -21,6 +21,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         Some(symbol) if symbol.kind.matches_symbol("unquote") => return specialform::eval_specialform_unquote(ast, env, false),
         Some(symbol) if symbol.kind.matches_symbol("splice-unquote") => return specialform::eval_specialform_splice_unquote(ast, env, false),
         Some(symbol) if symbol.kind.matches_symbol("defmacro") => return specialform::eval_specialform_defmacro(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("do") => return specialform::eval_specialform_do(ast, env),
         None => return Ok(Value::create_list(EmptyList)),
         _ => (),
     }
