@@ -133,12 +133,7 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     }
 
     let let_env = Env::create(evaled_pairs, Some(env));
-
-    let mut result_value = Value::create_nil();
-    while let Some(expr) = iter.next() {
-        result_value = eval(expr.clone(), let_env.clone())?;
-    }
-    Ok(result_value)
+    eval_specialform_do_core(iter, let_env)
 }
 
 pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -331,16 +326,19 @@ pub fn eval_specialform_defmacro(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr
     Err(Exception::new(ExceptionKind::Continuation(Env::create(vec![(symbol, val)], Some(env))), None))
 }
 
-pub fn eval_specialform_do(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
-    assert!(iter.next().unwrap().kind.matches_symbol("do"));
-
+fn eval_specialform_do_core(mut iter: ValueIterator, env: EnvPtr) -> Result<ValuePtr, Exception> {
     let mut result_value = Value::create_nil();
     while let Some(expr) = iter.next() {
         result_value = eval(expr.clone(), env.clone())?;
     }
     Ok(result_value)
+}
+
+pub fn eval_specialform_do(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("do"));
+    eval_specialform_do_core(iter, env)
 }
 
 #[cfg(test)]
