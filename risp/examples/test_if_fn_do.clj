@@ -1,3 +1,6 @@
+(= (list) ())
+(= (list? (list)) true)
+
 (= ((fn [a b] (+ b a)) 3 4) 7)
 (= ((fn [] 4)) 4)
 (= ((fn [f x] (f x)) (fn [a] (+ 1 a)) 7) 8)

@@ -80,6 +80,7 @@ impl Env {
             prepare_builtinfunc("cons", Box::new(builtinfunc::cons), 2),
             prepare_builtinfunc("first", Box::new(builtinfunc::builtinfunc_first), 1),
             prepare_builtinfunc("rest", Box::new(builtinfunc::builtinfunc_rest), 1),
+            prepare_builtinfunc("list?", Box::new(builtinfunc::builtinfunc_list_q), 1),
             prepare_builtinfunc("nil?", Box::new(builtinfunc::builtinfunc_nil_q), 1),
             prepare_builtinfunc("println", Box::new(builtinfunc::builtinfunc_println), 1),
         ];
