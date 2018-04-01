@@ -341,7 +341,7 @@ pub fn eval_specialform_do(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     eval_specialform_do_core(iter, env)
 }
 
-fn parse_try_form(mut iter: ValueIterator)
+fn split_try_form(mut iter: ValueIterator)
                   -> Result<(Vec<ValuePtr>, Vec<ValuePtr>, Option<ValuePtr>), Exception> {
     let mut try_exprs = vec![];
     let mut catch_clauses = vec![];
@@ -374,7 +374,9 @@ fn parse_try_form(mut iter: ValueIterator)
     }
 
     while let Some(expr) = iter.next() {
-        assert!(expr.kind.is_list() || expr.kind.is_vector());
+        if !(expr.kind.is_list() || expr.kind.is_vector()) {
+            unimplemented!()
+        }
         match Value::iter(&expr).peekable().peek() {
             Some(ref symbol) if symbol.kind.matches_symbol("catch") => catch_clauses.push(expr.clone()),
             Some(ref symbol) if symbol.kind.matches_symbol("finally") => {
@@ -392,18 +394,60 @@ fn parse_try_form(mut iter: ValueIterator)
     }
 }
 
+fn parse_catch_clause(ast: &ValuePtr) -> Result<(ExceptionKind, String, ValuePtr), Exception> {
+    assert!(ast.kind.is_list());
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("catch"));
+
+    let exception_class = match iter.next() {
+        Some(ref symbol) if symbol.kind.is_symbol() => ExceptionKind::EvaluatorIllegalFormException("example"),
+        Some(_other) => unimplemented!(),
+        None => unimplemented!(),
+    };
+
+    let bound_variable = match iter.next() {
+        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        Some(_other) => unimplemented!(),
+        None => unimplemented!(),
+    };
+
+    let exprs = iter.rest();
+
+    Ok((exception_class, bound_variable, exprs))
+}
+
+fn parse_finally_clause(ast: &ValuePtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("finally"));
+
+    let exprs = iter.rest();
+    Ok(exprs)
+}
+
 pub fn eval_specialform_try(ast: &ValuePtr, _: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("try"));
 
-    let (try_exprs, catch_clauses, finally_clause) = parse_try_form(iter)?;
+    let (try_exprs, unparsed_catch_clauses, unparsed_finally_clause) = split_try_form(iter)?;
+
+    let mut catch_clauses = vec![];
+    for catch_clause in unparsed_catch_clauses.iter() {
+        catch_clauses.push(parse_catch_clause(catch_clause)?);
+    }
+
+    let finally_clause = match unparsed_finally_clause {
+        Some(ref clause) => Some(parse_finally_clause(clause)?),
+        _ => None,
+    };
+
     println!("-----------------");
     for te in try_exprs.iter() {
         println!("te: {:?}", te.to_string());
     }
     for cc in catch_clauses.iter() {
-        println!("cc: {:?}", cc.to_string());
+        println!("cc: (kind = {:?}, var = {:?}, expr = {:?})", cc.0, cc.1, cc.2.to_string());
     }
     if let Some(fc) = finally_clause {
         println!("fc: {:?}", fc.to_string());
