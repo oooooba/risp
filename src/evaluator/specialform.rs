@@ -400,7 +400,7 @@ fn parse_catch_clause(ast: &ValuePtr) -> Result<(ExceptionKind, String, ValuePtr
     assert!(iter.next().unwrap().kind.matches_symbol("catch"));
 
     let exception_class = match iter.next() {
-        Some(ref symbol) if symbol.kind.is_symbol() => ExceptionKind::EvaluatorIllegalFormException("example"),
+        Some(ref symbol) if symbol.kind.is_symbol() => ExceptionKind::EvaluatorUndefinedSymbolException("example".to_string()),
         Some(_other) => unimplemented!(),
         None => unimplemented!(),
     };
@@ -425,7 +425,7 @@ fn parse_finally_clause(ast: &ValuePtr) -> Result<ValuePtr, Exception> {
     Ok(exprs)
 }
 
-pub fn eval_specialform_try(ast: &ValuePtr, _: EnvPtr) -> Result<ValuePtr, Exception> {
+pub fn eval_specialform_try(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     let mut iter = Value::iter(ast);
     assert!(iter.next().unwrap().kind.matches_symbol("try"));
@@ -442,19 +442,31 @@ pub fn eval_specialform_try(ast: &ValuePtr, _: EnvPtr) -> Result<ValuePtr, Excep
         _ => None,
     };
 
-    println!("-----------------");
-    for te in try_exprs.iter() {
-        println!("te: {:?}", te.to_string());
+    let mut ret_val = Value::create_nil();
+    let mut exception = None;
+    for expr in try_exprs.iter() {
+        match eval(expr.clone(), env.clone()) {
+            Ok(val) => ret_val = val,
+            Err(e) => {
+                exception = Some(e);
+                break;
+            }
+        }
     }
-    for cc in catch_clauses.iter() {
-        println!("cc: (kind = {:?}, var = {:?}, expr = {:?})", cc.0, cc.1, cc.2.to_string());
-    }
-    if let Some(fc) = finally_clause {
-        println!("fc: {:?}", fc.to_string());
-    }
-    println!("+++++++++++++++++");
 
-    Ok(Value::create_boolean(true))
+    if let Some(_e) = exception {
+        if catch_clauses.len() > 0 {
+            let clause = &catch_clauses[0];
+            let new_env = Env::create(vec![(clause.1.clone(), Value::create_nil())], Some(env.clone()));
+            ret_val = eval_specialform_do_core(Value::iter(&clause.2), new_env)?;
+        }
+    }
+
+    if let Some(clause) = finally_clause {
+        eval_specialform_do_core(Value::iter(&clause), env)?;
+    }
+
+    Ok(ret_val)
 }
 
 
