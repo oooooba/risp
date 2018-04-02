@@ -8,3 +8,5 @@
 
 (def list
   (fn [& l] l))
+
+(def get (fn [obj key] (_get obj key nil)))

@@ -107,3 +107,21 @@ pub fn builtinfunc_println(env: EnvPtr) -> Result<ValuePtr, Exception> {
     println!("{}", val.to_string());
     Ok(Value::create_nil())
 }
+
+pub fn builtinfunc_get(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let obj = env.lookup_nth_param(1).unwrap();
+    let key = env.lookup_nth_param(2).unwrap();
+    let val = match obj.kind {
+        ValueKind::MapValue(ref map) => map.get(key).or(Some(&Value::create_nil())).unwrap().clone(),
+        ValueKind::VectorValue(ref vector) if key.kind.is_integer() => {
+            let index = key.get_as_integer().unwrap().clone();
+            if 0 <= index && index < vector.len() as isize {
+                vector[index as usize].clone()
+            } else {
+                Value::create_nil()
+            }
+        }
+        _ => Value::create_nil(),
+    };
+    Ok(val)
+}

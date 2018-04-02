@@ -77,6 +77,13 @@ impl ValueKind {
     pub fn type_str_boolean() -> &'static str { "Boolean" }
     pub fn type_str_vector() -> &'static str { "Vector" }
 
+    pub fn is_integer(&self) -> bool {
+        match self {
+            &ValueKind::IntegerValue(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_symbol(&self) -> bool {
         match self {
             &ValueKind::SymbolValue(_) => true,
@@ -490,6 +497,13 @@ impl Value {
     pub fn get_as_symbol<'a>(&'a self) -> Option<&'a String> {
         match self.kind {
             ValueKind::SymbolValue(ref symbol) => Some(symbol),
+            _ => None,
+        }
+    }
+
+    pub fn get_as_integer<'a>(&'a self) -> Option<&'a isize> {
+        match self.kind {
+            ValueKind::IntegerValue(ref integer) => Some(integer),
             _ => None,
         }
     }
