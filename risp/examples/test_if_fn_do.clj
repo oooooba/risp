@@ -16,6 +16,14 @@
 (= (if nil 8 7) 7)
 (= (if true (+ 1 7)) 8)
 
+(= (= 2 1) false)
+(= (= 1 1) true)
+(= (= 1 2) false)
+(= (= 1 (+ 1 1)) false)
+(= (= 2 (+ 1 1)) true)
+(= (= nil 1) false)
+(= (= nil nil) true)
+
 (= ((fn [a b] (+ b a)) 3 4) 7)
 (= ((fn [] 4)) 4)
 (= ((fn [f x] (f x)) (fn [a] (+ 1 a)) 7) 8)
