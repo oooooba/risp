@@ -7,6 +7,8 @@ enum IntegerBuiltinOperatorKind {
     Sub,
     Mul,
     Div,
+    Lt,
+    Gt,
 }
 
 fn op_common_integer(kind: IntegerBuiltinOperatorKind, env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -24,12 +26,14 @@ fn op_common_integer(kind: IntegerBuiltinOperatorKind, env: EnvPtr) -> Result<Va
 
     use self::IntegerBuiltinOperatorKind::*;
     let val = match kind {
-        Add => lhs_int + rhs_int,
-        Sub => lhs_int - rhs_int,
-        Mul => lhs_int * rhs_int,
-        Div => lhs_int / rhs_int,
+        Add => Value::create_integer(lhs_int + rhs_int),
+        Sub => Value::create_integer(lhs_int - rhs_int),
+        Mul => Value::create_integer(lhs_int * rhs_int),
+        Div => Value::create_integer(lhs_int / rhs_int),
+        Lt => Value::create_boolean(lhs_int < rhs_int),
+        Gt => Value::create_boolean(lhs_int > rhs_int),
     };
-    Ok(Value::create_integer(val))
+    Ok(val)
 }
 
 pub fn op_add_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
@@ -46,6 +50,14 @@ pub fn op_mul_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
 
 pub fn op_div_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
     op_common_integer(IntegerBuiltinOperatorKind::Div, env)
+}
+
+pub fn op_lt_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    op_common_integer(IntegerBuiltinOperatorKind::Lt, env)
+}
+
+pub fn op_gt_integer(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    op_common_integer(IntegerBuiltinOperatorKind::Gt, env)
 }
 
 pub fn op_equal(env: EnvPtr) -> Result<ValuePtr, Exception> {

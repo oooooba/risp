@@ -76,6 +76,8 @@ impl Env {
             prepare_builtinfunc("-", Box::new(builtinfunc::op_sub_integer), 2),
             prepare_builtinfunc("*", Box::new(builtinfunc::op_mul_integer), 2),
             prepare_builtinfunc("/", Box::new(builtinfunc::op_div_integer), 2),
+            prepare_builtinfunc("<", Box::new(builtinfunc::op_lt_integer), 2),
+            prepare_builtinfunc(">", Box::new(builtinfunc::op_gt_integer), 2),
             prepare_builtinfunc("=", Box::new(builtinfunc::op_equal), 2),
             prepare_builtinfunc("cons", Box::new(builtinfunc::cons), 2),
             prepare_builtinfunc("first", Box::new(builtinfunc::builtinfunc_first), 1),
