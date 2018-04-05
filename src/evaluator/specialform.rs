@@ -43,6 +43,39 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
 
             Ok(Pattern::create_vector(patterns, rest_patterns, as_symbol))
         }
+        MapValue(_) => {
+            let mut iter = Value::iter(pattern);
+            let mut patterns = vec![];
+            let mut as_symbol = None;
+            let mut or_value = None;
+            loop {
+                let pattern = match iter.next() {
+                    Some(pattern) => pattern,
+                    None => break,
+                };
+                if pattern.kind.matches_keyword("as") {
+                    match iter.next() {
+                        Some(ref symbol) if symbol.kind.is_symbol() && as_symbol.is_none() => {
+                            as_symbol = Some(parse_pattern(&symbol)?);
+                        }
+                        _ => unimplemented!(),
+                    }
+                } else if pattern.kind.matches_keyword("or") {
+                    match iter.next() {
+                        Some(ref val) if or_value.is_none() => or_value = Some(val.clone()),
+                        _ => unimplemented!(),
+                    }
+                } else {
+                    patterns.push(parse_pattern(&pattern)?);
+                }
+            }
+
+            if iter.next() != None {
+                unimplemented!()
+            }
+
+            Ok(Pattern::create_map(patterns, as_symbol, or_value))
+        }
         _ => unimplemented!(),
     }
 }
@@ -76,6 +109,7 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<V
                 pairs.append(&mut bind_pattern_to_value(pattern, value)?);
             }
         }
+        MapPattern(ref _patterns, ref _as_symbol, ref _or_value) => unimplemented!(),
     }
 
     Ok(pairs)

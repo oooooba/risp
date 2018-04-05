@@ -302,6 +302,7 @@ impl Hash for ApplicableBodyKind {
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
     VectorPattern(Vec<PatternPtr>, Vec<PatternPtr>, Option<PatternPtr>),
+    MapPattern(Vec<PatternPtr>, Option<PatternPtr>, Option<ValuePtr>),
 }
 
 impl ToString for PatternKind {
@@ -332,6 +333,7 @@ impl ToString for PatternKind {
                 text.push(']');
                 text
             }
+            &MapPattern(ref _v, ref _s, ref _o) => unimplemented!(),
         }
     }
 }
@@ -355,6 +357,13 @@ impl Pattern {
                          as_symbol: Option<PatternPtr>) -> PatternPtr {
         Box::new(Pattern {
             kind: PatternKind::VectorPattern(patterns, rest_patterns, as_symbol),
+        })
+    }
+
+    pub fn create_map(patterns: Vec<PatternPtr>, as_symbol: Option<PatternPtr>,
+                      or_value: Option<ValuePtr>) -> PatternPtr {
+        Box::new(Pattern {
+            kind: PatternKind::MapPattern(patterns, as_symbol, or_value),
         })
     }
 }
