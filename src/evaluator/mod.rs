@@ -85,13 +85,17 @@ fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<
 fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_map());
     if let ValueKind::MapValue(ref map) = ast.kind {
-        let mut evaled_map = HashMap::new();
-        for (key, val) in map.iter() {
-            let key = eval(key.clone(), env.clone())?;
-            let val = eval(val.clone(), env.clone())?;
-            evaled_map.insert(key, val);
+        if ast.is_literal {
+            let mut evaled_map = HashMap::new();
+            for (key, val) in map.iter() {
+                let key = eval(key.clone(), env.clone())?;
+                let val = eval(val.clone(), env.clone())?;
+                evaled_map.insert(key, val);
+            }
+            Ok(Value::create_map(evaled_map))
+        } else {
+            Ok(ast.clone())
         }
-        Ok(Value::create_map(evaled_map))
     } else {
         unreachable!()
     }

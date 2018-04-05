@@ -457,7 +457,11 @@ impl Value {
         Value::new(ValueKind::MapValue(map))
     }
 
-    pub fn create_map_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
+    pub fn create_map_literal(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
+        Value::new_literal(ValueKind::MapValue(map))
+    }
+
+    fn build_map_from_vec(values: Vec<ValuePtr>) -> HashMap<ValuePtr, ValuePtr> {
         assert_eq!(values.len() % 2, 0);
         let mut map = HashMap::new();
         for i in 0..(values.len() / 2) {
@@ -465,7 +469,15 @@ impl Value {
             let val = values[i * 2 + 1].clone();
             map.insert(key, val);
         }
-        Value::create_map(map)
+        map
+    }
+
+    pub fn create_map_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
+        Value::create_map(Value::build_map_from_vec(values))
+    }
+
+    pub fn create_map_literal_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
+        Value::create_map_literal(Value::build_map_from_vec(values))
     }
 
     pub fn create_boolean(boolean: bool) -> ValuePtr {

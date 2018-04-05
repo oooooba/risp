@@ -120,7 +120,7 @@ impl Parser {
     fn parse_map(&mut self) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, TokenKind::LCurlyToken);
         self.parse_sequence(TokenKind::LCurlyToken, TokenKind::RCurlyToken, &|v| {
-            Ok(Value::create_map_from_vec(v))
+            Ok(Value::create_map_literal_from_vec(v))
         })
     }
 
