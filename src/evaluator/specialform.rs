@@ -66,7 +66,13 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                         _ => unimplemented!(),
                     }
                 } else {
-                    patterns.push(parse_pattern(&pattern)?);
+                    let pattern = parse_pattern(&pattern)?;
+                    let key_val = match iter.next() {
+                        Some(ref val) if val.kind.is_keyword() => val.clone(),
+                        Some(ref val) if val.kind.is_integer() => unimplemented!(),
+                        _ => unimplemented!(),
+                    };
+                    patterns.push((pattern, key_val));
                 }
             }
 

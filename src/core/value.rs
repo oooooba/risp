@@ -91,6 +91,13 @@ impl ValueKind {
         }
     }
 
+    pub fn is_keyword(&self) -> bool {
+        match self {
+            &ValueKind::KeywordValue(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_list(&self) -> bool {
         match self {
             &ValueKind::ListValue(_) => true,
@@ -302,7 +309,7 @@ impl Hash for ApplicableBodyKind {
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
     VectorPattern(Vec<PatternPtr>, Vec<PatternPtr>, Option<PatternPtr>),
-    MapPattern(Vec<PatternPtr>, Option<PatternPtr>, Option<ValuePtr>),
+    MapPattern(Vec<(PatternPtr, ValuePtr)>, Option<PatternPtr>, Option<ValuePtr>),
 }
 
 impl ToString for PatternKind {
@@ -360,7 +367,7 @@ impl Pattern {
         })
     }
 
-    pub fn create_map(patterns: Vec<PatternPtr>, as_symbol: Option<PatternPtr>,
+    pub fn create_map(patterns: Vec<(PatternPtr, ValuePtr)>, as_symbol: Option<PatternPtr>,
                       or_value: Option<ValuePtr>) -> PatternPtr {
         Box::new(Pattern {
             kind: PatternKind::MapPattern(patterns, as_symbol, or_value),
