@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::collections::HashMap;
+use std::collections::hash_map;
 use std::fmt;
 use std::ops::Index;
 use std::iter::Iterator;
@@ -517,6 +518,7 @@ impl Value {
         let iter = match target.kind {
             ValueKind::ListValue(_) => ListIterator(target.clone()),
             ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
+            ValueKind::MapValue(ref map) => MapIterator(map.iter()),
             _ => unimplemented!(),
         };
         ValueIterator(iter)
@@ -541,6 +543,7 @@ impl Value {
 pub enum ValueIteratorKind<'a> {
     ListIterator(ValuePtr),
     VectorIterator(Iter<'a, ValuePtr>),
+    MapIterator(hash_map::Iter<'a, ValuePtr, ValuePtr>),
 }
 
 #[derive(Debug)]
@@ -558,6 +561,14 @@ impl<'a> ValueIterator<'a> {
                 }
                 return Value::create_vector(rest_val);
             }
+            MapIterator(ref mut iter) => {
+                let mut rest_val = vec![];
+                while let Some((ref key, ref val)) = iter.next() {
+                    rest_val.push((*key).clone());
+                    rest_val.push((*val).clone());
+                }
+                return Value::create_map_from_vec(rest_val);
+            }
         };
         self.0 = ListIterator(Value::create_list(ListKind::EmptyList));
         rest_val
@@ -572,6 +583,12 @@ impl<'a> Iterator for ValueIterator<'a> {
         let (val, next_cur) = match self.0 {
             VectorIterator(ref mut iter) => return match iter.next() {
                 Some(ref val) => Some((*val).clone()),
+                None => None,
+            },
+            MapIterator(ref mut iter) => return match iter.next() {
+                Some((ref key, ref val)) => Some(Value::create_list_from_vec(vec![
+                    (*key).clone(), (*val).clone()
+                ])),
                 None => None,
             },
             ListIterator(ref cur) => match cur.kind {
@@ -626,6 +643,50 @@ mod tests {
             assert_eq!(list_val, Value::create_list_from_vec(vec![
                 Value::create_integer(1),
                 Value::create_integer(2),
+                Value::create_integer(3),
+            ]));
+        }
+        {
+            let map_val = Value::create_map_from_vec(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_integer(1),
+            ]);
+            let mut iter = Value::iter(&map_val);
+            assert_eq!(iter.next(), Some(Value::create_list_from_vec(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_integer(1),
+            ])));
+            assert_eq!(iter.next(), None);
+            assert_eq!(map_val, Value::create_map_from_vec(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_integer(1),
+            ]));
+        }
+        {
+            let map_val = Value::create_map_from_vec(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_integer(1),
+                Value::create_keyword("b".to_string()),
+                Value::create_integer(2),
+                Value::create_keyword("c".to_string()),
+                Value::create_integer(3),
+            ]);
+            let mut iter = Value::iter(&map_val);
+            assert_eq!(iter.rest(), Value::create_map_from_vec(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_integer(1),
+                Value::create_keyword("b".to_string()),
+                Value::create_integer(2),
+                Value::create_keyword("c".to_string()),
+                Value::create_integer(3),
+            ]));
+            assert_eq!(iter.next(), None);
+            assert_eq!(map_val, Value::create_map_from_vec(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_integer(1),
+                Value::create_keyword("b".to_string()),
+                Value::create_integer(2),
+                Value::create_keyword("c".to_string()),
                 Value::create_integer(3),
             ]));
         }
