@@ -310,7 +310,7 @@ impl Hash for ApplicableBodyKind {
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
     VectorPattern(Vec<PatternPtr>, Vec<PatternPtr>, Option<PatternPtr>),
-    MapPattern(Vec<(PatternPtr, ValuePtr)>, Option<PatternPtr>, Option<ValuePtr>),
+    MapPattern(Vec<(PatternPtr, ValuePtr, Option<ValuePtr>)>, Option<PatternPtr>),
 }
 
 impl ToString for PatternKind {
@@ -341,7 +341,7 @@ impl ToString for PatternKind {
                 text.push(']');
                 text
             }
-            &MapPattern(ref _v, ref _s, ref _o) => unimplemented!(),
+            &MapPattern(ref _v, ref _s) => unimplemented!(),
         }
     }
 }
@@ -368,10 +368,10 @@ impl Pattern {
         })
     }
 
-    pub fn create_map(patterns: Vec<(PatternPtr, ValuePtr)>, as_symbol: Option<PatternPtr>,
-                      or_value: Option<ValuePtr>) -> PatternPtr {
+    pub fn create_map(patterns: Vec<(PatternPtr, ValuePtr, Option<ValuePtr>)>,
+                      as_symbol: Option<PatternPtr>) -> PatternPtr {
         Box::new(Pattern {
-            kind: PatternKind::MapPattern(patterns, as_symbol, or_value),
+            kind: PatternKind::MapPattern(patterns, as_symbol),
         })
     }
 }
@@ -534,6 +534,13 @@ impl Value {
     pub fn get_as_integer<'a>(&'a self) -> Option<&'a isize> {
         match self.kind {
             ValueKind::IntegerValue(ref integer) => Some(integer),
+            _ => None,
+        }
+    }
+
+    pub fn get_as_map<'a>(&'a self) -> Option<&'a HashMap<ValuePtr, ValuePtr>> {
+        match self.kind {
+            ValueKind::MapValue(ref map) => Some(map),
             _ => None,
         }
     }

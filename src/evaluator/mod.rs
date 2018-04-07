@@ -66,7 +66,7 @@ fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<
     if let Some(ref name) = applicable.name {
         evaled_pairs.push((name.clone(), applicable_val.clone()));
     }
-    evaled_pairs.append(&mut specialform::bind_pattern_to_value(param, &evaled_args_val)?);
+    evaled_pairs.append(&mut specialform::bind_pattern_to_value(param, &evaled_args_val, env.clone())?);
 
     let new_env = if processes_closure {
         Env::create(evaled_pairs, closure_env)

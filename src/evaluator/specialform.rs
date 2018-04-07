@@ -1,3 +1,5 @@
+use std::collections::LinkedList;
+
 use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ListKind, ValueIterator, Applicable,
                   Pattern, PatternKind, PatternPtr};
 use core::exception::{Exception, ExceptionKind};
@@ -44,49 +46,58 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
             Ok(Pattern::create_vector(patterns, rest_patterns, as_symbol))
         }
         MapValue(_) => {
-            let mut iter = Value::iter(pattern);
-            let mut patterns = vec![];
             let mut as_symbol = None;
             let mut or_value = None;
+            let mut pat_key_pairs = LinkedList::new();
+            let mut iter = Value::iter(pattern);
             loop {
-                let pattern = match iter.next() {
-                    Some(pattern) => pattern,
+                let (pattern_val, key_val) = match iter.next() {
+                    Some(ref list) if list.kind.is_list() => {
+                        let mut iter = Value::iter(list);
+                        let pattern = iter.next().unwrap();
+                        let key = iter.next().unwrap();
+                        (pattern, key)
+                    }
+                    Some(_) => unimplemented!(),
                     None => break,
                 };
-                if pattern.kind.matches_keyword("as") {
-                    match iter.next() {
-                        Some(ref symbol) if symbol.kind.is_symbol() && as_symbol.is_none() => {
-                            as_symbol = Some(parse_pattern(&symbol)?);
-                        }
-                        _ => unimplemented!(),
+                if pattern_val.kind.matches_keyword("as") {
+                    if key_val.kind.is_symbol() && as_symbol.is_none() {
+                        as_symbol = Some(parse_pattern(&key_val)?);
+                    } else {
+                        unimplemented!();
                     }
-                } else if pattern.kind.matches_keyword("or") {
-                    match iter.next() {
-                        Some(ref val) if or_value.is_none() => or_value = Some(val.clone()),
-                        _ => unimplemented!(),
+                } else if pattern_val.kind.matches_keyword("or") {
+                    if or_value.is_none() {
+                        or_value = Some(key_val.clone());
+                    } else {
+                        unimplemented!();
                     }
                 } else {
-                    let pattern = parse_pattern(&pattern)?;
-                    let key_val = match iter.next() {
-                        Some(ref val) if val.kind.is_keyword() => val.clone(),
-                        Some(ref val) if val.kind.is_integer() => unimplemented!(),
-                        _ => unimplemented!(),
-                    };
-                    patterns.push((pattern, key_val));
+                    let pattern = parse_pattern(&pattern_val)?;
+                    pat_key_pairs.push_back((pattern, key_val));
                 }
             }
 
-            if iter.next() != None {
-                unimplemented!()
+            let mut pat_key_val_triples = vec![];
+            while let Some((pattern, key)) = pat_key_pairs.pop_front() {
+                let default_val = match pattern.kind {
+                    PatternKind::SymbolPattern(ref symbol) if or_value.is_some() => {
+                        let default_val_map = or_value.as_ref().unwrap().get_as_map().unwrap();
+                        default_val_map.get(symbol).map(|val| { val.clone() })
+                    }
+                    _ => None,
+                };
+                pat_key_val_triples.push((pattern, key, default_val));
             }
 
-            Ok(Pattern::create_map(patterns, as_symbol, or_value))
+            Ok(Pattern::create_map(pat_key_val_triples, as_symbol))
         }
         _ => unimplemented!(),
     }
 }
 
-pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<Vec<(String, ValuePtr)>, Exception> {
+pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr) -> Result<Vec<(String, ValuePtr)>, Exception> {
     use self::PatternKind::*;
     let mut pairs = vec![];
 
@@ -102,20 +113,41 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr) -> Result<V
             let mut value_iter = Value::iter(value);
             for pattern in patterns.iter() {
                 match value_iter.next() {
-                    Some(ref value) => pairs.append(&mut bind_pattern_to_value(pattern, value)?),
+                    Some(ref value) => pairs.append(&mut bind_pattern_to_value(pattern, value, env.clone())?),
                     None => unimplemented!(), // nil
                 }
             }
             let rest_value = value_iter.rest();
             for rest_pattern in rest_patterns {
-                pairs.append(&mut bind_pattern_to_value(rest_pattern, &rest_value)?);
+                pairs.append(&mut bind_pattern_to_value(rest_pattern, &rest_value, env.clone())?);
             }
 
             if let &Some(ref pattern) = as_symbol {
-                pairs.append(&mut bind_pattern_to_value(pattern, value)?);
+                pairs.append(&mut bind_pattern_to_value(pattern, value, env)?);
             }
         }
-        MapPattern(ref _patterns, ref _as_symbol, ref _or_value) => unimplemented!(),
+        MapPattern(ref patterns, ref as_symbol) => {
+            if !(value.kind.is_map()) {
+                unimplemented!()
+            }
+            //let mut value_iter = Value::iter(value);
+            let arg_map = value.get_as_map().unwrap();
+
+            for &(ref pattern, ref key, ref default_val) in patterns.iter() {
+                let val = arg_map.get(key)
+                    .map(|val| val.clone())
+                    .or(match default_val {
+                        &Some(ref expr) => Some(eval(expr.clone(), env.clone())?),
+                        &None => Some(Value::create_nil()),
+                    })
+                    .unwrap();
+                pairs.append(&mut bind_pattern_to_value(pattern, &val, env.clone())?);
+            }
+
+            if let &Some(ref pattern) = as_symbol {
+                pairs.append(&mut bind_pattern_to_value(pattern, value, env)?);
+            }
+        }
     }
 
     Ok(pairs)
@@ -130,6 +162,7 @@ fn split_let_binding_form(form: &ValuePtr) -> Result<(Vec<ValuePtr>, Vec<ValuePt
         let pattern = match iter.next() {
             Some(ref symbol) if symbol.kind.is_symbol() => symbol.clone(),
             Some(ref vector) if vector.kind.is_vector() => vector.clone(),
+            Some(ref map) if map.kind.is_map() => map.clone(),
             Some(_) => unimplemented!(), // exception
             None => break,
         };
@@ -168,7 +201,7 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
         let tmp_env = Env::create(evaled_pairs.clone(), Some(env.clone()));
         let val = eval(expr.clone(), tmp_env)?;
         let pattern = &patterns[i];
-        let mut pairs = bind_pattern_to_value(pattern, &val)?;
+        let mut pairs = bind_pattern_to_value(pattern, &val, env.clone())?;
         evaled_pairs.append(&mut pairs);
     }
 
