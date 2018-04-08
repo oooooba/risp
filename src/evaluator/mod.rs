@@ -138,6 +138,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         BooleanValue(_) => Ok(ast.clone()),
         VectorValue(_) => eval_vector(&ast, env),
         MacroValue(_) => unreachable!(),
+        TypeValue(_) => unreachable!(),
     }
 }
 

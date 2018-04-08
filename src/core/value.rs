@@ -24,6 +24,7 @@ pub enum ValueKind {
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
+    TypeValue(Type),
 }
 
 #[derive(PartialEq, Debug, Eq, Hash)]
@@ -64,6 +65,7 @@ impl ValueKind {
             &BooleanValue(_) => ValueKind::type_str_boolean(),
             &VectorValue(_) => ValueKind::type_str_vector(),
             &MacroValue(_) => unreachable!(),
+            &TypeValue(_) => ValueKind::type_str_type(),
         }
     }
 
@@ -77,6 +79,7 @@ impl ValueKind {
     pub fn type_str_map() -> &'static str { "Map" }
     pub fn type_str_boolean() -> &'static str { "Boolean" }
     pub fn type_str_vector() -> &'static str { "Vector" }
+    pub fn type_str_type() -> &'static str { "Type" }
 
     pub fn is_integer(&self) -> bool {
         match self {
@@ -169,6 +172,7 @@ impl PartialEq for ValueKind {
             (&MapValue(ref lhs), &MapValue(ref rhs)) => lhs == rhs,
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
+            (&TypeValue(ref lhs), &TypeValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -255,6 +259,7 @@ impl ToString for ValueKind {
                 text
             }
             &MacroValue(_) => unimplemented!(),
+            &TypeValue(_) => unimplemented!(),
         }
     }
 }
@@ -406,6 +411,13 @@ impl fmt::Debug for ApplicableBodyKind {
         }
     }
 }
+
+#[derive(PartialEq, Eq, Debug, Hash)]
+pub struct Type {
+    fields: Vec<(String, TypePtr)>,
+}
+
+pub type TypePtr = Rc<Type>;
 
 #[derive(PartialEq, Debug, Eq, Hash)]
 pub struct Value {
