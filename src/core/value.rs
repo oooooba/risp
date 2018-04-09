@@ -421,6 +421,17 @@ impl Type {
     pub fn create(fields: Vec<(String, Option<TypePtr>)>) -> TypePtr {
         Rc::new(Type { fields: fields })
     }
+
+    pub fn instantiate(&self, values: Vec<ValuePtr>) -> ValuePtr {
+        let mut map = HashMap::new();
+        for i in 0..self.fields.len() {
+            let field = &self.fields[i].0;
+            let key = Value::create_symbol(field.clone());
+            let value = values[i].clone();
+            map.insert(key, value);
+        }
+        Value::create_map(map)
+    }
 }
 
 pub type TypePtr = Rc<Type>;
