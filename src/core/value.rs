@@ -414,7 +414,13 @@ impl fmt::Debug for ApplicableBodyKind {
 
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Type {
-    fields: Vec<(String, TypePtr)>,
+    fields: Vec<(String, Option<TypePtr>)>,
+}
+
+impl Type {
+    pub fn create(fields: Vec<(String, Option<TypePtr>)>) -> TypePtr {
+        Rc::new(Type { fields: fields })
+    }
 }
 
 pub type TypePtr = Rc<Type>;
@@ -523,6 +529,10 @@ impl Value {
 
     pub fn create_macro(applicable: Applicable) -> ValuePtr {
         Value::new(ValueKind::MacroValue(applicable))
+    }
+
+    pub fn create_type(typ: Type) -> ValuePtr {
+        Value::new(ValueKind::TypeValue(typ))
     }
 
     pub fn iter(target: &ValuePtr) -> ValueIterator {
