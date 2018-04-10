@@ -23,6 +23,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         Some(symbol) if symbol.kind.matches_symbol("defmacro") => return specialform::eval_specialform_defmacro(ast, env),
         Some(symbol) if symbol.kind.matches_symbol("do") => return specialform::eval_specialform_do(ast, env),
         Some(symbol) if symbol.kind.matches_symbol("try") => return specialform::eval_specialform_try(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol("defrecord") => return specialform::eval_specialform_defrecord(ast, env),
         None => return Ok(Value::create_list(EmptyList)),
         _ => (),
     }

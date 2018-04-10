@@ -24,7 +24,7 @@ pub enum ValueKind {
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
-    TypeValue(Type),
+    TypeValue(TypePtr),
 }
 
 #[derive(PartialEq, Debug, Eq, Hash)]
@@ -542,7 +542,7 @@ impl Value {
         Value::new(ValueKind::MacroValue(applicable))
     }
 
-    pub fn create_type(typ: Type) -> ValuePtr {
+    pub fn create_type(typ: TypePtr) -> ValuePtr {
         Value::new(ValueKind::TypeValue(typ))
     }
 

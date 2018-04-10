@@ -1,7 +1,7 @@
 use std::collections::LinkedList;
 
 use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ListKind, ValueIterator, Applicable,
-                  Pattern, PatternKind, PatternPtr};
+                  Pattern, PatternKind, PatternPtr, Type};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use evaluator::eval;
@@ -542,6 +542,38 @@ pub fn eval_specialform_try(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     Ok(ret_val)
 }
 
+pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.kind.is_list());
+    let mut iter = Value::iter(ast);
+    assert!(iter.next().unwrap().kind.matches_symbol("defrecord"));
+
+    let record_name = match iter.next() {
+        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        _ => unimplemented!(),
+    };
+
+    let symbols = match iter.next() {
+        Some(ref vector) if vector.kind.is_vector() => {
+            for symbol in Value::iter(vector) {
+                if !symbol.kind.is_symbol() {
+                    unimplemented!()
+                }
+            }
+            vector.clone()
+        }
+        _ => unimplemented!(),
+    };
+
+    let mut fields = vec![];
+    for symbol in Value::iter(&symbols) {
+        let field = symbol.get_as_symbol().unwrap().clone();
+        fields.push((field, None))
+    }
+
+    let record = Value::create_type(Type::create(fields));
+    Err(Exception::new(ExceptionKind::Continuation(
+        Env::create(vec![(record_name, record)], Some(env))), None))
+}
 
 #[cfg(test)]
 mod tests {
