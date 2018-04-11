@@ -3,7 +3,7 @@ pub mod builtinfunc;
 
 use std::collections::HashMap;
 
-use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ListKind};
+use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 
@@ -33,6 +33,17 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     let cdr = iter.rest();
     if evaled_car.kind.is_closure() {
         apply(&evaled_car, &cdr, env)
+    } else if evaled_car.kind.is_map() {
+        let pattern = Pattern::create_vector(vec![
+            Pattern::create_symbol(Value::create_symbol("%1".to_string())),
+            Pattern::create_symbol(Value::create_symbol("%2".to_string())),
+        ], vec![], None);
+        let body = ApplicableBodyKind::BuiltinBody(Box::new(builtinfunc::builtinfunc_get));
+        let applicable = Applicable::new(None, pattern, body);
+        let closure_env = Env::create_empty();
+        let closure_val = Value::create_closure(applicable, closure_env);
+        let args = Value::create_list(ListKind::ConsList(evaled_car, cdr));
+        apply(&closure_val, &args, env)
     } else if evaled_car.kind.is_macro() {
         let new_ast = apply(&evaled_car, &cdr, env.clone())?;
         eval(new_ast, env)
