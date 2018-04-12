@@ -434,6 +434,23 @@ impl Type {
     }
 }
 
+pub fn constructor(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let type_name = env.lookup_nth_param(1).unwrap();
+    let args = env.lookup_nth_param(2).unwrap();
+
+    let typ = match type_name.kind {
+        ValueKind::TypeValue(ref typ) => typ,
+        _ => unimplemented!(),
+    };
+
+    let mut arg_vec = vec![];
+    for arg in Value::iter(args) {
+        arg_vec.push(arg)
+    }
+
+    Ok(typ.instantiate(arg_vec))
+}
+
 pub type TypePtr = Rc<Type>;
 
 #[derive(PartialEq, Debug, Eq, Hash)]
