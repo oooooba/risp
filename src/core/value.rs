@@ -426,7 +426,7 @@ impl Type {
         let mut map = HashMap::new();
         for i in 0..self.fields.len() {
             let field = &self.fields[i].0;
-            let key = Value::create_symbol(field.clone());
+            let key = Value::create_keyword(field.clone());
             let value = values[i].clone();
             map.insert(key, value);
         }
