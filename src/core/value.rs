@@ -435,8 +435,8 @@ impl Type {
 }
 
 pub fn constructor(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let type_name = env.lookup_nth_param(1).unwrap();
-    let args = env.lookup_nth_param(2).unwrap();
+    let type_name = env.lookup(&"ClassName".to_string()).unwrap();
+    let args = env.lookup_nth_param(1).unwrap();
 
     let typ = match type_name.kind {
         ValueKind::TypeValue(ref typ) => typ,
