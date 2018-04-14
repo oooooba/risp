@@ -44,7 +44,7 @@ impl Exception {
         }
     }
 
-    pub fn is_ereader_end_of_input_exception(&self) -> bool {
+    pub fn is_reader_end_of_input_exception(&self) -> bool {
         self.kind == ExceptionKind::ReaderEndOfInputException
     }
 

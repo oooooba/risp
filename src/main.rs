@@ -25,7 +25,7 @@ fn main() {
             }
             Err(err) => {
                 println!("read err: {:?}", err);
-                if err.is_ereader_end_of_input_exception() {
+                if err.is_reader_end_of_input_exception() {
                     break;
                 }
             }
