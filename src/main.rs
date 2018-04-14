@@ -8,7 +8,7 @@ use risp::reader;
 use risp::core::env;
 
 fn main() {
-    let env = env::Env::create_default();
+    let mut env = env::Env::create_default();
     loop {
         print!("> ");
         let _ = io::stdout().flush();
@@ -20,7 +20,10 @@ fn main() {
                         println!("eval ok: {:?}", v);
                         println!("eval ok: {}", v.to_string());
                     }
-                    Err(err) => println!("eval err: {:?}", err),
+                    Err(exception) => match exception.extract_env_from_continuation() {
+                        Some(new_env) => env = new_env,
+                        None => println!("eval err: {:?}", exception),
+                    }
                 }
             }
             Err(err) => {
