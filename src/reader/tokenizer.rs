@@ -167,7 +167,7 @@ impl Tokenizer {
     }
 
     fn skip_line_comment(&mut self) {
-        assert!(self.peek(0).unwrap() == reserved::CHAR_SEMICOLON);
+        assert_eq!(self.peek(0).unwrap(), reserved::CHAR_SEMICOLON);
         self.ahead(1);
         while let Some(c) = self.peek(0) {
             self.ahead(1);
