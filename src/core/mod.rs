@@ -1,6 +1,7 @@
 pub mod value;
 pub mod exception;
 pub mod env;
+pub mod reserved;
 
 use std::collections::LinkedList;
 

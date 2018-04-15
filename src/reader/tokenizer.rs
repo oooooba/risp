@@ -2,27 +2,11 @@ use std::collections::LinkedList;
 
 use core::exception::{Exception, ExceptionKind, InfoKind};
 use core::env::EnvPtr;
+use core::reserved;
 use reader::{Token, TokenKind};
 
-const CHAR_L_PAREN: char = '(';
-const CHAR_R_PAREN: char = ')';
-const CHAR_COMMA: char = ',';
-const CHAR_MINUS: char = '-';
-const CHAR_D_QUOTE: char = '"';
-const CHAR_BACKSLASH: char = '\\';
-const CHAR_L_BRACKET: char = '[';
-const CHAR_R_BRACKET: char = ']';
-const CHAR_COLON: char = ':';
-const CHAR_QUOTE: char = '\'';
-const CHAR_L_CURLY: char = '{';
-const CHAR_R_CURLY: char = '}';
-const CHAR_SEMICOLON: char = ';';
-const CHAR_BACK_QUOTE: char = '`';
-const CHAR_TILDE: char = '~';
-const CHAR_AT: char = '@';
-
 fn is_delim_char(c: char) -> bool {
-    c.is_whitespace() || c == CHAR_COMMA || c == CHAR_SEMICOLON
+    c.is_whitespace() || c == reserved::CHAR_COMMA || c == reserved::CHAR_SEMICOLON
 }
 
 fn is_digit(c: char) -> bool {
@@ -30,9 +14,9 @@ fn is_digit(c: char) -> bool {
 }
 
 fn is_grouping_char(c: char) -> bool {
-    c == CHAR_L_PAREN || c == CHAR_R_PAREN ||
-        c == CHAR_L_BRACKET || c == CHAR_R_BRACKET ||
-        c == CHAR_L_CURLY || c == CHAR_R_CURLY
+    c == reserved::CHAR_L_PAREN || c == reserved::CHAR_R_PAREN ||
+        c == reserved::CHAR_L_BRACKET || c == reserved::CHAR_R_BRACKET ||
+        c == reserved::CHAR_L_CURLY || c == reserved::CHAR_R_CURLY
 }
 
 pub struct Tokenizer {
@@ -75,21 +59,21 @@ impl Tokenizer {
     }
 
     fn tokenize_string(&mut self) -> Result<Token, Exception> {
-        assert_eq!(self.peek(0).unwrap(), CHAR_D_QUOTE);
+        assert_eq!(self.peek(0).unwrap(), reserved::CHAR_D_QUOTE);
         let pos = self.pos;
         self.ahead(1);
         let mut s = String::new();
         let mut err = None;
         loop {
             match self.peek(0) {
-                Some(CHAR_D_QUOTE) => {
+                Some(reserved::CHAR_D_QUOTE) => {
                     self.ahead(1);
                     break;
                 }
-                Some(CHAR_BACKSLASH) => {
+                Some(reserved::CHAR_BACKSLASH) => {
                     self.ahead(1);
                     match self.peek(0) {
-                        Some(c) if c == CHAR_D_QUOTE || c == CHAR_BACKSLASH => s.push(c),
+                        Some(c) if c == reserved::CHAR_D_QUOTE || c == reserved::CHAR_BACKSLASH => s.push(c),
                         Some('n') => s.push('\n'),
                         Some(c) => {
                             if err == None {
@@ -139,7 +123,7 @@ impl Tokenizer {
     }
 
     fn tokenize_keyword(&mut self) -> Result<Token, Exception> {
-        assert_eq!(self.peek(0).unwrap(), CHAR_COLON);
+        assert_eq!(self.peek(0).unwrap(), reserved::CHAR_COLON);
         let pos = self.pos;
         match self.peek(1) {
             Some(c) if is_grouping_char(c) || is_delim_char(c) =>
@@ -160,7 +144,7 @@ impl Tokenizer {
     }
 
     fn tokenize_number(&mut self) -> Result<Token, Exception> {
-        assert!(is_digit(self.peek(0).unwrap()) || self.peek(0).unwrap() == CHAR_MINUS);
+        assert!(is_digit(self.peek(0).unwrap()) || self.peek(0).unwrap() == reserved::CHAR_MINUS);
         let pos = self.pos;
         self.ahead(1);
         let mut is_valid = true;
@@ -183,7 +167,7 @@ impl Tokenizer {
     }
 
     fn skip_line_comment(&mut self) {
-        assert!(self.peek(0).unwrap() == CHAR_SEMICOLON);
+        assert!(self.peek(0).unwrap() == reserved::CHAR_SEMICOLON);
         self.ahead(1);
         while let Some(c) = self.peek(0) {
             self.ahead(1);
@@ -198,45 +182,45 @@ impl Tokenizer {
         while let Some(c) = self.peek(0) {
             let token = if is_digit(c) {
                 Some(self.tokenize_number()?)
-            } else if c == CHAR_MINUS {
+            } else if c == reserved::CHAR_MINUS {
                 match self.peek(1) {
                     Some(c) if is_digit(c) => Some(self.tokenize_number()?),
                     _ => Some(self.tokenize_symbol()?),
                 }
-            } else if c == CHAR_D_QUOTE {
+            } else if c == reserved::CHAR_D_QUOTE {
                 Some(self.tokenize_string()?)
             } else if is_grouping_char(c) {
                 let pos = self.pos;
                 self.ahead(1);
                 let kind = match c {
-                    CHAR_L_PAREN => TokenKind::LParenToken,
-                    CHAR_R_PAREN => TokenKind::RParenToken,
-                    CHAR_L_BRACKET => TokenKind::LBracketToken,
-                    CHAR_R_BRACKET => TokenKind::RBracketToken,
-                    CHAR_L_CURLY => TokenKind::LCurlyToken,
-                    CHAR_R_CURLY => TokenKind::RCurlyToken,
+                    reserved::CHAR_L_PAREN => TokenKind::LParenToken,
+                    reserved::CHAR_R_PAREN => TokenKind::RParenToken,
+                    reserved::CHAR_L_BRACKET => TokenKind::LBracketToken,
+                    reserved::CHAR_R_BRACKET => TokenKind::RBracketToken,
+                    reserved::CHAR_L_CURLY => TokenKind::LCurlyToken,
+                    reserved::CHAR_R_CURLY => TokenKind::RCurlyToken,
                     _ => unreachable!(),
                 };
                 Some(self.create_token(kind, pos, 1))
-            } else if c == CHAR_COLON {
+            } else if c == reserved::CHAR_COLON {
                 Some(self.tokenize_keyword()?)
-            } else if c == CHAR_QUOTE {
+            } else if c == reserved::CHAR_QUOTE {
                 let pos = self.pos;
                 self.ahead(1);
                 Some(self.create_token(TokenKind::QuoteToken, pos, 1))
-            } else if c == CHAR_BACK_QUOTE {
+            } else if c == reserved::CHAR_BACK_QUOTE {
                 let pos = self.pos;
                 self.ahead(1);
                 Some(self.create_token(TokenKind::BackQuoteToken, pos, 1))
-            } else if c == CHAR_TILDE {
+            } else if c == reserved::CHAR_TILDE {
                 let pos = self.pos;
                 let (kind, len) = match self.peek(1) {
-                    Some(c) if c == CHAR_AT => (TokenKind::TildeAtToken, 2),
+                    Some(c) if c == reserved::CHAR_AT => (TokenKind::TildeAtToken, 2),
                     _ => (TokenKind::TildeToken, 1),
                 };
                 self.ahead(len);
                 Some(self.create_token(kind, pos, len))
-            } else if c == CHAR_SEMICOLON {
+            } else if c == reserved::CHAR_SEMICOLON {
                 self.skip_line_comment();
                 None
             } else if is_delim_char(c) {

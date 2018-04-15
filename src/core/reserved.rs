@@ -1,0 +1,16 @@
+pub const CHAR_L_PAREN: char = '(';
+pub const CHAR_R_PAREN: char = ')';
+pub const CHAR_COMMA: char = ',';
+pub const CHAR_MINUS: char = '-';
+pub const CHAR_D_QUOTE: char = '"';
+pub const CHAR_BACKSLASH: char = '\\';
+pub const CHAR_L_BRACKET: char = '[';
+pub const CHAR_R_BRACKET: char = ']';
+pub const CHAR_COLON: char = ':';
+pub const CHAR_QUOTE: char = '\'';
+pub const CHAR_L_CURLY: char = '{';
+pub const CHAR_R_CURLY: char = '}';
+pub const CHAR_SEMICOLON: char = ';';
+pub const CHAR_BACK_QUOTE: char = '`';
+pub const CHAR_TILDE: char = '~';
+pub const CHAR_AT: char = '@';
