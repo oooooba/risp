@@ -80,7 +80,7 @@ impl Parser {
     }
 
     fn parse_nil(&mut self) -> Result<ValuePtr, Exception> {
-        assert!(self.peek().unwrap().kind == TokenKind::NilToken);
+        assert_eq!(self.peek().unwrap().kind, TokenKind::NilToken);
         self.pop();
         Ok(Value::create_nil())
     }
