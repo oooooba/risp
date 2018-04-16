@@ -14,3 +14,7 @@ pub const CHAR_SEMICOLON: char = ';';
 pub const CHAR_BACK_QUOTE: char = '`';
 pub const CHAR_TILDE: char = '~';
 pub const CHAR_AT: char = '@';
+
+pub const STR_TRUE: &'static str = "true";
+pub const STR_FALSE: &'static str = "false";
+pub const STR_NIL: &'static str = "nil";
