@@ -2,6 +2,7 @@ use std::collections::LinkedList;
 
 use core::value::{Value, ValuePtr};
 use core::exception::{Exception, ExceptionKind};
+use core::reserved;
 use reader::{Token, TokenKind};
 
 pub struct Parser {
@@ -46,8 +47,8 @@ impl Parser {
         let token = self.pop().unwrap();
         let len = token.lexeme.len();
         assert!(len >= 2);
-        assert_eq!(token.lexeme.chars().nth(0), Some('"'));
-        assert_eq!(token.lexeme.chars().nth(len - 1), Some('"'));
+        assert_eq!(token.lexeme.chars().nth(0), Some(reserved::CHAR_D_QUOTE));
+        assert_eq!(token.lexeme.chars().nth(len - 1), Some(reserved::CHAR_D_QUOTE));
         let s = token.lexeme.as_str()[1..(len - 1)].to_string();
         Ok(Value::create_string(s))
     }
@@ -65,7 +66,7 @@ impl Parser {
         let token = self.pop().unwrap();
         let len = token.lexeme.len();
         assert!(len >= 2);
-        assert_eq!(token.lexeme.chars().nth(0), Some(':'));
+        assert_eq!(token.lexeme.chars().nth(0), Some(reserved::CHAR_COLON));
         let s = token.lexeme.as_str()[1..len].to_string();
         Ok(Value::create_keyword(s))
     }
