@@ -74,7 +74,7 @@ impl Tokenizer {
                     self.ahead(1);
                     match self.peek(0) {
                         Some(c) if c == reserved::CHAR_D_QUOTE || c == reserved::CHAR_BACKSLASH => s.push(c),
-                        Some('n') => s.push('\n'),
+                        Some('n') => s.push(reserved::CHAR_NEWLINE),
                         Some(c) => {
                             if err == None {
                                 err = Some(ExceptionKind::TokenizerInvalidEscapedCharacterException(c, self.pos + 1 - pos))
@@ -171,7 +171,7 @@ impl Tokenizer {
         self.ahead(1);
         while let Some(c) = self.peek(0) {
             self.ahead(1);
-            if c == '\n' {
+            if c == reserved::CHAR_NEWLINE {
                 break
             }
         }
