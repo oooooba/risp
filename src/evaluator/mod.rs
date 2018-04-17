@@ -6,24 +6,25 @@ use std::collections::HashMap;
 use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
+use core::reserved;
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     use self::ListKind::*;
     let mut iter = Value::iter(ast).peekable();
     match iter.peek() {
-        Some(symbol) if symbol.kind.matches_symbol("if") => return specialform::eval_specialform_if(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("fn") => return specialform::eval_specialform_fn(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("def") => return specialform::eval_specialform_def(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("quote") => return specialform::eval_specialform_quote(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("let") => return specialform::eval_specialform_let(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("quasiquote") => return specialform::eval_specialform_quasiquote(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("unquote") => return specialform::eval_specialform_unquote(ast, env, false),
-        Some(symbol) if symbol.kind.matches_symbol("splice-unquote") => return specialform::eval_specialform_splice_unquote(ast, env, false),
-        Some(symbol) if symbol.kind.matches_symbol("defmacro") => return specialform::eval_specialform_defmacro(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("do") => return specialform::eval_specialform_do(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("try") => return specialform::eval_specialform_try(ast, env),
-        Some(symbol) if symbol.kind.matches_symbol("defrecord") => return specialform::eval_specialform_defrecord(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_IF) => return specialform::eval_specialform_if(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_FN) => return specialform::eval_specialform_fn(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_DEF) => return specialform::eval_specialform_def(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_QUOTE) => return specialform::eval_specialform_quote(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_LET) => return specialform::eval_specialform_let(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_QUASIQUOTE) => return specialform::eval_specialform_quasiquote(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_UNQUOTE) => return specialform::eval_specialform_unquote(ast, env, false),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_SPLICE_UNQUOTE) => return specialform::eval_specialform_splice_unquote(ast, env, false),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_DEFMACRO) => return specialform::eval_specialform_defmacro(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_DO) => return specialform::eval_specialform_do(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_TRY) => return specialform::eval_specialform_try(ast, env),
+        Some(symbol) if symbol.kind.matches_symbol(reserved::STR_DEFRECORD) => return specialform::eval_specialform_defrecord(ast, env),
         None => return Ok(Value::create_list(EmptyList)),
         _ => (),
     }
