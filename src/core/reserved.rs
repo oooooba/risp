@@ -19,3 +19,7 @@ pub const CHAR_NEWLINE: char = '\n';
 pub const STR_TRUE: &'static str = "true";
 pub const STR_FALSE: &'static str = "false";
 pub const STR_NIL: &'static str = "nil";
+pub const STR_QUOTE: &'static str = "quote";
+pub const STR_QUASIQUOTE: &'static str = "quasiquote";
+pub const STR_UNQUOTE: &'static str = "unquote";
+pub const STR_SPLICE_UNQUOTE: &'static str = "splice-unquote";

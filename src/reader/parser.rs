@@ -149,13 +149,13 @@ impl Parser {
             Some(&Token { kind: LParenToken, .. }) => self.parse_list(),
             Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
             Some(&Token { kind: QuoteToken, .. }) =>
-                self.parse_quote_family_reader_macro(QuoteToken, "quote"),
+                self.parse_quote_family_reader_macro(QuoteToken, reserved::STR_QUOTE),
             Some(&Token { kind: BackQuoteToken, .. }) =>
-                self.parse_quote_family_reader_macro(BackQuoteToken, "quasiquote"),
+                self.parse_quote_family_reader_macro(BackQuoteToken, reserved::STR_QUASIQUOTE),
             Some(&Token { kind: TildeToken, .. }) =>
-                self.parse_quote_family_reader_macro(TildeToken, "unquote"),
+                self.parse_quote_family_reader_macro(TildeToken, reserved::STR_UNQUOTE),
             Some(&Token { kind: TildeAtToken, .. }) =>
-                self.parse_quote_family_reader_macro(TildeAtToken, "splice-unquote"),
+                self.parse_quote_family_reader_macro(TildeAtToken, reserved::STR_SPLICE_UNQUOTE),
             Some(&Token { kind: LCurlyToken, .. }) => self.parse_map(),
             None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
             _ => unimplemented!(),
