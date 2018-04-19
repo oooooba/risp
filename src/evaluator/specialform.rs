@@ -23,7 +23,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                     Some(pattern) => pattern,
                     None => break,
                 };
-                if pattern.kind.matches_keyword("as") {
+                if pattern.kind.matches_keyword(reserved::STR_AS) {
                     match iter.next() {
                         Some(ref symbol) if symbol.kind.is_symbol() => {
                             as_symbol = Some(parse_pattern(&symbol)?);
@@ -31,7 +31,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                         }
                         _ => unimplemented!(),
                     }
-                } else if pattern.kind.matches_symbol("&") {
+                } else if pattern.kind.matches_symbol(reserved::STR__AMP) {
                     match iter.next() {
                         Some(ref pattern) => rest_patterns.push(parse_pattern(pattern)?),
                         None => unimplemented!(),
@@ -63,13 +63,13 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                     Some(_) => unimplemented!(),
                     None => break,
                 };
-                if pattern_val.kind.matches_keyword("as") {
+                if pattern_val.kind.matches_keyword(reserved::STR_AS) {
                     if key_val.kind.is_symbol() && as_symbol.is_none() {
                         as_symbol = Some(parse_pattern(&key_val)?);
                     } else {
                         unimplemented!();
                     }
-                } else if pattern_val.kind.matches_keyword("or") {
+                } else if pattern_val.kind.matches_keyword(reserved::STR_OR) {
                     if or_value.is_none() {
                         or_value = Some(key_val.clone());
                     } else {
@@ -425,11 +425,11 @@ fn split_try_form(mut iter: ValueIterator)
     while let Some(expr) = iter.next() {
         if expr.kind.is_list() || expr.kind.is_vector() {
             match Value::iter(&expr).peekable().peek() {
-                Some(ref symbol) if symbol.kind.matches_symbol("catch") => {
+                Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_CATCH) => {
                     catch_clauses.push(expr.clone());
                     break;
                 }
-                Some(ref symbol) if symbol.kind.matches_symbol("finally") => {
+                Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_FINALLY) => {
                     finally_clause = Some(expr.clone());
                     break;
                 }
@@ -453,8 +453,8 @@ fn split_try_form(mut iter: ValueIterator)
             unimplemented!()
         }
         match Value::iter(&expr).peekable().peek() {
-            Some(ref symbol) if symbol.kind.matches_symbol("catch") => catch_clauses.push(expr.clone()),
-            Some(ref symbol) if symbol.kind.matches_symbol("finally") => {
+            Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_CATCH) => catch_clauses.push(expr.clone()),
+            Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_FINALLY) => {
                 finally_clause = Some(expr.clone());
                 break;
             }
@@ -472,7 +472,7 @@ fn split_try_form(mut iter: ValueIterator)
 fn parse_catch_clause(ast: &ValuePtr) -> Result<(ExceptionKind, String, ValuePtr), Exception> {
     assert!(ast.kind.is_list());
     let mut iter = Value::iter(ast);
-    assert!(iter.next().unwrap().kind.matches_symbol("catch"));
+    assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_CATCH));
 
     let exception_class = match iter.next() {
         Some(ref symbol) if symbol.kind.is_symbol() => ExceptionKind::EvaluatorUndefinedSymbolException("example".to_string()),
@@ -494,7 +494,7 @@ fn parse_catch_clause(ast: &ValuePtr) -> Result<(ExceptionKind, String, ValuePtr
 fn parse_finally_clause(ast: &ValuePtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     let mut iter = Value::iter(ast);
-    assert!(iter.next().unwrap().kind.matches_symbol("finally"));
+    assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_FINALLY));
 
     let exprs = iter.rest();
     Ok(exprs)
