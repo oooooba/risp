@@ -10,6 +10,7 @@ use std::hash::{Hash, Hasher};
 
 use core::exception::Exception;
 use core::env::EnvPtr;
+use core::reserved;
 
 #[derive(Debug, Eq)]
 pub enum ValueKind {
@@ -183,9 +184,9 @@ impl ToString for ValueKind {
         use self::ValueKind::*;
         match self {
             &IntegerValue(ref n) => n.to_string(),
-            &StringValue(ref s) => format!(r#""{}""#, s),
+            &StringValue(ref s) => format!("{}{}{}", reserved::CHAR_D_QUOTE, s, reserved::CHAR_D_QUOTE),
             &SymbolValue(ref s) => s.clone(),
-            &KeywordValue(ref k) => format!(":{}", k),
+            &KeywordValue(ref k) => format!("{}{}", reserved::CHAR_COLON, k),
             &ListValue(ref l) => {
                 use self::ListKind::*;
                 let mut text = String::new();
@@ -224,7 +225,7 @@ impl ToString for ValueKind {
                 text.push('>');
                 text
             }
-            &NilValue => "nil".to_string(),
+            &NilValue => reserved::STR_NIL.to_string(),
             &MapValue(ref m) => {
                 let mut text = String::new();
                 text.push('{');
@@ -242,7 +243,7 @@ impl ToString for ValueKind {
                 text.push('}');
                 text
             }
-            &BooleanValue(ref b) => b.to_string(),
+            &BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
             &VectorValue(ref v) => {
                 let mut text = String::new();
                 text.push('[');
