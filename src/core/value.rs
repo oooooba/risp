@@ -7,6 +7,7 @@ use std::iter::Iterator;
 use std::slice::Iter;
 use std::string::ToString;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 
 use core::exception::Exception;
 use core::env::EnvPtr;
@@ -460,15 +461,35 @@ impl Hash for Value {
     }
 }
 
-pub type ValuePtr = Rc<Value>;
+#[derive(PartialEq, Debug, Eq, Hash, Clone)]
+pub struct ValuePtr(Rc<Value>);
+
+impl ToString for ValuePtr {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl Deref for ValuePtr {
+    type Target = Value;
+    fn deref(&self) -> &Value {
+        &self.0
+    }
+}
+
+impl ValuePtr {
+    pub fn wrap(value: Value) -> ValuePtr {
+        ValuePtr(Rc::new(value))
+    }
+}
 
 impl Value {
     fn new(kind: ValueKind) -> ValuePtr {
-        Rc::new(Value { kind: kind, is_literal: false })
+        ValuePtr::wrap(Value { kind: kind, is_literal: false })
     }
 
     fn new_literal(kind: ValueKind) -> ValuePtr {
-        Rc::new(Value { kind: kind, is_literal: true })
+        ValuePtr::wrap(Value { kind: kind, is_literal: true })
     }
 
     pub fn create_integer(integer: isize) -> ValuePtr {
