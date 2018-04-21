@@ -179,98 +179,6 @@ impl PartialEq for ValueKind {
     }
 }
 
-impl ToString for ValueKind {
-    fn to_string(&self) -> String {
-        use self::ValueKind::*;
-        match self {
-            &IntegerValue(ref n) => n.to_string(),
-            &StringValue(ref s) => format!("{}{}{}", reserved::CHAR_D_QUOTE, s, reserved::CHAR_D_QUOTE),
-            &SymbolValue(ref s) => s.clone(),
-            &KeywordValue(ref k) => format!("{}{}", reserved::CHAR_COLON, k),
-            &ListValue(ref l) => {
-                use self::ListKind::*;
-                let mut text = String::new();
-                text.push('(');
-                let mut iter = l;
-                let mut is_first = true;
-                while let &ConsList(ref car, ref cdr) = iter {
-                    if is_first {
-                        is_first = false;
-                    } else {
-                        text.push(' ');
-                    }
-                    text.push_str(&car.to_string());
-                    iter = match cdr.kind {
-                        ListValue(ref l) => l,
-                        _ => unreachable!(),
-                    }
-                }
-                text.push(')');
-                text
-            }
-            &ClosureValue(ref a, ref e) => {
-                use std::mem::transmute;
-                let mut text = String::new();
-                text.push('<');
-                text.push_str(&format!("{:x}", unsafe { transmute::<&ApplicableBodyKind, usize>(&a.body) }));
-                text.push_str(", ");
-                match a.name {
-                    Some(ref name) => text.push_str(name),
-                    None => text.push_str("<anon>"),
-                }
-                text.push_str(", ");
-                text.push_str(&format!("{:x}", unsafe { transmute::<&PatternPtr, usize>(&a.param) }));
-                text.push_str(", ");
-                text.push_str(&format!("{:x}", unsafe { transmute::<&EnvPtr, usize>(e) }));
-                text.push('>');
-                text
-            }
-            &NilValue => reserved::STR_NIL.to_string(),
-            &MapValue(ref m) => {
-                let mut text = String::new();
-                text.push('{');
-                let mut is_first = true;
-                for (key, val) in m.iter() {
-                    if is_first {
-                        is_first = false;
-                    } else {
-                        text.push_str(", ");
-                    }
-                    text.push_str(&key.to_string());
-                    text.push(' ');
-                    text.push_str(&val.to_string());
-                }
-                text.push('}');
-                text
-            }
-            &BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
-            &VectorValue(ref v) => {
-                let mut text = String::new();
-                text.push('[');
-                let mut is_first = true;
-                for item in v.iter() {
-                    if is_first {
-                        is_first = false;
-                    } else {
-                        text.push(' ');
-                    }
-                    text.push_str(&item.to_string());
-                }
-                text.push(']');
-                text
-            }
-            &MacroValue(_) => unimplemented!(),
-            &TypeValue(_) => unimplemented!(),
-        }
-    }
-}
-
-impl Hash for ValueKind {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.to_string().hash(state);
-    }
-}
-
 pub type BuiltinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
 
 pub enum ApplicableBodyKind {
@@ -454,7 +362,7 @@ pub fn constructor(env: EnvPtr) -> Result<ValuePtr, Exception> {
 
 pub type TypePtr = Rc<Type>;
 
-#[derive(PartialEq, Debug, Eq, Hash)]
+#[derive(PartialEq, Debug, Eq)]
 pub struct Value {
     pub kind: ValueKind,
     pub is_literal: bool,
@@ -462,7 +370,93 @@ pub struct Value {
 
 impl ToString for Value {
     fn to_string(&self) -> String {
-        self.kind.to_string()
+        use self::ValueKind::*;
+        match self.kind {
+            IntegerValue(ref n) => n.to_string(),
+            StringValue(ref s) => format!("{}{}{}", reserved::CHAR_D_QUOTE, s, reserved::CHAR_D_QUOTE),
+            SymbolValue(ref s) => s.clone(),
+            KeywordValue(ref k) => format!("{}{}", reserved::CHAR_COLON, k),
+            ListValue(ref l) => {
+                use self::ListKind::*;
+                let mut text = String::new();
+                text.push('(');
+                let mut iter = l;
+                let mut is_first = true;
+                while let &ConsList(ref car, ref cdr) = iter {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        text.push(' ');
+                    }
+                    text.push_str(&car.to_string());
+                    iter = match cdr.kind {
+                        ListValue(ref l) => l,
+                        _ => unreachable!(),
+                    }
+                }
+                text.push(')');
+                text
+            }
+            ClosureValue(ref a, ref e) => {
+                use std::mem::transmute;
+                let mut text = String::new();
+                text.push('<');
+                text.push_str(&format!("{:x}", unsafe { transmute::<&ApplicableBodyKind, usize>(&a.body) }));
+                text.push_str(", ");
+                match a.name {
+                    Some(ref name) => text.push_str(name),
+                    None => text.push_str("<anon>"),
+                }
+                text.push_str(", ");
+                text.push_str(&format!("{:x}", unsafe { transmute::<&PatternPtr, usize>(&a.param) }));
+                text.push_str(", ");
+                text.push_str(&format!("{:x}", unsafe { transmute::<&EnvPtr, usize>(e) }));
+                text.push('>');
+                text
+            }
+            NilValue => reserved::STR_NIL.to_string(),
+            MapValue(ref m) => {
+                let mut text = String::new();
+                text.push('{');
+                let mut is_first = true;
+                for (key, val) in m.iter() {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        text.push_str(", ");
+                    }
+                    text.push_str(&key.to_string());
+                    text.push(' ');
+                    text.push_str(&val.to_string());
+                }
+                text.push('}');
+                text
+            }
+            BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
+            VectorValue(ref v) => {
+                let mut text = String::new();
+                text.push('[');
+                let mut is_first = true;
+                for item in v.iter() {
+                    if is_first {
+                        is_first = false;
+                    } else {
+                        text.push(' ');
+                    }
+                    text.push_str(&item.to_string());
+                }
+                text.push(']');
+                text
+            }
+            MacroValue(_) => unimplemented!(),
+            TypeValue(_) => unimplemented!(),
+        }
+    }
+}
+
+impl Hash for Value {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.to_string().hash(state);
     }
 }
 
