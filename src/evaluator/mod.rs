@@ -3,7 +3,7 @@ pub mod builtinfunc;
 
 use std::collections::HashMap;
 
-use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern, ListKind};
+use core::value::{Value, ValueKind, ValuePtr, ValueTrait, Applicable, ApplicableBodyKind, Pattern, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use core::reserved;
@@ -11,7 +11,7 @@ use core::reserved;
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
     use self::ListKind::*;
-    let mut iter = Value::iter(ast).peekable();
+    let mut iter = ast.iter().peekable();
     match iter.peek() {
         Some(symbol) if symbol.kind.matches_symbol(reserved::STR_IF) => return specialform::eval_specialform_if(ast, env),
         Some(symbol) if symbol.kind.matches_symbol(reserved::STR_FN) => return specialform::eval_specialform_fn(ast, env),
@@ -28,7 +28,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         None => return Ok(Value::create_list(EmptyList)),
         _ => (),
     }
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     let car = iter.next().unwrap();
     let evaled_car = eval(car.clone(), env.clone())?;
     let cdr = iter.rest();

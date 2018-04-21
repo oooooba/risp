@@ -591,6 +591,23 @@ impl Value {
     }
 }
 
+pub trait ValueTrait {
+    fn iter(&self) -> ValueIterator;
+}
+
+impl ValueTrait for ValuePtr {
+    fn iter(&self) -> ValueIterator {
+        use self::ValueIteratorKind::*;
+        let iterator = match self.kind {
+            ValueKind::ListValue(_) => ListIterator(self.clone()),
+            ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
+            ValueKind::MapValue(ref map) => MapIterator(map.iter()),
+            _ => unimplemented!(),
+        };
+        ValueIterator(iterator)
+    }
+}
+
 #[derive(Debug)]
 pub enum ValueIteratorKind<'a> {
     ListIterator(ValuePtr),
