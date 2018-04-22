@@ -355,7 +355,10 @@ pub struct Value {
     pub is_literal: bool,
 }
 
-impl ToString for Value {
+#[derive(PartialEq, Debug, Eq, Clone)]
+pub struct ValuePtr(Rc<Value>);
+
+impl ToString for ValuePtr {
     fn to_string(&self) -> String {
         use self::ValueKind::*;
         match self.kind {
@@ -438,15 +441,6 @@ impl ToString for Value {
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
         }
-    }
-}
-
-#[derive(PartialEq, Debug, Eq, Clone)]
-pub struct ValuePtr(Rc<Value>);
-
-impl ToString for ValuePtr {
-    fn to_string(&self) -> String {
-        self.0.to_string()
     }
 }
 
