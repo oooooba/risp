@@ -65,7 +65,7 @@ fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<
     let param = &applicable.param;
 
     let mut evaled_args = vec![];
-    for arg in Value::iter(args_val) {
+    for arg in args_val.iter() {
         let val = if processes_closure {
             eval(arg.clone(), env.clone())?
         } else {

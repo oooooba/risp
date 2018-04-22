@@ -340,7 +340,7 @@ pub fn constructor(env: EnvPtr) -> Result<ValuePtr, Exception> {
     };
 
     let mut arg_vec = vec![];
-    for arg in Value::iter(args) {
+    for arg in args.iter() {
         arg_vec.push(arg)
     }
 
@@ -419,7 +419,7 @@ impl ToString for ValuePtr {
             }
             BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
             VectorValue(_) => to_string_helper(reserved::STR__L_BRACKET_, reserved::STR__R_BRACKET_,
-                                             " ", self.iter()),
+                                               " ", self.iter()),
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
         }
@@ -679,7 +679,7 @@ mod tests {
                 Value::create_integer(2),
                 Value::create_integer(3),
             ]);
-            let mut iter = Value::iter(&list_val);
+            let mut iter = list_val.iter();
             assert_eq!(iter.next(), Some(Value::create_integer(1)));
             assert_eq!(iter.rest(), Value::create_list_from_vec(vec![
                 Value::create_integer(2),
@@ -697,7 +697,7 @@ mod tests {
                 Value::create_keyword("a".to_string()),
                 Value::create_integer(1),
             ]);
-            let mut iter = Value::iter(&map_val);
+            let mut iter = map_val.iter();
             assert_eq!(iter.next(), Some(Value::create_list_from_vec(vec![
                 Value::create_keyword("a".to_string()),
                 Value::create_integer(1),
@@ -717,7 +717,7 @@ mod tests {
                 Value::create_keyword("c".to_string()),
                 Value::create_integer(3),
             ]);
-            let mut iter = Value::iter(&map_val);
+            let mut iter = map_val.iter();
             assert_eq!(iter.rest(), Value::create_map_from_vec(vec![
                 Value::create_keyword("a".to_string()),
                 Value::create_integer(1),
