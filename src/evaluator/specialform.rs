@@ -31,7 +31,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                         }
                         _ => unimplemented!(),
                     }
-                } else if pattern.kind.matches_symbol(reserved::STR__AMP) {
+                } else if pattern.kind.matches_symbol(reserved::STR__AMP_) {
                     match iter.next() {
                         Some(ref pattern) => rest_patterns.push(parse_pattern(pattern)?),
                         None => unimplemented!(),

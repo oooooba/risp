@@ -35,4 +35,4 @@ pub const STR_AS: &'static str = "as";
 pub const STR_OR: &'static str = "or";
 pub const STR_CATCH: &'static str = "catch";
 pub const STR_FINALLY: &'static str = "finally";
-pub const STR__AMP: &'static str = "&";
+pub const STR__AMP_: &'static str = "&";
