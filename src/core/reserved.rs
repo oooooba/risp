@@ -36,3 +36,5 @@ pub const STR_OR: &'static str = "or";
 pub const STR_CATCH: &'static str = "catch";
 pub const STR_FINALLY: &'static str = "finally";
 pub const STR__AMP_: &'static str = "&";
+pub const STR__L_PAREN_: &'static str = "(";
+pub const STR__R_PAREN_: &'static str = ")";

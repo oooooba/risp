@@ -380,12 +380,8 @@ impl ToString for ValuePtr {
             StringValue(ref s) => format!("{}{}{}", reserved::CHAR_D_QUOTE, s, reserved::CHAR_D_QUOTE),
             SymbolValue(ref s) => s.clone(),
             KeywordValue(ref k) => format!("{}{}", reserved::CHAR_COLON, k),
-            ListValue(_) => {
-                to_string_helper(
-                    &reserved::CHAR_L_PAREN.to_string(),
-                    &reserved::CHAR_R_PAREN.to_string(),
-                    " ", self.iter())
-            }
+            ListValue(_) => to_string_helper(reserved::STR__L_PAREN_, reserved::STR__R_PAREN_,
+                                             " ", self.iter()),
             ClosureValue(ref a, ref e) => {
                 use std::mem::transmute;
                 let mut text = String::new();
