@@ -358,6 +358,20 @@ pub struct Value {
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub struct ValuePtr(Rc<Value>);
 
+fn to_string_helper(begin_str: &str, end_str: &str, delim_str: &str, mut iter: ValueIterator) -> String {
+    let mut text = String::new();
+    text.push_str(begin_str);
+    if let Some(val) = iter.next() {
+        text.push_str(&val.to_string());
+        while let Some(val) = iter.next() {
+            text.push_str(delim_str);
+            text.push_str(&val.to_string());
+        }
+    }
+    text.push_str(end_str);
+    text
+}
+
 impl ToString for ValuePtr {
     fn to_string(&self) -> String {
         use self::ValueKind::*;
@@ -366,26 +380,11 @@ impl ToString for ValuePtr {
             StringValue(ref s) => format!("{}{}{}", reserved::CHAR_D_QUOTE, s, reserved::CHAR_D_QUOTE),
             SymbolValue(ref s) => s.clone(),
             KeywordValue(ref k) => format!("{}{}", reserved::CHAR_COLON, k),
-            ListValue(ref l) => {
-                use self::ListKind::*;
-                let mut text = String::new();
-                text.push('(');
-                let mut iter = l;
-                let mut is_first = true;
-                while let &ConsList(ref car, ref cdr) = iter {
-                    if is_first {
-                        is_first = false;
-                    } else {
-                        text.push(' ');
-                    }
-                    text.push_str(&car.to_string());
-                    iter = match cdr.kind {
-                        ListValue(ref l) => l,
-                        _ => unreachable!(),
-                    }
-                }
-                text.push(')');
-                text
+            ListValue(_) => {
+                to_string_helper(
+                    &reserved::CHAR_L_PAREN.to_string(),
+                    &reserved::CHAR_R_PAREN.to_string(),
+                    " ", self.iter())
             }
             ClosureValue(ref a, ref e) => {
                 use std::mem::transmute;
