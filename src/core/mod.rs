@@ -2,6 +2,7 @@ pub mod value;
 pub mod exception;
 pub mod env;
 pub mod reserved;
+pub mod map;
 
 use std::collections::LinkedList;
 

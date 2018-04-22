@@ -12,6 +12,7 @@ use std::ops::Deref;
 use core::exception::Exception;
 use core::env::EnvPtr;
 use core::reserved;
+use core::map;
 
 #[derive(Debug, Eq)]
 pub enum ValueKind {
@@ -27,6 +28,7 @@ pub enum ValueKind {
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
     TypeValue(TypePtr),
+    MapXValue(map::Map),
 }
 
 #[derive(PartialEq, Debug, Eq)]
@@ -68,6 +70,7 @@ impl ValueKind {
             &VectorValue(_) => ValueKind::type_str_vector(),
             &MacroValue(_) => unreachable!(),
             &TypeValue(_) => ValueKind::type_str_type(),
+            &MapXValue(_) => unreachable!(),
         }
     }
 
@@ -175,6 +178,7 @@ impl PartialEq for ValueKind {
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
             (&TypeValue(ref lhs), &TypeValue(ref rhs)) => lhs == rhs,
+            (&MapXValue(ref lhs), &MapXValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -422,6 +426,7 @@ impl ToString for ValuePtr {
                                                " ", self.iter()),
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
+            MapXValue(_) => unimplemented!(),
         }
     }
 }
