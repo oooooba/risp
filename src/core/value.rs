@@ -418,21 +418,8 @@ impl ToString for ValuePtr {
                 text
             }
             BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
-            VectorValue(ref v) => {
-                let mut text = String::new();
-                text.push('[');
-                let mut is_first = true;
-                for item in v.iter() {
-                    if is_first {
-                        is_first = false;
-                    } else {
-                        text.push(' ');
-                    }
-                    text.push_str(&item.to_string());
-                }
-                text.push(']');
-                text
-            }
+            VectorValue(_) => to_string_helper(reserved::STR__L_BRACKET_, reserved::STR__R_BRACKET_,
+                                             " ", self.iter()),
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
         }
