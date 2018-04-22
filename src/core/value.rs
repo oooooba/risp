@@ -29,13 +29,13 @@ pub enum ValueKind {
     TypeValue(TypePtr),
 }
 
-#[derive(PartialEq, Debug, Eq, Hash)]
+#[derive(PartialEq, Debug, Eq)]
 pub enum ListKind {
     ConsList(ValuePtr, ValuePtr), // (car, cdr), cdr must be ListValue
     EmptyList,
 }
 
-#[derive(PartialEq, Debug, Eq, Hash)]
+#[derive(PartialEq, Debug, Eq)]
 pub struct Applicable {
     pub name: Option<String>,
     pub param: PatternPtr,
@@ -207,20 +207,6 @@ impl PartialEq for ApplicableBodyKind {
     }
 }
 
-impl Hash for ApplicableBodyKind {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        use self::ApplicableBodyKind::*;
-        use std::mem::transmute;
-        match self {
-            &AstBody(ref f) => f.hash(state),
-            &BuiltinBody(ref f) => {
-                let addr: usize = unsafe { transmute(f) };
-                addr.hash(state);
-            }
-        }
-    }
-}
-
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
@@ -297,7 +283,7 @@ impl ToString for Pattern {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ApplicableParam {
     pub params: Vec<String>,
     pub rest_param: Option<String>,
@@ -322,7 +308,7 @@ impl fmt::Debug for ApplicableBodyKind {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Hash)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Type {
     fields: Vec<(String, Option<TypePtr>)>,
 }
@@ -455,13 +441,7 @@ impl ToString for Value {
     }
 }
 
-impl Hash for Value {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.to_string().hash(state);
-    }
-}
-
-#[derive(PartialEq, Debug, Eq, Hash, Clone)]
+#[derive(PartialEq, Debug, Eq, Clone)]
 pub struct ValuePtr(Rc<Value>);
 
 impl ToString for ValuePtr {
@@ -474,6 +454,12 @@ impl Deref for ValuePtr {
     type Target = Value;
     fn deref(&self) -> &Value {
         &self.0
+    }
+}
+
+impl Hash for ValuePtr {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.to_string().hash(state);
     }
 }
 
