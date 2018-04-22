@@ -3,7 +3,7 @@ pub mod builtinfunc;
 
 use std::collections::HashMap;
 
-use core::value::{Value, ValueKind, ValuePtr, ValueTrait, Applicable, ApplicableBodyKind, Pattern, ListKind};
+use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern, ListKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use core::reserved;
