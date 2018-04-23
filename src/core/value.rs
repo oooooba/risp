@@ -8,6 +8,7 @@ use std::slice::Iter;
 use std::string::ToString;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::cmp::Ordering;
 
 use core::exception::Exception;
 use core::env::EnvPtr;
@@ -441,6 +442,30 @@ impl Deref for ValuePtr {
 impl Hash for ValuePtr {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.to_string().hash(state);
+    }
+}
+
+impl PartialOrd for ValuePtr {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ValuePtr {
+    fn cmp(&self, other: &Self) -> Ordering {
+        use std::mem::transmute;
+        if self.0 == other.0 {
+            return Ordering::Equal;
+        }
+        let (addr_self, addr_other): (usize, usize) = unsafe {
+            (transmute(self), transmute(other))
+        };
+        assert_ne!(addr_self, addr_other);
+        if addr_self < addr_other {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
     }
 }
 
