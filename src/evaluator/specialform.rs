@@ -14,7 +14,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
     match pattern.kind {
         SymbolValue(_) => Ok(Pattern::create_symbol(pattern.clone())),
         VectorValue(_) => {
-            let mut iter = Value::iter(pattern);
+            let mut iter = pattern.iter();
             let mut patterns = vec![];
             let mut rest_patterns = vec![];
             let mut as_symbol = None;
@@ -51,11 +51,11 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
             let mut as_symbol = None;
             let mut or_value = None;
             let mut pat_key_pairs = LinkedList::new();
-            let mut iter = Value::iter(pattern);
+            let mut iter = pattern.iter();
             loop {
                 let (pattern_val, key_val) = match iter.next() {
                     Some(ref list) if list.kind.is_list() => {
-                        let mut iter = Value::iter(list);
+                        let mut iter = list.iter();
                         let pattern = iter.next().unwrap();
                         let key = iter.next().unwrap();
                         (pattern, key)
@@ -112,7 +112,7 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr
             if !(value.kind.is_list() || value.kind.is_vector()) { // ToDo: fix to accept streaming-like data
                 unimplemented!()
             }
-            let mut value_iter = Value::iter(value);
+            let mut value_iter = value.iter();
             for pattern in patterns.iter() {
                 match value_iter.next() {
                     Some(ref value) => pairs.append(&mut bind_pattern_to_value(pattern, value, env.clone())?),
@@ -132,7 +132,6 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr
             if !(value.kind.is_map()) {
                 unimplemented!()
             }
-            //let mut value_iter = Value::iter(value);
             let arg_map = value.get_as_map().unwrap();
 
             for &(ref pattern, ref key, ref default_val) in patterns.iter() {
@@ -159,7 +158,7 @@ fn split_let_binding_form(form: &ValuePtr) -> Result<(Vec<ValuePtr>, Vec<ValuePt
     assert!(form.kind.is_vector());
     let mut patterns = vec![];
     let mut exprs = vec![];
-    let mut iter = Value::iter(form);
+    let mut iter = form.iter();
     loop {
         let pattern = match iter.next() {
             Some(ref symbol) if symbol.kind.is_symbol() => symbol.clone(),
@@ -182,7 +181,7 @@ fn split_let_binding_form(form: &ValuePtr) -> Result<(Vec<ValuePtr>, Vec<ValuePt
 
 pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_LET));
 
     let (unparsed_patterns, unevaled_exprs) = match iter.next() {
@@ -213,7 +212,7 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 
 pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_QUOTE));
 
     let val = match iter.next() {
@@ -227,7 +226,7 @@ pub fn eval_specialform_quote(ast: &ValuePtr, _env: EnvPtr) -> Result<ValuePtr, 
 
 pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_DEF));
 
     let symbol = match iter.next() {
@@ -248,7 +247,7 @@ pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 
 pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_IF));
 
     let cond_expr = match iter.next() {
@@ -275,7 +274,7 @@ pub fn eval_specialform_if(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
 
 pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast).peekable();
+    let mut iter = ast.iter().peekable();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_FN));
 
     let has_funcname = match iter.peek() {
@@ -321,14 +320,14 @@ fn eval_specialform_unquote_common(mut iter: ValueIterator, env: EnvPtr, enables
 
 pub fn eval_specialform_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    assert!(Value::iter(ast).peekable().peek().unwrap().kind.matches_symbol(reserved::STR_UNQUOTE));
-    eval_specialform_unquote_common(Value::iter(ast), env, enables)
+    assert!(ast.iter().peekable().peek().unwrap().kind.matches_symbol(reserved::STR_UNQUOTE));
+    eval_specialform_unquote_common(ast.iter(), env, enables)
 }
 
 pub fn eval_specialform_splice_unquote(ast: &ValuePtr, env: EnvPtr, enables: bool) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    assert!(Value::iter(ast).peekable().peek().unwrap().kind.matches_symbol(reserved::STR_SPLICE_UNQUOTE));
-    eval_specialform_unquote_common(Value::iter(ast), env, enables)
+    assert!(ast.iter().peekable().peek().unwrap().kind.matches_symbol(reserved::STR_SPLICE_UNQUOTE));
+    eval_specialform_unquote_common(ast.iter(), env, enables)
 }
 
 fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<(ValuePtr, bool), Exception> {
@@ -342,7 +341,7 @@ fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<(Valu
             let (car_val, splices) = eval_specialform_quasiquote_core(car, env.clone())?;
             let (cdr_val, _) = eval_specialform_quasiquote_core(cdr, env)?;
             if splices {
-                let mut iter = Value::iter(&car_val);
+                let mut iter = car_val.iter();
                 let mut stack = vec![];
                 while let Some(item) = iter.next() {
                     stack.push(item);
@@ -362,7 +361,7 @@ fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<(Valu
 
 pub fn eval_specialform_quasiquote(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast).peekable();
+    let mut iter = ast.iter().peekable();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_QUASIQUOTE));
 
     match iter.next() {
@@ -373,7 +372,7 @@ pub fn eval_specialform_quasiquote(ast: &ValuePtr, env: EnvPtr) -> Result<ValueP
 
 pub fn eval_specialform_defmacro(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_DEFMACRO));
 
     let symbol = match iter.next() {
@@ -411,7 +410,7 @@ fn eval_specialform_do_core(mut iter: ValueIterator, env: EnvPtr) -> Result<Valu
 
 pub fn eval_specialform_do(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_DO));
     eval_specialform_do_core(iter, env)
 }
@@ -424,7 +423,7 @@ fn split_try_form(mut iter: ValueIterator)
 
     while let Some(expr) = iter.next() {
         if expr.kind.is_list() || expr.kind.is_vector() {
-            match Value::iter(&expr).peekable().peek() {
+            match expr.iter().peekable().peek() {
                 Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_CATCH) => {
                     catch_clauses.push(expr.clone());
                     break;
@@ -452,7 +451,7 @@ fn split_try_form(mut iter: ValueIterator)
         if !(expr.kind.is_list() || expr.kind.is_vector()) {
             unimplemented!()
         }
-        match Value::iter(&expr).peekable().peek() {
+        match expr.iter().peekable().peek() {
             Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_CATCH) => catch_clauses.push(expr.clone()),
             Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_FINALLY) => {
                 finally_clause = Some(expr.clone());
@@ -471,7 +470,7 @@ fn split_try_form(mut iter: ValueIterator)
 
 fn parse_catch_clause(ast: &ValuePtr) -> Result<(ExceptionKind, String, ValuePtr), Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_CATCH));
 
     let exception_class = match iter.next() {
@@ -493,7 +492,7 @@ fn parse_catch_clause(ast: &ValuePtr) -> Result<(ExceptionKind, String, ValuePtr
 
 fn parse_finally_clause(ast: &ValuePtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_FINALLY));
 
     let exprs = iter.rest();
@@ -502,7 +501,7 @@ fn parse_finally_clause(ast: &ValuePtr) -> Result<ValuePtr, Exception> {
 
 pub fn eval_specialform_try(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_TRY));
 
     let (try_exprs, unparsed_catch_clauses, unparsed_finally_clause) = split_try_form(iter)?;
@@ -533,12 +532,12 @@ pub fn eval_specialform_try(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
         if catch_clauses.len() > 0 {
             let clause = &catch_clauses[0];
             let new_env = Env::create(vec![(clause.1.clone(), Value::create_nil())], Some(env.clone()));
-            ret_val = eval_specialform_do_core(Value::iter(&clause.2), new_env)?;
+            ret_val = eval_specialform_do_core(clause.2.iter(), new_env)?;
         }
     }
 
     if let Some(clause) = finally_clause {
-        eval_specialform_do_core(Value::iter(&clause), env)?;
+        eval_specialform_do_core(clause.iter(), env)?;
     }
 
     Ok(ret_val)
@@ -546,7 +545,7 @@ pub fn eval_specialform_try(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
 
 pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_list());
-    let mut iter = Value::iter(ast);
+    let mut iter = ast.iter();
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_DEFRECORD));
 
     let record_name = match iter.next() {
@@ -556,7 +555,7 @@ pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePt
 
     let symbols = match iter.next() {
         Some(ref vector) if vector.kind.is_vector() => {
-            for symbol in Value::iter(vector) {
+            for symbol in vector.iter() {
                 if !symbol.kind.is_symbol() {
                     unimplemented!()
                 }
@@ -567,7 +566,7 @@ pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePt
     };
 
     let mut fields = vec![];
-    for symbol in Value::iter(&symbols) {
+    for symbol in symbols.iter() {
         let field = symbol.get_as_symbol().unwrap().clone();
         fields.push((field, None))
     }
