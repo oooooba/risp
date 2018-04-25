@@ -96,7 +96,7 @@ pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
         ValueKind::ListValue(ListKind::EmptyList) => Ok(val.clone()),
         ValueKind::NilValue => Ok(Value::create_list(ListKind::EmptyList)),
         ValueKind::VectorValue(_) => {
-            let mut iter = Value::iter(val);
+            let mut iter = val.iter();
             iter.next();
             Ok(iter.rest())
         }
