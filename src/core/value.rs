@@ -403,19 +403,17 @@ impl ToString for ValuePtr {
             NilValue => reserved::STR_NIL.to_string(),
             MapValue(ref m) => {
                 let mut text = String::new();
-                text.push('{');
+                text.push(reserved::CHAR_L_CURLY);
                 let mut is_first = true;
                 for (key, val) in m.iter() {
                     if is_first {
                         is_first = false;
                     } else {
-                        text.push_str(", ");
+                        text.push_str(&format!("{} ", reserved::CHAR_COMMA));
                     }
-                    text.push_str(&key.to_string());
-                    text.push(' ');
-                    text.push_str(&val.to_string());
+                    text.push_str(&format!("{} {}", key.to_string(), val.to_string()));
                 }
-                text.push('}');
+                text.push(reserved::CHAR_R_CURLY);
                 text
             }
             BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
