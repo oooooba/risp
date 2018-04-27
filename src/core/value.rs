@@ -84,7 +84,7 @@ impl ValueKind {
     pub fn type_str_vector() -> &'static str { "Vector" }
     pub fn type_str_type() -> &'static str { "Type" }
 
-    pub fn is_integer(&self) -> bool {
+    fn is_integer(&self) -> bool {
         match self {
             &ValueKind::IntegerValue(_) => true,
             _ => false,
@@ -476,6 +476,10 @@ impl ValuePtr {
             _ => unimplemented!(),
         };
         ValueIterator(iterator)
+    }
+
+    pub fn is_integer(&self) -> bool {
+        self.kind.is_integer()
     }
 }
 
