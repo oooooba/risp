@@ -25,7 +25,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                 };
                 if pattern.kind.matches_keyword(reserved::STR_AS) {
                     match iter.next() {
-                        Some(ref symbol) if symbol.kind.is_symbol() => {
+                        Some(ref symbol) if symbol.is_symbol() => {
                             as_symbol = Some(parse_pattern(&symbol)?);
                             break;
                         }
@@ -64,7 +64,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                     None => break,
                 };
                 if pattern_val.kind.matches_keyword(reserved::STR_AS) {
-                    if key_val.kind.is_symbol() && as_symbol.is_none() {
+                    if key_val.is_symbol() && as_symbol.is_none() {
                         as_symbol = Some(parse_pattern(&key_val)?);
                     } else {
                         unimplemented!();
@@ -105,7 +105,7 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr
 
     match pattern.kind {
         SymbolPattern(ref symbol) => {
-            assert!(symbol.kind.is_symbol());
+            assert!(symbol.is_symbol());
             pairs.push((symbol.get_as_symbol().unwrap().clone(), value.clone()));
         }
         VectorPattern(ref patterns, ref rest_patterns, ref as_symbol) => {
@@ -161,7 +161,7 @@ fn split_let_binding_form(form: &ValuePtr) -> Result<(Vec<ValuePtr>, Vec<ValuePt
     let mut iter = form.iter();
     loop {
         let pattern = match iter.next() {
-            Some(ref symbol) if symbol.kind.is_symbol() => symbol.clone(),
+            Some(ref symbol) if symbol.is_symbol() => symbol.clone(),
             Some(ref vector) if vector.kind.is_vector() => vector.clone(),
             Some(ref map) if map.kind.is_map() => map.clone(),
             Some(_) => unimplemented!(), // exception
@@ -230,7 +230,7 @@ pub fn eval_specialform_def(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_DEF));
 
     let symbol = match iter.next() {
-        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        Some(ref symbol) if symbol.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
         Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), other.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException(reserved::STR_DEF), None)),
     };
@@ -278,7 +278,7 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_FN));
 
     let has_funcname = match iter.peek() {
-        Some(val) => val.kind.is_symbol(),
+        Some(val) => val.is_symbol(),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException(reserved::STR_FN), None)),
     };
     let funcname = if has_funcname {
@@ -376,7 +376,7 @@ pub fn eval_specialform_defmacro(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_DEFMACRO));
 
     let symbol = match iter.next() {
-        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        Some(ref symbol) if symbol.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
         Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_symbol(), other.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException(reserved::STR_DEFMACRO), None)),
     };
@@ -474,13 +474,13 @@ fn parse_catch_clause(ast: &ValuePtr) -> Result<(ExceptionKind, String, ValuePtr
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_CATCH));
 
     let exception_class = match iter.next() {
-        Some(ref symbol) if symbol.kind.is_symbol() => ExceptionKind::EvaluatorUndefinedSymbolException("example".to_string()),
+        Some(ref symbol) if symbol.is_symbol() => ExceptionKind::EvaluatorUndefinedSymbolException("example".to_string()),
         Some(_other) => unimplemented!(),
         None => unimplemented!(),
     };
 
     let bound_variable = match iter.next() {
-        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        Some(ref symbol) if symbol.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
         Some(_other) => unimplemented!(),
         None => unimplemented!(),
     };
@@ -549,14 +549,14 @@ pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePt
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_DEFRECORD));
 
     let record_name = match iter.next() {
-        Some(ref symbol) if symbol.kind.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
+        Some(ref symbol) if symbol.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
         _ => unimplemented!(),
     };
 
     let symbols = match iter.next() {
         Some(ref vector) if vector.kind.is_vector() => {
             for symbol in vector.iter() {
-                if !symbol.kind.is_symbol() {
+                if !symbol.is_symbol() {
                     unimplemented!()
                 }
             }

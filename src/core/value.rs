@@ -91,7 +91,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_symbol(&self) -> bool {
+    fn is_symbol(&self) -> bool {
         match self {
             &ValueKind::SymbolValue(_) => true,
             _ => false,
@@ -480,6 +480,10 @@ impl ValuePtr {
 
     pub fn is_integer(&self) -> bool {
         self.kind.is_integer()
+    }
+
+    pub fn is_symbol(&self) -> bool {
+        self.kind.is_symbol()
     }
 }
 
