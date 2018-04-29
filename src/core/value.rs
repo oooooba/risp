@@ -331,20 +331,9 @@ impl Type {
     }
 }
 
-pub fn constructor(env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let type_name = env.lookup(&"ClassName".to_string()).unwrap();
+pub fn constructor(typ: TypePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     let args = env.lookup_nth_param(1).unwrap();
-
-    let typ = match type_name.kind {
-        ValueKind::TypeValue(ref typ) => typ,
-        _ => unimplemented!(),
-    };
-
-    let mut arg_vec = vec![];
-    for arg in args.iter() {
-        arg_vec.push(arg)
-    }
-
+    let arg_vec = args.iter().collect();
     Ok(typ.instantiate(arg_vec))
 }
 

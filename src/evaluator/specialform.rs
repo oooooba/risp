@@ -570,19 +570,20 @@ pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePt
         let field = symbol.get_as_symbol().unwrap().clone();
         fields.push((field, None))
     }
-    let record = Value::create_type(Type::create(fields));
+    let record = Type::create(fields);
+    let record_val = Value::create_type(record.clone());
 
     let pattern = Pattern::create_vector(vec![], vec![
         Pattern::create_symbol(Value::create_symbol("%1".to_string()))
     ], None);
-    let body = ApplicableBodyKind::BuiltinBody(Box::new(value::constructor));
+    let body = ApplicableBodyKind::BuiltinBody(Box::new(move |e| {
+        value::constructor(record.clone(), e)
+    }));
     let applicable = Applicable::new(None, pattern, body);
-    let closure_env = Env::create(vec![("ClassName".to_string(), record.clone())],
-                                  Some(env.clone()));
-    let closure_val = Value::create_closure(applicable, closure_env);
+    let closure_val = Value::create_closure(applicable, env.clone());
 
     Err(Exception::new(ExceptionKind::Continuation(
-        Env::create(vec![(record_name.clone(), record), (format!("{}->", record_name), closure_val)], Some(env))), None))
+        Env::create(vec![(record_name.clone(), record_val), (format!("{}->", record_name), closure_val)], Some(env))), None))
 }
 
 #[cfg(test)]
