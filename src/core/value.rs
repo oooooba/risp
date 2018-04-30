@@ -98,7 +98,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_keyword(&self) -> bool {
+    fn is_keyword(&self) -> bool {
         match self {
             &ValueKind::KeywordValue(_) => true,
             _ => false,
@@ -473,6 +473,10 @@ impl ValuePtr {
 
     pub fn is_symbol(&self) -> bool {
         self.kind.is_symbol()
+    }
+
+    pub fn is_keyword(&self) -> bool {
+        self.kind.is_keyword()
     }
 }
 
