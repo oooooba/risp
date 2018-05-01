@@ -9,7 +9,7 @@ use core::env::{Env, EnvPtr};
 use core::reserved;
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_list());
+    assert!(ast.is_list());
     use self::ListKind::*;
     let mut iter = ast.iter().peekable();
     match iter.peek() {
@@ -55,7 +55,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
 
 fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(applicable_val.kind.is_closure() || applicable_val.kind.is_macro());
-    assert!(args_val.kind.is_list());
+    assert!(args_val.is_list());
     let (applicable, closure_env) = match applicable_val.kind {
         ValueKind::ClosureValue(ref applicable, ref closure_env) => (applicable, Some(closure_env.clone())),
         ValueKind::MacroValue(ref applicable) => (applicable, None),

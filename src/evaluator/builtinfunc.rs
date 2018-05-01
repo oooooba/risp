@@ -69,7 +69,7 @@ pub fn op_equal(env: EnvPtr) -> Result<ValuePtr, Exception> {
 pub fn cons(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let elem_val = env.lookup_nth_param(1).unwrap();
     let list_val = env.lookup_nth_param(2).unwrap();
-    if !list_val.kind.is_list() {
+    if !list_val.is_list() {
         return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_list(), list_val.kind.as_type_str()), None));
     }
     Ok(Value::create_list(ListKind::ConsList(elem_val.clone(), list_val.clone())))
@@ -106,7 +106,7 @@ pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
 
 pub fn builtinfunc_list_q(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let val = env.lookup_nth_param(1).unwrap();
-    Ok(Value::create_boolean(val.kind.is_list()))
+    Ok(Value::create_boolean(val.is_list()))
 }
 
 pub fn builtinfunc_nil_q(env: EnvPtr) -> Result<ValuePtr, Exception> {

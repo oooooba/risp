@@ -105,7 +105,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_list(&self) -> bool {
+    fn is_list(&self) -> bool {
         match self {
             &ValueKind::ListValue(_) => true,
             _ => false,
@@ -477,6 +477,10 @@ impl ValuePtr {
 
     pub fn is_keyword(&self) -> bool {
         self.kind.is_keyword()
+    }
+
+    pub fn is_list(&self) -> bool {
+        self.kind.is_list()
     }
 }
 
