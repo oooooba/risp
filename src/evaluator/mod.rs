@@ -32,7 +32,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     let car = iter.next().unwrap();
     let evaled_car = eval(car.clone(), env.clone())?;
     let cdr = iter.rest();
-    if evaled_car.kind.is_closure() {
+    if evaled_car.is_closure() {
         apply(&evaled_car, &cdr, env)
     } else if evaled_car.kind.is_map() {
         let pattern = Pattern::create_vector(vec![
@@ -54,7 +54,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
 }
 
 fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(applicable_val.kind.is_closure() || applicable_val.kind.is_macro());
+    assert!(applicable_val.is_closure() || applicable_val.kind.is_macro());
     assert!(args_val.is_list());
     let (applicable, closure_env) = match applicable_val.kind {
         ValueKind::ClosureValue(ref applicable, ref closure_env) => (applicable, Some(closure_env.clone())),

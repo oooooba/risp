@@ -112,7 +112,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_closure(&self) -> bool {
+    fn is_closure(&self) -> bool {
         match self {
             &ValueKind::ClosureValue(_, _) => true,
             _ => false,
@@ -481,6 +481,10 @@ impl ValuePtr {
 
     pub fn is_list(&self) -> bool {
         self.kind.is_list()
+    }
+
+    pub fn is_closure(&self) -> bool {
+        self.kind.is_closure()
     }
 }
 
