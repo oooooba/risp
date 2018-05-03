@@ -13,6 +13,7 @@ use std::cmp::Ordering;
 use core::exception::Exception;
 use core::env::EnvPtr;
 use core::reserved;
+use core::map;
 
 #[derive(Debug, Eq)]
 pub enum ValueKind {
@@ -28,6 +29,7 @@ pub enum ValueKind {
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
     TypeValue(TypePtr),
+    MapXValue(map::AVLTree),
 }
 
 #[derive(PartialEq, Debug, Eq)]
@@ -69,6 +71,7 @@ impl ValueKind {
             &VectorValue(_) => ValueKind::type_str_vector(),
             &MacroValue(_) => unreachable!(),
             &TypeValue(_) => ValueKind::type_str_type(),
+            &MapXValue(_) => unreachable!(),
         }
     }
 
@@ -147,6 +150,13 @@ impl ValueKind {
         }
     }
 
+    pub fn is_mapx(&self) -> bool {
+        match self {
+            &ValueKind::MapXValue(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn matches_symbol(&self, expected: &str) -> bool {
         match self {
             &ValueKind::SymbolValue(ref actual) => expected == actual.as_str(),
@@ -176,6 +186,7 @@ impl PartialEq for ValueKind {
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
             (&TypeValue(ref lhs), &TypeValue(ref rhs)) => lhs == rhs,
+            (&MapXValue(ref lhs), &MapXValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -410,6 +421,7 @@ impl ToString for ValuePtr {
                                                " ", self.iter()),
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
+            MapXValue(_) => unimplemented!(),
         }
     }
 }
@@ -584,6 +596,21 @@ impl Value {
         Value::new(ValueKind::TypeValue(typ))
     }
 
+    pub fn create_mapx(map: map::AVLTree) -> ValuePtr {
+        Value::new(ValueKind::MapXValue(map))
+    }
+
+    pub fn iter(target: &ValuePtr) -> ValueIterator {
+        use self::ValueIteratorKind::*;
+        let iter = match target.kind {
+            ValueKind::ListValue(_) => ListIterator(target.clone()),
+            ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
+            ValueKind::MapValue(ref map) => MapIterator(map.iter()),
+            _ => unimplemented!(),
+        };
+        ValueIterator(iter)
+    }
+
     pub fn get_as_symbol<'a>(&'a self) -> Option<&'a String> {
         match self.kind {
             ValueKind::SymbolValue(ref symbol) => Some(symbol),
@@ -601,6 +628,13 @@ impl Value {
     pub fn get_as_map<'a>(&'a self) -> Option<&'a HashMap<ValuePtr, ValuePtr>> {
         match self.kind {
             ValueKind::MapValue(ref map) => Some(map),
+            _ => None,
+        }
+    }
+
+    pub fn get_as_mapx<'a>(&'a self) -> Option<&'a map::AVLTree> {
+        match self.kind {
+            ValueKind::MapXValue(ref map) => Some(map),
             _ => None,
         }
     }
