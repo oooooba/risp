@@ -29,7 +29,7 @@ pub enum ValueKind {
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
     TypeValue(TypePtr),
-    MapXValue(map::Map),
+    MapXValue(map::AVLTree),
 }
 
 #[derive(PartialEq, Debug, Eq)]
@@ -146,6 +146,13 @@ impl ValueKind {
     pub fn is_macro(&self) -> bool {
         match self {
             &ValueKind::MacroValue(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_mapx(&self) -> bool {
+        match self {
+            &ValueKind::MapXValue(_) => true,
             _ => false,
         }
     }
@@ -582,6 +589,10 @@ impl Value {
         Value::new(ValueKind::TypeValue(typ))
     }
 
+    pub fn create_mapx(map: map::AVLTree) -> ValuePtr {
+        Value::new(ValueKind::MapXValue(map))
+    }
+
     pub fn iter(target: &ValuePtr) -> ValueIterator {
         use self::ValueIteratorKind::*;
         let iter = match target.kind {
@@ -610,6 +621,13 @@ impl Value {
     pub fn get_as_map<'a>(&'a self) -> Option<&'a HashMap<ValuePtr, ValuePtr>> {
         match self.kind {
             ValueKind::MapValue(ref map) => Some(map),
+            _ => None,
+        }
+    }
+
+    pub fn get_as_mapx<'a>(&'a self) -> Option<&'a map::AVLTree> {
+        match self.kind {
+            ValueKind::MapXValue(ref map) => Some(map),
             _ => None,
         }
     }
