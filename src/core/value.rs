@@ -445,20 +445,69 @@ impl PartialOrd for ValuePtr {
     }
 }
 
+fn cmp_helper(mut self_iter: ValueIterator, mut other_iter: ValueIterator) -> Ordering {
+    loop {
+        let self_item = self_iter.next();
+        let other_item = other_iter.next();
+        match (self_item.is_none(), other_item.is_none()) {
+            (true, true) => return Ordering::Equal,
+            (true, false) => return Ordering::Less,
+            (false, true) => return Ordering::Greater,
+            (false, false) => (),
+        }
+        let b = self_item.unwrap().cmp(&other_item.unwrap());
+        if b != Ordering::Equal {
+            return b;
+        }
+    }
+}
+
 impl Ord for ValuePtr {
     fn cmp(&self, other: &Self) -> Ordering {
-        use std::mem::transmute;
-        if self.0 == other.0 {
+        use self::ValueKind::*;
+        fn to_int(kind: &ValueKind) -> usize {
+            match kind {
+                &IntegerValue(_) => 1,
+                &StringValue(_) => 2,
+                &SymbolValue(_) => 3,
+                &KeywordValue(_) => 4,
+                &ListValue(_) => 5,
+                &ClosureValue(_, _) => 6,
+                &NilValue => 7,
+                &MapValue(_) => 8,
+                &BooleanValue(_) => 9,
+                &VectorValue(_) => 10,
+                &MacroValue(_) => 11,
+                &TypeValue(_) => 12,
+                &MapXValue(_) => 13,
+            }
+        }
+
+        let self_int = to_int(&self.kind);
+        let other_int = to_int(&other.kind);
+        if self_int != other_int {
+            return self_int.cmp(&other_int);
+        }
+
+        assert_eq!(self_int, other_int);
+        if self == other {
             return Ordering::Equal;
         }
-        let (addr_self, addr_other): (usize, usize) = unsafe {
-            (transmute(self), transmute(other))
-        };
-        assert_ne!(addr_self, addr_other);
-        if addr_self < addr_other {
-            Ordering::Less
-        } else {
-            Ordering::Greater
+
+        match (&self.kind, &other.kind) {
+            (&IntegerValue(ref lhs), &IntegerValue(ref rhs)) => lhs.cmp(rhs),
+            (&StringValue(ref lhs), &StringValue(ref rhs)) => lhs.cmp(rhs),
+            (&SymbolValue(ref lhs), &SymbolValue(ref rhs)) => lhs.cmp(rhs),
+            (&KeywordValue(ref lhs), &KeywordValue(ref rhs)) => lhs.cmp(rhs),
+            (&ClosureValue(_, _), &ClosureValue(_, _)) => unimplemented!(),
+            (&ListValue(_), &ListValue(_)) => cmp_helper(self.iter(), other.iter()),
+            (&NilValue, &NilValue) => unreachable!(),
+            (&MapValue(_), &MapValue(_)) => unimplemented!(),
+            (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs.cmp(rhs),
+            (&VectorValue(_), &VectorValue(_)) => cmp_helper(self.iter(), other.iter()),
+            (&TypeValue(_), &TypeValue(_)) => unimplemented!(),
+            (&MapXValue(_), &MapXValue(_)) => unimplemented!(),
+            _ => unimplemented!(),
         }
     }
 }
@@ -791,5 +840,23 @@ mod tests {
                 Value::create_integer(3),
             ]));
         }
+    }
+
+    #[test]
+    fn test_comparison() {
+        use std::cmp::Ordering::*;
+        assert_eq!(Value::create_integer(1).cmp(&Value::create_integer(2)), Less);
+        assert_eq!(Value::create_integer(2).cmp(&Value::create_integer(2)), Equal);
+        assert_eq!(Value::create_integer(2).cmp(&Value::create_integer(1)), Greater);
+        assert_eq!(Value::create_symbol("ab".to_string()).cmp(&Value::create_symbol("abc".to_string())), Less);
+        assert_eq!(Value::create_symbol("ab".to_string()).cmp(&Value::create_symbol("a".to_string())), Greater);
+        assert_eq!(Value::create_integer(9).cmp(&Value::create_symbol("1".to_string())), Less);
+        assert_eq!(Value::create_list_from_vec(vec![]).cmp(&Value::create_list_from_vec(vec![])), Equal);
+        assert_eq!(Value::create_list_from_vec(vec![]).cmp(&Value::create_list_from_vec(vec![Value::create_integer(1)])), Less);
+        assert_eq!(Value::create_vector(vec![
+            Value::create_integer(3), Value::create_integer(4),
+        ]).cmp(&Value::create_vector(vec![
+            Value::create_integer(1), Value::create_integer(2),
+        ])), Greater);
     }
 }
