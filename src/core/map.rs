@@ -261,9 +261,7 @@ impl AVLTree {
     }
 
     fn compare(lhs: &ValuePtr, rhs: &ValuePtr) -> Ordering {
-        let lhs_val = lhs.get_as_integer().unwrap();
-        let rhs_val = rhs.get_as_integer().unwrap();
-        lhs_val.cmp(rhs_val)
+        lhs.cmp(rhs)
     }
 
     fn create(kind: TreeKind) -> ValuePtr {
