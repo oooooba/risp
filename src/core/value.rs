@@ -29,7 +29,7 @@ pub enum ValueKind {
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
     TypeValue(TypePtr),
-    MapXValue(map::AVLTree),
+    MapXValue(map::TreeMap),
 }
 
 #[derive(PartialEq, Debug, Eq)]
@@ -645,7 +645,7 @@ impl Value {
         Value::new(ValueKind::TypeValue(typ))
     }
 
-    pub fn create_mapx(map: map::AVLTree) -> ValuePtr {
+    pub fn create_mapx(map: map::TreeMap) -> ValuePtr {
         Value::new(ValueKind::MapXValue(map))
     }
 
@@ -681,7 +681,8 @@ impl Value {
         }
     }
 
-    pub fn get_as_mapx<'a>(&'a self) -> Option<&'a map::AVLTree> {
+    //pub fn get_as_mapx<'a>(&'a self) -> Option<&'a map::AVLTree> {
+    pub fn get_as_mapx<'a>(&'a self) -> Option<&'a map::TreeMap> {
         match self.kind {
             ValueKind::MapXValue(ref map) => Some(map),
             _ => None,

@@ -5,6 +5,7 @@ https://www.cs.usfca.edu/~galles/visualization/AVLtree.html
 */
 
 use std::cmp::Ordering;
+use std::rc::Rc;
 
 use core::value::{Value, ValuePtr};
 
@@ -34,8 +35,8 @@ enum SubTreeState {
 struct Node {
     state: SubTreeState,
     pair: Pair,
-    left: ValuePtr, // must be MapValue
-    right: ValuePtr, // must be MapValue
+    left: AVLTree,
+    right: AVLTree,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -44,8 +45,8 @@ enum TreeKind {
     Node(Node),
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct AVLTree(TreeKind);
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct AVLTree(Rc<TreeKind>);
 
 impl Node {
     fn balance_left(self) -> (bool, Self) {
@@ -56,7 +57,7 @@ impl Node {
         }
 
         assert_eq!(self.state, LeftIsHigher);
-        let l_node = self.left.get_as_mapx().unwrap().0.get_as_node().unwrap().clone();
+        let l_node = self.left.0.get_as_node().unwrap().clone();
         match l_node.state {
             HeightIsEqual => return (true, Node {
                 state: RightIsHigher,
@@ -72,7 +73,7 @@ impl Node {
         }
 
         assert_eq!(l_node.state, RightIsHigher);
-        let lr_node = l_node.right.get_as_mapx().unwrap().0.get_as_node().unwrap().clone();
+        let lr_node = l_node.right.0.get_as_node().unwrap().clone();
         match lr_node.state {
             LeftIsHigher => (false, Node {
                 state: HeightIsEqual,
@@ -103,7 +104,7 @@ impl Node {
         }
 
         assert_eq!(self.state, RightIsHigher);
-        let r_node = self.right.get_as_mapx().unwrap().0.get_as_node().unwrap().clone();
+        let r_node = self.right.0.get_as_node().unwrap().clone();
         match r_node.state {
             HeightIsEqual => return (true, Node {
                 state: LeftIsHigher,
@@ -119,7 +120,7 @@ impl Node {
         }
 
         assert_eq!(r_node.state, RightIsHigher);
-        let rl_node = r_node.right.get_as_mapx().unwrap().0.get_as_node().unwrap().clone();
+        let rl_node = r_node.right.0.get_as_node().unwrap().clone();
         match rl_node.state {
             LeftIsHigher => (false, Node {
                 state: HeightIsEqual,
@@ -142,48 +143,48 @@ impl Node {
         }
     }
 
-    fn insert_helper_balance_left(self, balances: bool) -> (bool, TreeKind) {
+    fn insert_helper_balance_left(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_left();
-            (balances, Node(new_node))
+            (balances, AVLTree::create(Node(new_node)))
         } else {
-            (false, Node(self))
+            (false, AVLTree::create(Node(self)))
         }
     }
 
-    fn insert_helper_balance_right(self, balances: bool) -> (bool, TreeKind) {
+    fn insert_helper_balance_right(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_right();
-            (balances, Node(new_node))
+            (balances, AVLTree::create(Node(new_node)))
         } else {
-            (false, Node(self))
+            (false, AVLTree::create(Node(self)))
         }
     }
 
-    fn delete_helper_balance_left(self, balances: bool) -> (bool, TreeKind) {
+    fn delete_helper_balance_left(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_right();
-            (!balances, Node(new_node))
+            (!balances, AVLTree::create(Node(new_node)))
         } else {
-            (false, Node(self))
+            (false, AVLTree::create(Node(self)))
         }
     }
 
-    fn delete_helper_balance_right(self, balances: bool) -> (bool, TreeKind) {
+    fn delete_helper_balance_right(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_left();
-            (!balances, Node(new_node))
+            (!balances, AVLTree::create(Node(new_node)))
         } else {
-            (false, Node(self))
+            (false, AVLTree::create(Node(self)))
         }
     }
 
-    fn delete_helper_delete_rightmost(&self) -> (Pair, (bool, TreeKind)) {
-        match self.right.get_as_mapx().unwrap().0 {
-            Leaf => (self.pair.clone(), (true, self.left.get_as_mapx().unwrap().0.clone())),
+    fn delete_helper_delete_rightmost(&self) -> (Pair, (bool, AVLTree)) {
+        match *self.right.0 {
+            Leaf => (self.pair.clone(), (true, self.left.clone())),
             Node(ref r_node) => {
                 let (max_pair, (balances, newtree)) = r_node.delete_helper_delete_rightmost();
-                (max_pair, Node { right: AVLTree::create(newtree), ..self.clone() }.delete_helper_balance_right(balances))
+                (max_pair, Node { right: newtree, ..self.clone() }.delete_helper_balance_right(balances))
             }
         }
     }
@@ -197,20 +198,20 @@ impl TreeKind {
         }
     }
 
-    fn insert(&self, pair: Pair) -> (bool, TreeKind, Option<ValuePtr>) {
+    fn insert(&self, pair: Pair) -> (bool, AVLTree, Option<ValuePtr>) {
         match self {
-            &Leaf => (true, Node(Node { state: HeightIsEqual, pair: pair, left: AVLTree::create(Leaf), right: AVLTree::create(Leaf) }), None),
+            &Leaf => (true, AVLTree::create(Node(Node { state: HeightIsEqual, pair: pair, left: AVLTree::create(Leaf), right: AVLTree::create(Leaf) })), None),
             &Node(ref node) => match AVLTree::compare(&pair.key, &node.pair.key) {
-                Ordering::Equal => (false, Node(Node { pair: pair, ..node.clone() }), Some(node.pair.value.clone())),
+                Ordering::Equal => (false, AVLTree::create(Node(Node { pair: pair, ..node.clone() })), Some(node.pair.value.clone())),
                 Ordering::Less => {
-                    let (balances, newtree, prev_val) = node.left.get_as_mapx().unwrap().0.insert(pair);
-                    let (balances, newtree) = Node { left: AVLTree::create(newtree), ..node.clone() }
+                    let (balances, newtree, prev_val) = node.left.0.insert(pair);
+                    let (balances, newtree) = Node { left: newtree, ..node.clone() }
                         .insert_helper_balance_left(balances);
                     (balances, newtree, prev_val)
                 }
                 Ordering::Greater => {
-                    let (balances, newtree, prev_val) = node.right.get_as_mapx().unwrap().0.insert(pair);
-                    let (balances, newtree) = Node { right: AVLTree::create(newtree), ..node.clone() }
+                    let (balances, newtree, prev_val) = node.right.0.insert(pair);
+                    let (balances, newtree) = Node { right: newtree, ..node.clone() }
                         .insert_helper_balance_right(balances);
                     (balances, newtree, prev_val)
                 }
@@ -218,31 +219,30 @@ impl TreeKind {
         }
     }
 
-    fn delete(&self, key: &ValuePtr) -> (bool, TreeKind, Option<ValuePtr>) {
+    fn delete(&self, key: &ValuePtr) -> (bool, AVLTree, Option<ValuePtr>) {
         match self {
-            &Leaf => (false, Leaf, None),
+            &Leaf => (false, AVLTree::create(Leaf), None),
             &Node(ref node) => match AVLTree::compare(key, &node.pair.key) {
                 Ordering::Equal => {
-                    let l_subtree = &node.left.get_as_mapx().unwrap().0;
-                    match l_subtree {
-                        &Leaf => (true, node.right.get_as_mapx().unwrap().0.clone(), Some(node.pair.value.clone())),
-                        &Node(ref l_node) => {
+                    match *node.left.0 {
+                        Leaf => (true, node.right.clone(), Some(node.pair.value.clone())),
+                        Node(ref l_node) => {
                             let (pair, (balances, newtree)) = l_node.delete_helper_delete_rightmost();
-                            let (balances, newtree) = Node { pair: pair, left: AVLTree::create(newtree), ..node.clone() }
+                            let (balances, newtree) = Node { pair: pair, left: newtree, ..node.clone() }
                                 .delete_helper_balance_left(balances);
                             (balances, newtree, Some(node.pair.value.clone()))
                         }
                     }
                 }
                 Ordering::Less => {
-                    let (balances, newtree, prev_val) = node.left.get_as_mapx().unwrap().0.delete(key);
-                    let (balances, newtree) = Node { left: AVLTree::create(newtree), ..node.clone() }
+                    let (balances, newtree, prev_val) = node.left.0.delete(key);
+                    let (balances, newtree) = Node { left: newtree, ..node.clone() }
                         .delete_helper_balance_left(balances);
                     (balances, newtree, prev_val)
                 }
                 Ordering::Greater => {
-                    let (balances, newtree, prev_val) = node.right.get_as_mapx().unwrap().0.delete(key);
-                    let (balances, newtree) = Node { right: AVLTree::create(newtree), ..node.clone() }
+                    let (balances, newtree, prev_val) = node.right.0.delete(key);
+                    let (balances, newtree) = Node { right: newtree, ..node.clone() }
                         .delete_helper_balance_right(balances);
                     (balances, newtree, prev_val)
                 }
@@ -253,42 +253,49 @@ impl TreeKind {
 
 impl AVLTree {
     fn new(kind: TreeKind) -> AVLTree {
-        AVLTree(kind)
-    }
-
-    fn wrap(self) -> ValuePtr {
-        Value::create_mapx(self)
+        AVLTree(Rc::new(kind))
     }
 
     fn compare(lhs: &ValuePtr, rhs: &ValuePtr) -> Ordering {
         lhs.cmp(rhs)
     }
 
-    fn create(kind: TreeKind) -> ValuePtr {
-        AVLTree::new(kind).wrap()
+    fn create(kind: TreeKind) -> AVLTree {
+        AVLTree::new(kind)
     }
 
-    pub fn create_empty() -> ValuePtr {
+    fn create_empty() -> AVLTree {
         AVLTree::create(Leaf)
     }
 
-    pub fn create_from_vec(mut items: Vec<(ValuePtr, ValuePtr)>) -> ValuePtr {
-        let mut tree = AVLTree::create_empty();
-        items.reverse();
-        while let Some((k, v)) = items.pop() {
-            tree = tree.get_as_mapx().unwrap().insert(k, v).0;
-        }
-        tree
+    fn insert(&self, key: ValuePtr, value: ValuePtr) -> (AVLTree, Option<ValuePtr>) {
+        let r = self.0.insert(Pair::new(key, value));
+        (r.1, r.2)
+    }
+
+    fn delete(&self, key: &ValuePtr) -> (AVLTree, Option<ValuePtr>) {
+        let r = self.0.delete(key);
+        (r.1, r.2)
+    }
+}
+
+// public interface
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct TreeMap(AVLTree);
+
+impl TreeMap {
+    pub fn create_empty() -> ValuePtr {
+        Value::create_mapx(TreeMap(AVLTree::create_empty()))
     }
 
     pub fn insert(&self, key: ValuePtr, value: ValuePtr) -> (ValuePtr, Option<ValuePtr>) {
-        let r = self.0.insert(Pair::new(key, value));
-        (AVLTree::create(r.1), r.2)
+        let r = self.0.insert(key, value);
+        (Value::create_mapx(TreeMap(r.0)), r.1)
     }
 
     pub fn delete(&self, key: &ValuePtr) -> (ValuePtr, Option<ValuePtr>) {
         let r = self.0.delete(key);
-        (AVLTree::create(r.1), r.2)
+        (Value::create_mapx(TreeMap(r.0)), r.1)
     }
 }
 
@@ -296,12 +303,11 @@ impl AVLTree {
 mod tests {
     use super::*;
 
-    fn l() -> ValuePtr {
-        AVLTree::create_empty()
+    fn l() -> AVLTree {
+        AVLTree::create(Leaf)
     }
 
-    fn n(kv: isize, state: SubTreeState, left: ValuePtr, right: ValuePtr) -> ValuePtr {
-        assert!(left.kind.is_mapx() && right.kind.is_mapx());
+    fn n(kv: isize, state: SubTreeState, left: AVLTree, right: AVLTree) -> AVLTree {
         AVLTree::create(Node(Node { state: state, pair: Pair::new(i(kv), i(kv)), left: left, right: right }))
     }
 
@@ -318,30 +324,30 @@ mod tests {
         {
             let t0 = AVLTree::create_empty();
             assert_eq!(t0, l());
-            let (t1, p1) = t0.get_as_mapx().unwrap().insert(i(1), i(1));
+            let (t1, p1) = t0.insert(i(1), i(1));
             assert_eq!(p1, None);
             assert_eq!(t1, n(1, H, l(), l()));
-            let (t2, p2) = t1.get_as_mapx().unwrap().insert(i(2), i(2));
+            let (t2, p2) = t1.insert(i(2), i(2));
             assert_eq!(p2, None);
             assert_eq!(t2, n(1, R, l(), n(2, H, l(), l())));
-            let (t3, p3) = t2.get_as_mapx().unwrap().insert(i(3), i(3));
+            let (t3, p3) = t2.insert(i(3), i(3));
             assert_eq!(p3, None);
             assert_eq!(t3, n(2, H,
                              n(1, H, l(), l()),
                              n(3, H, l(), l())));
-            let (t4, p4) = t3.get_as_mapx().unwrap().insert(i(4), i(4));
+            let (t4, p4) = t3.insert(i(4), i(4));
             assert_eq!(p4, None);
             assert_eq!(t4, n(2, R,
                              n(1, H, l(), l()),
                              n(3, R, l(), n(4, H, l(), l()))));
-            let (t5, p5) = t4.get_as_mapx().unwrap().insert(i(5), i(5));
+            let (t5, p5) = t4.insert(i(5), i(5));
             assert_eq!(p5, None);
             assert_eq!(t5, n(2, R,
                              n(1, H, l(), l()),
                              n(4, H,
                                n(3, H, l(), l()),
                                n(5, H, l(), l()))));
-            let (t6, p6) = t5.get_as_mapx().unwrap().insert(i(6), i(6));
+            let (t6, p6) = t5.insert(i(6), i(6));
             assert_eq!(p6, None);
             assert_eq!(t6, n(4, H,
                              n(2, H,
@@ -350,7 +356,7 @@ mod tests {
                              n(5, R,
                                l(),
                                n(6, H, l(), l()))));
-            let (t7, p7) = t6.get_as_mapx().unwrap().insert(i(7), i(7));
+            let (t7, p7) = t6.insert(i(7), i(7));
             assert_eq!(p7, None);
             assert_eq!(t7, n(4, H,
                              n(2, H,
@@ -359,7 +365,7 @@ mod tests {
                              n(6, H,
                                n(5, H, l(), l()),
                                n(7, H, l(), l()))));
-            let (t8, p8) = t7.get_as_mapx().unwrap().delete(&i(7));
+            let (t8, p8) = t7.delete(&i(7));
             assert_eq!(p8, Some(i(7)));
             assert_eq!(t8, n(4, H,
                              n(2, H,
@@ -368,62 +374,62 @@ mod tests {
                              n(6, L,
                                n(5, H, l(), l()),
                                l())));
-            let (t9, p9) = t8.get_as_mapx().unwrap().delete(&i(6));
+            let (t9, p9) = t8.delete(&i(6));
             assert_eq!(p9, Some(i(6)));
             assert_eq!(t9, n(4, L,
                              n(2, H,
                                n(1, H, l(), l()),
                                n(3, H, l(), l())),
                              n(5, H, l(), l())));
-            let (t10, p10) = t9.get_as_mapx().unwrap().delete(&i(5));
+            let (t10, p10) = t9.delete(&i(5));
             assert_eq!(p10, Some(i(5)));
             assert_eq!(t10, n(2, R,
                               n(1, H, l(), l()),
                               n(4, L,
                                 n(3, H, l(), l()),
                                 l())));
-            let (t11, p11) = t10.get_as_mapx().unwrap().delete(&i(4));
+            let (t11, p11) = t10.delete(&i(4));
             assert_eq!(p11, Some(i(4)));
             assert_eq!(t11, n(2, H,
                               n(1, H, l(), l()),
                               n(3, H, l(), l())));
-            let (t12, p12) = t11.get_as_mapx().unwrap().delete(&i(3));
+            let (t12, p12) = t11.delete(&i(3));
             assert_eq!(p12, Some(i(3)));
             assert_eq!(t12, n(2, L, n(1, H, l(), l()), l()));
-            let (t13, p13) = t12.get_as_mapx().unwrap().delete(&i(2));
+            let (t13, p13) = t12.delete(&i(2));
             assert_eq!(p13, Some(i(2)));
             assert_eq!(t13, n(1, H, l(), l()));
-            let (t14, p14) = t13.get_as_mapx().unwrap().delete(&i(1));
+            let (t14, p14) = t13.delete(&i(1));
             assert_eq!(p14, Some(i(1)));
             assert_eq!(t14, l());
         }
         {
             let t0 = AVLTree::create_empty();
             assert_eq!(t0, l());
-            let (t1, p1) = t0.get_as_mapx().unwrap().insert(i(7), i(7));
+            let (t1, p1) = t0.insert(i(7), i(7));
             assert_eq!(p1, None);
             assert_eq!(t1, n(7, H, l(), l()));
-            let (t2, p2) = t1.get_as_mapx().unwrap().insert(i(6), i(6));
+            let (t2, p2) = t1.insert(i(6), i(6));
             assert_eq!(p2, None);
             assert_eq!(t2, n(7, L, n(6, H, l(), l()), l()));
-            let (t3, p3) = t2.get_as_mapx().unwrap().insert(i(5), i(5));
+            let (t3, p3) = t2.insert(i(5), i(5));
             assert_eq!(p3, None);
             assert_eq!(t3, n(6, H,
                              n(5, H, l(), l()),
                              n(7, H, l(), l())));
-            let (t4, p4) = t3.get_as_mapx().unwrap().insert(i(4), i(4));
+            let (t4, p4) = t3.insert(i(4), i(4));
             assert_eq!(p4, None);
             assert_eq!(t4, n(6, L,
                              n(5, L, n(4, H, l(), l()), l()),
                              n(7, H, l(), l())));
-            let (t5, p5) = t4.get_as_mapx().unwrap().insert(i(3), i(3));
+            let (t5, p5) = t4.insert(i(3), i(3));
             assert_eq!(p5, None);
             assert_eq!(t5, n(6, L,
                              n(4, H,
                                n(3, H, l(), l()),
                                n(5, H, l(), l())),
                              n(7, H, l(), l())));
-            let (t6, p6) = t5.get_as_mapx().unwrap().insert(i(2), i(2));
+            let (t6, p6) = t5.insert(i(2), i(2));
             assert_eq!(p6, None);
             assert_eq!(t6, n(4, H,
                              n(3, L,
@@ -431,7 +437,7 @@ mod tests {
                              n(6, H,
                                n(5, H, l(), l()),
                                n(7, H, l(), l()))));
-            let (t7, p7) = t6.get_as_mapx().unwrap().insert(i(1), i(1));
+            let (t7, p7) = t6.insert(i(1), i(1));
             assert_eq!(p7, None);
             assert_eq!(t7, n(4, H,
                              n(2, H,
@@ -440,7 +446,7 @@ mod tests {
                              n(6, H,
                                n(5, H, l(), l()),
                                n(7, H, l(), l()))));
-            let (t8, p8) = t7.get_as_mapx().unwrap().delete(&i(1));
+            let (t8, p8) = t7.delete(&i(1));
             assert_eq!(p8, Some(i(1)));
             assert_eq!(t8, n(4, H,
                              n(2, R,
@@ -449,7 +455,7 @@ mod tests {
                              n(6, H,
                                n(5, H, l(), l()),
                                n(7, H, l(), l()))));
-            let (t9, p9) = t8.get_as_mapx().unwrap().delete(&i(2));
+            let (t9, p9) = t8.delete(&i(2));
             assert_eq!(p9, Some(i(2)));
             assert_eq!(t9, n(4, R,
                              n(3, H,
@@ -458,27 +464,27 @@ mod tests {
                              n(6, H,
                                n(5, H, l(), l()),
                                n(7, H, l(), l()))));
-            let (t10, p10) = t9.get_as_mapx().unwrap().delete(&i(3));
+            let (t10, p10) = t9.delete(&i(3));
             assert_eq!(p10, Some(i(3)));
             assert_eq!(t10, n(6, L,
                               n(4, R,
                                 l(),
                                 n(5, H, l(), l())),
                               n(7, H, l(), l())));
-            let (t11, p11) = t10.get_as_mapx().unwrap().delete(&i(4));
+            let (t11, p11) = t10.delete(&i(4));
             assert_eq!(p11, Some(i(4)));
             assert_eq!(t11, n(6, H,
                               n(5, H, l(), l()),
                               n(7, H, l(), l())));
-            let (t12, p12) = t11.get_as_mapx().unwrap().delete(&i(5));
+            let (t12, p12) = t11.delete(&i(5));
             assert_eq!(p12, Some(i(5)));
             assert_eq!(t12, n(6, R,
                               l(),
                               n(7, H, l(), l())));
-            let (t13, p13) = t12.get_as_mapx().unwrap().delete(&i(6));
+            let (t13, p13) = t12.delete(&i(6));
             assert_eq!(p13, Some(i(6)));
             assert_eq!(t13, n(7, H, l(), l()));
-            let (t14, p14) = t13.get_as_mapx().unwrap().delete(&i(7));
+            let (t14, p14) = t13.delete(&i(7));
             assert_eq!(p14, Some(i(7)));
             assert_eq!(t14, l());
         }
