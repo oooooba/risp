@@ -9,7 +9,6 @@ use std::rc::Rc;
 
 use core::value::{Value, ValuePtr};
 
-use self::TreeKind::*;
 use self::SubTreeState::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -39,11 +38,11 @@ struct Node {
     right: AVLTree,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum TreeKind {
-    Leaf,
-    Node(Node),
-}
+/*
+Some : Node
+None : Leaf
+*/
+type TreeKind = Option<Node>;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct AVLTree(Rc<TreeKind>);
@@ -57,41 +56,41 @@ impl Node {
         }
 
         assert_eq!(self.state, LeftIsHigher);
-        let l_node = self.left.0.get_as_node().unwrap().clone();
+        let l_node = (*self.left.0).clone().unwrap();
         match l_node.state {
             HeightIsEqual => return (true, Node {
                 state: RightIsHigher,
-                right: AVLTree::create(Node(Node { state: LeftIsHigher, left: l_node.right, ..self })),
+                right: AVLTree::create_node(Node { state: LeftIsHigher, left: l_node.right, ..self }),
                 ..l_node
             }),
             LeftIsHigher => return (false, Node {
                 state: HeightIsEqual,
-                right: AVLTree::create(Node(Node { state: HeightIsEqual, left: l_node.right, ..self })),
+                right: AVLTree::create_node(Node { state: HeightIsEqual, left: l_node.right, ..self }),
                 ..l_node
             }),
             _ => (),
         }
 
         assert_eq!(l_node.state, RightIsHigher);
-        let lr_node = l_node.right.0.get_as_node().unwrap().clone();
+        let lr_node = (*l_node.right.0).clone().unwrap();
         match lr_node.state {
             LeftIsHigher => (false, Node {
                 state: HeightIsEqual,
                 pair: lr_node.pair,
-                left: AVLTree::create(Node(Node { state: HeightIsEqual, right: lr_node.left, ..l_node })),
-                right: AVLTree::create(Node(Node { state: RightIsHigher, left: lr_node.right, ..self })),
+                left: AVLTree::create_node(Node { state: HeightIsEqual, right: lr_node.left, ..l_node }),
+                right: AVLTree::create_node(Node { state: RightIsHigher, left: lr_node.right, ..self }),
             }),
             RightIsHigher => (false, Node {
                 state: HeightIsEqual,
                 pair: lr_node.pair,
-                left: AVLTree::create(Node(Node { state: LeftIsHigher, right: lr_node.left, ..l_node })),
-                right: AVLTree::create(Node(Node { state: HeightIsEqual, left: lr_node.right, ..self })),
+                left: AVLTree::create_node(Node { state: LeftIsHigher, right: lr_node.left, ..l_node }),
+                right: AVLTree::create_node(Node { state: HeightIsEqual, left: lr_node.right, ..self }),
             }),
             HeightIsEqual => (false, Node {
                 state: HeightIsEqual,
                 pair: lr_node.pair,
-                left: AVLTree::create(Node(Node { state: HeightIsEqual, right: lr_node.left, ..l_node })),
-                right: AVLTree::create(Node(Node { state: HeightIsEqual, left: lr_node.right, ..self })),
+                left: AVLTree::create_node(Node { state: HeightIsEqual, right: lr_node.left, ..l_node }),
+                right: AVLTree::create_node(Node { state: HeightIsEqual, left: lr_node.right, ..self }),
             }),
         }
     }
@@ -104,41 +103,41 @@ impl Node {
         }
 
         assert_eq!(self.state, RightIsHigher);
-        let r_node = self.right.0.get_as_node().unwrap().clone();
+        let r_node = (*self.right.0).clone().unwrap();
         match r_node.state {
             HeightIsEqual => return (true, Node {
                 state: LeftIsHigher,
-                left: AVLTree::create(Node(Node { state: RightIsHigher, right: r_node.left, ..self })),
+                left: AVLTree::create_node(Node { state: RightIsHigher, right: r_node.left, ..self }),
                 ..r_node
             }),
             RightIsHigher => return (false, Node {
                 state: HeightIsEqual,
-                left: AVLTree::create(Node(Node { state: HeightIsEqual, right: r_node.left, ..self })),
+                left: AVLTree::create_node(Node { state: HeightIsEqual, right: r_node.left, ..self }),
                 ..r_node
             }),
             _ => (),
         }
 
         assert_eq!(r_node.state, RightIsHigher);
-        let rl_node = r_node.right.0.get_as_node().unwrap().clone();
+        let rl_node = (*r_node.right.0).clone().unwrap();
         match rl_node.state {
             LeftIsHigher => (false, Node {
                 state: HeightIsEqual,
                 pair: rl_node.pair,
-                left: AVLTree::create(Node(Node { state: HeightIsEqual, right: rl_node.left, ..self })),
-                right: AVLTree::create(Node(Node { state: RightIsHigher, left: rl_node.right, ..r_node })),
+                left: AVLTree::create_node(Node { state: HeightIsEqual, right: rl_node.left, ..self }),
+                right: AVLTree::create_node(Node { state: RightIsHigher, left: rl_node.right, ..r_node }),
             }),
             RightIsHigher => (false, Node {
                 state: HeightIsEqual,
                 pair: rl_node.pair,
-                left: AVLTree::create(Node(Node { state: LeftIsHigher, right: rl_node.left, ..self })),
-                right: AVLTree::create(Node(Node { state: HeightIsEqual, left: rl_node.right, ..r_node })),
+                left: AVLTree::create_node(Node { state: LeftIsHigher, right: rl_node.left, ..self }),
+                right: AVLTree::create_node(Node { state: HeightIsEqual, left: rl_node.right, ..r_node }),
             }),
             HeightIsEqual => (false, Node {
                 state: HeightIsEqual,
                 pair: rl_node.pair,
-                left: AVLTree::create(Node(Node { state: HeightIsEqual, right: rl_node.left, ..self })),
-                right: AVLTree::create(Node(Node { state: HeightIsEqual, left: rl_node.right, ..r_node })),
+                left: AVLTree::create_node(Node { state: HeightIsEqual, right: rl_node.left, ..self }),
+                right: AVLTree::create_node(Node { state: HeightIsEqual, left: rl_node.right, ..r_node }),
             }),
         }
     }
@@ -146,106 +145,45 @@ impl Node {
     fn insert_helper_balance_left(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_left();
-            (balances, AVLTree::create(Node(new_node)))
+            (balances, AVLTree::create_node(new_node))
         } else {
-            (false, AVLTree::create(Node(self)))
+            (false, AVLTree::create_node(self))
         }
     }
 
     fn insert_helper_balance_right(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_right();
-            (balances, AVLTree::create(Node(new_node)))
+            (balances, AVLTree::create_node(new_node))
         } else {
-            (false, AVLTree::create(Node(self)))
+            (false, AVLTree::create_node(self))
         }
     }
 
     fn delete_helper_balance_left(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_right();
-            (!balances, AVLTree::create(Node(new_node)))
+            (!balances, AVLTree::create_node(new_node))
         } else {
-            (false, AVLTree::create(Node(self)))
+            (false, AVLTree::create_node(self))
         }
     }
 
     fn delete_helper_balance_right(self, balances: bool) -> (bool, AVLTree) {
         if balances {
             let (balances, new_node) = self.balance_left();
-            (!balances, AVLTree::create(Node(new_node)))
+            (!balances, AVLTree::create_node(new_node))
         } else {
-            (false, AVLTree::create(Node(self)))
+            (false, AVLTree::create_node(self))
         }
     }
 
     fn delete_helper_delete_rightmost(&self) -> (Pair, (bool, AVLTree)) {
         match *self.right.0 {
-            Leaf => (self.pair.clone(), (true, self.left.clone())),
-            Node(ref r_node) => {
+            None => (self.pair.clone(), (true, self.left.clone())),
+            Some(ref r_node) => {
                 let (max_pair, (balances, newtree)) = r_node.delete_helper_delete_rightmost();
                 (max_pair, Node { right: newtree, ..self.clone() }.delete_helper_balance_right(balances))
-            }
-        }
-    }
-}
-
-impl TreeKind {
-    fn get_as_node(&self) -> Option<&Node> {
-        match self {
-            &Node(ref node) => Some(node),
-            _ => None,
-        }
-    }
-
-    fn insert(&self, pair: Pair) -> (bool, AVLTree, Option<ValuePtr>) {
-        match self {
-            &Leaf => (true, AVLTree::create(Node(Node { state: HeightIsEqual, pair: pair, left: AVLTree::create(Leaf), right: AVLTree::create(Leaf) })), None),
-            &Node(ref node) => match AVLTree::compare(&pair.key, &node.pair.key) {
-                Ordering::Equal => (false, AVLTree::create(Node(Node { pair: pair, ..node.clone() })), Some(node.pair.value.clone())),
-                Ordering::Less => {
-                    let (balances, newtree, prev_val) = node.left.0.insert(pair);
-                    let (balances, newtree) = Node { left: newtree, ..node.clone() }
-                        .insert_helper_balance_left(balances);
-                    (balances, newtree, prev_val)
-                }
-                Ordering::Greater => {
-                    let (balances, newtree, prev_val) = node.right.0.insert(pair);
-                    let (balances, newtree) = Node { right: newtree, ..node.clone() }
-                        .insert_helper_balance_right(balances);
-                    (balances, newtree, prev_val)
-                }
-            }
-        }
-    }
-
-    fn delete(&self, key: &ValuePtr) -> (bool, AVLTree, Option<ValuePtr>) {
-        match self {
-            &Leaf => (false, AVLTree::create(Leaf), None),
-            &Node(ref node) => match AVLTree::compare(key, &node.pair.key) {
-                Ordering::Equal => {
-                    match *node.left.0 {
-                        Leaf => (true, node.right.clone(), Some(node.pair.value.clone())),
-                        Node(ref l_node) => {
-                            let (pair, (balances, newtree)) = l_node.delete_helper_delete_rightmost();
-                            let (balances, newtree) = Node { pair: pair, left: newtree, ..node.clone() }
-                                .delete_helper_balance_left(balances);
-                            (balances, newtree, Some(node.pair.value.clone()))
-                        }
-                    }
-                }
-                Ordering::Less => {
-                    let (balances, newtree, prev_val) = node.left.0.delete(key);
-                    let (balances, newtree) = Node { left: newtree, ..node.clone() }
-                        .delete_helper_balance_left(balances);
-                    (balances, newtree, prev_val)
-                }
-                Ordering::Greater => {
-                    let (balances, newtree, prev_val) = node.right.0.delete(key);
-                    let (balances, newtree) = Node { right: newtree, ..node.clone() }
-                        .delete_helper_balance_right(balances);
-                    (balances, newtree, prev_val)
-                }
             }
         }
     }
@@ -256,25 +194,82 @@ impl AVLTree {
         AVLTree(Rc::new(kind))
     }
 
+    fn create_leaf() -> AVLTree {
+        AVLTree::new(None)
+    }
+
+    fn create_node(node: Node) -> AVLTree {
+        AVLTree::new(Some(node))
+    }
+
+    fn create_empty() -> AVLTree {
+        AVLTree::create_leaf()
+    }
+
     fn compare(lhs: &ValuePtr, rhs: &ValuePtr) -> Ordering {
         lhs.cmp(rhs)
     }
 
-    fn create(kind: TreeKind) -> AVLTree {
-        AVLTree::new(kind)
+    fn insert_helper(&self, pair: Pair) -> (bool, AVLTree, Option<ValuePtr>) {
+        match *self.0 {
+            None => (true, AVLTree::create_node(Node { state: HeightIsEqual, pair: pair, left: AVLTree::create_leaf(), right: AVLTree::create_leaf() }), None),
+            Some(ref node) => match AVLTree::compare(&pair.key, &node.pair.key) {
+                Ordering::Equal => (false, AVLTree::create_node(Node { pair: pair, ..node.clone() }), Some(node.pair.value.clone())),
+                Ordering::Less => {
+                    let (balances, newtree, prev_val) = node.left.insert_helper(pair);
+                    let (balances, newtree) = Node { left: newtree, ..node.clone() }
+                        .insert_helper_balance_left(balances);
+                    (balances, newtree, prev_val)
+                }
+                Ordering::Greater => {
+                    let (balances, newtree, prev_val) = node.right.insert_helper(pair);
+                    let (balances, newtree) = Node { right: newtree, ..node.clone() }
+                        .insert_helper_balance_right(balances);
+                    (balances, newtree, prev_val)
+                }
+            }
+        }
     }
 
-    fn create_empty() -> AVLTree {
-        AVLTree::create(Leaf)
-    }
 
     fn insert(&self, key: ValuePtr, value: ValuePtr) -> (AVLTree, Option<ValuePtr>) {
-        let r = self.0.insert(Pair::new(key, value));
+        let r = self.insert_helper(Pair::new(key, value));
         (r.1, r.2)
     }
 
+    fn delete_helper(&self, key: &ValuePtr) -> (bool, AVLTree, Option<ValuePtr>) {
+        match *self.0 {
+            None => (false, AVLTree::create_leaf(), None),
+            Some(ref node) => match AVLTree::compare(key, &node.pair.key) {
+                Ordering::Equal => {
+                    match *node.left.0 {
+                        None => (true, node.right.clone(), Some(node.pair.value.clone())),
+                        Some(ref l_node) => {
+                            let (pair, (balances, newtree)) = l_node.delete_helper_delete_rightmost();
+                            let (balances, newtree) = Node { pair: pair, left: newtree, ..node.clone() }
+                                .delete_helper_balance_left(balances);
+                            (balances, newtree, Some(node.pair.value.clone()))
+                        }
+                    }
+                }
+                Ordering::Less => {
+                    let (balances, newtree, prev_val) = node.left.delete_helper(key);
+                    let (balances, newtree) = Node { left: newtree, ..node.clone() }
+                        .delete_helper_balance_left(balances);
+                    (balances, newtree, prev_val)
+                }
+                Ordering::Greater => {
+                    let (balances, newtree, prev_val) = node.right.delete_helper(key);
+                    let (balances, newtree) = Node { right: newtree, ..node.clone() }
+                        .delete_helper_balance_right(balances);
+                    (balances, newtree, prev_val)
+                }
+            }
+        }
+    }
+
     fn delete(&self, key: &ValuePtr) -> (AVLTree, Option<ValuePtr>) {
-        let r = self.0.delete(key);
+        let r = self.delete_helper(key);
         (r.1, r.2)
     }
 }
@@ -304,11 +299,11 @@ mod tests {
     use super::*;
 
     fn l() -> AVLTree {
-        AVLTree::create(Leaf)
+        AVLTree::create_leaf()
     }
 
     fn n(kv: isize, state: SubTreeState, left: AVLTree, right: AVLTree) -> AVLTree {
-        AVLTree::create(Node(Node { state: state, pair: Pair::new(i(kv), i(kv)), left: left, right: right }))
+        AVLTree::create_node(Node { state: state, pair: Pair::new(i(kv), i(kv)), left: left, right: right })
     }
 
     fn i(i: isize) -> ValuePtr {
