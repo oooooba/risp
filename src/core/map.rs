@@ -7,18 +7,16 @@ https://www.cs.usfca.edu/~galles/visualization/AVLtree.html
 use std::cmp::Ordering;
 use std::rc::Rc;
 
-use core::value::{Value, ValuePtr};
-
 use self::SubTreeState::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Pair {
-    key: ValuePtr,
-    value: ValuePtr,
+struct Pair<K: Clone, V: Clone> {
+    key: K,
+    value: V,
 }
 
-impl Pair {
-    fn new(key: ValuePtr, value: ValuePtr) -> Pair {
+impl<K: Clone + Ord, V: Clone> Pair<K, V> {
+    fn new(key: K, value: V) -> Pair<K, V> {
         Pair { key: key, value: value }
     }
 }
@@ -31,23 +29,23 @@ enum SubTreeState {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Node {
+struct Node<K: Clone + Ord, V: Clone> {
     state: SubTreeState,
-    pair: Pair,
-    left: AVLTree,
-    right: AVLTree,
+    pair: Pair<K, V>,
+    left: AVLTree<K, V>,
+    right: AVLTree<K, V>,
 }
 
 /*
 Some : Node
 None : Leaf
 */
-type TreeKind = Option<Node>;
+type TreeKind<K, V> = Option<Node<K, V>>;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct AVLTree(Rc<TreeKind>);
+struct AVLTree<K: Clone + Ord, V: Clone>(Rc<TreeKind<K, V>>);
 
-impl Node {
+impl<K: Clone + Ord, V: Clone> Node<K, V> {
     fn balance_left(self) -> (bool, Self) {
         match self.state {
             HeightIsEqual => return (true, Node { state: LeftIsHigher, ..self }),
@@ -142,7 +140,7 @@ impl Node {
         }
     }
 
-    fn insert_helper_balance_left(self, balances: bool) -> (bool, AVLTree) {
+    fn insert_helper_balance_left(self, balances: bool) -> (bool, AVLTree<K, V>) {
         if balances {
             let (balances, new_node) = self.balance_left();
             (balances, AVLTree::create_node(new_node))
@@ -151,7 +149,7 @@ impl Node {
         }
     }
 
-    fn insert_helper_balance_right(self, balances: bool) -> (bool, AVLTree) {
+    fn insert_helper_balance_right(self, balances: bool) -> (bool, AVLTree<K, V>) {
         if balances {
             let (balances, new_node) = self.balance_right();
             (balances, AVLTree::create_node(new_node))
@@ -160,7 +158,7 @@ impl Node {
         }
     }
 
-    fn delete_helper_balance_left(self, balances: bool) -> (bool, AVLTree) {
+    fn delete_helper_balance_left(self, balances: bool) -> (bool, AVLTree<K, V>) {
         if balances {
             let (balances, new_node) = self.balance_right();
             (!balances, AVLTree::create_node(new_node))
@@ -169,7 +167,7 @@ impl Node {
         }
     }
 
-    fn delete_helper_balance_right(self, balances: bool) -> (bool, AVLTree) {
+    fn delete_helper_balance_right(self, balances: bool) -> (bool, AVLTree<K, V>) {
         if balances {
             let (balances, new_node) = self.balance_left();
             (!balances, AVLTree::create_node(new_node))
@@ -178,7 +176,7 @@ impl Node {
         }
     }
 
-    fn delete_helper_delete_rightmost(&self) -> (Pair, (bool, AVLTree)) {
+    fn delete_helper_delete_rightmost(&self) -> (Pair<K, V>, (bool, AVLTree<K, V>)) {
         match *self.right.0 {
             None => (self.pair.clone(), (true, self.left.clone())),
             Some(ref r_node) => {
@@ -189,31 +187,31 @@ impl Node {
     }
 }
 
-impl AVLTree {
-    fn new(kind: TreeKind) -> AVLTree {
+impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
+    fn new(kind: TreeKind<K, V>) -> AVLTree<K, V> {
         AVLTree(Rc::new(kind))
     }
 
-    fn create_leaf() -> AVLTree {
+    fn create_leaf() -> AVLTree<K, V> {
         AVLTree::new(None)
     }
 
-    fn create_node(node: Node) -> AVLTree {
+    fn create_node(node: Node<K, V>) -> AVLTree<K, V> {
         AVLTree::new(Some(node))
     }
 
-    fn create_empty() -> AVLTree {
+    fn create_empty() -> AVLTree<K, V> {
         AVLTree::create_leaf()
     }
 
-    fn compare(lhs: &ValuePtr, rhs: &ValuePtr) -> Ordering {
+    fn compare(lhs: &K, rhs: &K) -> Ordering {
         lhs.cmp(rhs)
     }
 
-    fn insert_helper(&self, pair: Pair) -> (bool, AVLTree, Option<ValuePtr>) {
+    fn insert_helper(&self, pair: Pair<K, V>) -> (bool, AVLTree<K, V>, Option<V>) {
         match *self.0 {
             None => (true, AVLTree::create_node(Node { state: HeightIsEqual, pair: pair, left: AVLTree::create_leaf(), right: AVLTree::create_leaf() }), None),
-            Some(ref node) => match AVLTree::compare(&pair.key, &node.pair.key) {
+            Some(ref node) => match <AVLTree<K, V>>::compare(&pair.key, &node.pair.key) {
                 Ordering::Equal => (false, AVLTree::create_node(Node { pair: pair, ..node.clone() }), Some(node.pair.value.clone())),
                 Ordering::Less => {
                     let (balances, newtree, prev_val) = node.left.insert_helper(pair);
@@ -232,15 +230,15 @@ impl AVLTree {
     }
 
 
-    fn insert(&self, key: ValuePtr, value: ValuePtr) -> (AVLTree, Option<ValuePtr>) {
+    fn insert(&self, key: K, value: V) -> (AVLTree<K, V>, Option<V>) {
         let r = self.insert_helper(Pair::new(key, value));
         (r.1, r.2)
     }
 
-    fn delete_helper(&self, key: &ValuePtr) -> (bool, AVLTree, Option<ValuePtr>) {
+    fn delete_helper(&self, key: &K) -> (bool, AVLTree<K, V>, Option<V>) {
         match *self.0 {
             None => (false, AVLTree::create_leaf(), None),
-            Some(ref node) => match AVLTree::compare(key, &node.pair.key) {
+            Some(ref node) => match <AVLTree<K, V>>::compare(key, &node.pair.key) {
                 Ordering::Equal => {
                     match *node.left.0 {
                         None => (true, node.right.clone(), Some(node.pair.value.clone())),
@@ -268,7 +266,7 @@ impl AVLTree {
         }
     }
 
-    fn delete(&self, key: &ValuePtr) -> (AVLTree, Option<ValuePtr>) {
+    fn delete(&self, key: &K) -> (AVLTree<K, V>, Option<V>) {
         let r = self.delete_helper(key);
         (r.1, r.2)
     }
@@ -276,33 +274,34 @@ impl AVLTree {
 
 // public interface
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct TreeMap(AVLTree);
+pub struct TreeMap<K: Clone + Ord, V: Clone>(AVLTree<K, V>);
 
-impl TreeMap {
-    pub fn create_empty() -> ValuePtr {
-        Value::create_mapx(TreeMap(AVLTree::create_empty()))
+impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
+    pub fn create_empty() -> TreeMap<K, V> {
+        TreeMap(AVLTree::create_empty())
     }
 
-    pub fn insert(&self, key: ValuePtr, value: ValuePtr) -> (ValuePtr, Option<ValuePtr>) {
+    pub fn insert(&self, key: K, value: V) -> (TreeMap<K, V>, Option<V>) {
         let r = self.0.insert(key, value);
-        (Value::create_mapx(TreeMap(r.0)), r.1)
+        (TreeMap(r.0), r.1)
     }
 
-    pub fn delete(&self, key: &ValuePtr) -> (ValuePtr, Option<ValuePtr>) {
+    pub fn delete(&self, key: &K) -> (TreeMap<K, V>, Option<V>) {
         let r = self.0.delete(key);
-        (Value::create_mapx(TreeMap(r.0)), r.1)
+        (TreeMap(r.0), r.1)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::value::{Value, ValuePtr};
 
-    fn l() -> AVLTree {
+    fn l() -> AVLTree<ValuePtr, ValuePtr> {
         AVLTree::create_leaf()
     }
 
-    fn n(kv: isize, state: SubTreeState, left: AVLTree, right: AVLTree) -> AVLTree {
+    fn n(kv: isize, state: SubTreeState, left: AVLTree<ValuePtr, ValuePtr>, right: AVLTree<ValuePtr, ValuePtr>) -> AVLTree<ValuePtr, ValuePtr> {
         AVLTree::create_node(Node { state: state, pair: Pair::new(i(kv), i(kv)), left: left, right: right })
     }
 
