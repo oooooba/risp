@@ -269,6 +269,17 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
         let r = self.delete_helper(key);
         (r.1, r.2)
     }
+
+    fn lookup(&self, key: &K) -> Option<&V> {
+        match *self.0 {
+            None => None,
+            Some(ref node) => match <AVLTree<K, V>>::compare(&key, &node.pair.key) {
+                Ordering::Equal => Some(&node.pair.value),
+                Ordering::Less => node.left.lookup(key),
+                Ordering::Greater => node.right.lookup(key),
+            }
+        }
+    }
 }
 
 // public interface
@@ -288,6 +299,10 @@ impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
     pub fn delete(&self, key: &K) -> (TreeMap<K, V>, Option<V>) {
         let r = self.0.delete(key);
         (TreeMap(r.0), r.1)
+    }
+
+    pub fn lookup(&self, key: &K) -> Option<&V> {
+        self.0.lookup(key)
     }
 }
 
@@ -358,6 +373,17 @@ mod tests {
                              n(6, H,
                                n(5, H, l(), l()),
                                n(7, H, l(), l()))));
+
+            assert_eq!(t7.lookup(&i(0)), None);
+            assert_eq!(t7.lookup(&i(1)), Some(&i(1)));
+            assert_eq!(t7.lookup(&i(2)), Some(&i(2)));
+            assert_eq!(t7.lookup(&i(3)), Some(&i(3)));
+            assert_eq!(t7.lookup(&i(4)), Some(&i(4)));
+            assert_eq!(t7.lookup(&i(5)), Some(&i(5)));
+            assert_eq!(t7.lookup(&i(6)), Some(&i(6)));
+            assert_eq!(t7.lookup(&i(7)), Some(&i(7)));
+            assert_eq!(t7.lookup(&i(8)), None);
+
             let (t8, p8) = t7.delete(&i(7));
             assert_eq!(p8, Some(i(7)));
             assert_eq!(t8, n(4, H,
@@ -439,6 +465,17 @@ mod tests {
                              n(6, H,
                                n(5, H, l(), l()),
                                n(7, H, l(), l()))));
+
+            assert_eq!(t7.lookup(&i(0)), None);
+            assert_eq!(t7.lookup(&i(1)), Some(&i(1)));
+            assert_eq!(t7.lookup(&i(2)), Some(&i(2)));
+            assert_eq!(t7.lookup(&i(3)), Some(&i(3)));
+            assert_eq!(t7.lookup(&i(4)), Some(&i(4)));
+            assert_eq!(t7.lookup(&i(5)), Some(&i(5)));
+            assert_eq!(t7.lookup(&i(6)), Some(&i(6)));
+            assert_eq!(t7.lookup(&i(7)), Some(&i(7)));
+            assert_eq!(t7.lookup(&i(8)), None);
+
             let (t8, p8) = t7.delete(&i(1));
             assert_eq!(p8, Some(i(1)));
             assert_eq!(t8, n(4, H,
