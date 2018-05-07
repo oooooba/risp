@@ -229,7 +229,6 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
         }
     }
 
-
     fn insert(&self, key: K, value: V) -> (AVLTree<K, V>, Option<V>) {
         let r = self.insert_helper(Pair::new(key, value));
         (r.1, r.2)
