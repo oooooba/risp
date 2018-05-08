@@ -122,7 +122,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_nil(&self) -> bool {
+    fn is_nil(&self) -> bool {
         match self {
             &ValueKind::NilValue => true,
             _ => false,
@@ -546,6 +546,10 @@ impl ValuePtr {
 
     pub fn is_closure(&self) -> bool {
         self.kind.is_closure()
+    }
+
+    pub fn is_nil(&self) -> bool {
+        self.kind.is_nil()
     }
 }
 
