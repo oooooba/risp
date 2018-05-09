@@ -116,8 +116,8 @@ impl<K: Clone + Ord, V: Clone> Node<K, V> {
             _ => (),
         }
 
-        assert_eq!(r_node.state, RightIsHigher);
-        let rl_node = (*r_node.right.0).clone().unwrap();
+        assert_eq!(r_node.state, LeftIsHigher);
+        let rl_node = (*r_node.left.0).clone().unwrap();
         match rl_node.state {
             LeftIsHigher => (false, Node {
                 state: HeightIsEqual,
