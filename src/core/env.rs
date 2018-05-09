@@ -5,37 +5,29 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use std::hash::{Hash, Hasher};
 
 use core::parse_and_eval;
 use core::value::{Value, ValuePtr, BuiltinFuncType, ApplicableBodyKind, Applicable, Pattern};
+use core::map;
 use evaluator::builtinfunc;
 use reader::tokenize;
 
 #[derive(PartialEq, Debug, Eq)]
-pub struct Env {
-    pub map: HashMap<String, ValuePtr>,
-    pub outer: Option<EnvPtr>,
-}
-
-impl Hash for Env {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for (key, val) in self.map.iter() {
-            key.hash(state);
-            val.hash(state);
-        }
-        self.outer.hash(state);
-    }
-}
+pub struct Env(map::TreeMap<String, ValuePtr>);
 
 pub type EnvPtr = Rc<Env>;
 
 impl Env {
     fn new(map: HashMap<String, ValuePtr>, outer: Option<EnvPtr>) -> EnvPtr {
-        Rc::new(Env {
-            map: map,
-            outer: outer,
-        })
+        let mut new_map = if let Some(outer_map) = outer {
+            outer_map.0.clone()
+        } else {
+            map::TreeMap::create_empty()
+        };
+        for (k, v) in map.iter() {
+            new_map = new_map.insert(k.to_string(), v.clone()).0;
+        }
+        Rc::new(Env(new_map))
     }
 
     pub fn create_empty() -> EnvPtr {
@@ -91,13 +83,7 @@ impl Env {
     }
 
     pub fn lookup(&self, key: &String) -> Option<&ValuePtr> {
-        match self.map.get(key) {
-            value @ Some(_) => value,
-            None => match self.outer {
-                Some(ref env) => env.lookup(key),
-                None => None,
-            }
-        }
+        self.0.lookup(key)
     }
 
     pub fn lookup_nth_param(&self, n: usize) -> Option<&ValuePtr> {
