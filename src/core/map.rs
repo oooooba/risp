@@ -6,6 +6,7 @@ https://www.cs.usfca.edu/~galles/visualization/AVLtree.html
 
 use std::cmp::Ordering;
 use std::rc::Rc;
+use std::iter::Iterator;
 
 use self::SubTreeState::*;
 
@@ -280,11 +281,41 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
             }
         }
     }
+
+    fn iter(&self) -> AVLTreeIterator<K, V> {
+        if self.0.is_some() {
+            AVLTreeIterator(vec![self.clone()])
+        } else {
+            AVLTreeIterator(vec![])
+        }
+    }
 }
 
-// public interface
+struct AVLTreeIterator<K: Clone + Ord, V: Clone>(Vec<AVLTree<K, V>>);
+
+impl<K: Clone + Ord, V: Clone> Iterator for AVLTreeIterator<K, V> {
+    type Item = Pair<K, V>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let node = match self.0.pop() {
+            Some(ref tree) => (*tree.0).clone().unwrap(),
+            None => return None,
+        };
+        if node.right.0.is_some() {
+            self.0.push(node.right);
+        }
+        if node.left.0.is_some() {
+            self.0.push(node.left);
+        }
+        Some(node.pair)
+    }
+}
+
+// public interfaces
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TreeMap<K: Clone + Ord, V: Clone>(AVLTree<K, V>);
+
+pub struct TreeMapIterator<K: Clone + Ord, V: Clone>(AVLTreeIterator<K, V>);
 
 impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
     pub fn create_empty() -> TreeMap<K, V> {
@@ -303,6 +334,10 @@ impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
 
     pub fn lookup(&self, key: &K) -> Option<&V> {
         self.0.lookup(key)
+    }
+
+    pub fn iter(&self) -> TreeMapIterator<K, V> {
+        TreeMapIterator(self.0.iter())
     }
 }
 
@@ -384,6 +419,17 @@ mod tests {
             assert_eq!(t7.lookup(&i(7)), Some(&i(7)));
             assert_eq!(t7.lookup(&i(8)), None);
 
+            let items: Vec<Pair<ValuePtr, ValuePtr>> = t7.iter().collect();
+            assert_eq!(items, vec![
+                Pair::new(i(4), i(4)),
+                Pair::new(i(2), i(2)),
+                Pair::new(i(1), i(1)),
+                Pair::new(i(3), i(3)),
+                Pair::new(i(6), i(6)),
+                Pair::new(i(5), i(5)),
+                Pair::new(i(7), i(7)),
+            ]);
+
             let (t8, p8) = t7.delete(&i(7));
             assert_eq!(p8, Some(i(7)));
             assert_eq!(t8, n(4, H,
@@ -421,6 +467,9 @@ mod tests {
             let (t14, p14) = t13.delete(&i(1));
             assert_eq!(p14, Some(i(1)));
             assert_eq!(t14, l());
+
+            let items: Vec<Pair<ValuePtr, ValuePtr>> = t14.iter().collect();
+            assert_eq!(items, vec![]);
         }
         {
             let t0 = AVLTree::create_empty();
@@ -476,6 +525,17 @@ mod tests {
             assert_eq!(t7.lookup(&i(7)), Some(&i(7)));
             assert_eq!(t7.lookup(&i(8)), None);
 
+            let items: Vec<Pair<ValuePtr, ValuePtr>> = t7.iter().collect();
+            assert_eq!(items, vec![
+                Pair::new(i(4), i(4)),
+                Pair::new(i(2), i(2)),
+                Pair::new(i(1), i(1)),
+                Pair::new(i(3), i(3)),
+                Pair::new(i(6), i(6)),
+                Pair::new(i(5), i(5)),
+                Pair::new(i(7), i(7)),
+            ]);
+
             let (t8, p8) = t7.delete(&i(1));
             assert_eq!(p8, Some(i(1)));
             assert_eq!(t8, n(4, H,
@@ -517,6 +577,9 @@ mod tests {
             let (t14, p14) = t13.delete(&i(7));
             assert_eq!(p14, Some(i(7)));
             assert_eq!(t14, l());
+
+            let items: Vec<Pair<ValuePtr, ValuePtr>> = t14.iter().collect();
+            assert_eq!(items, vec![]);
         }
     }
 }
