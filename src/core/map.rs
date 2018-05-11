@@ -11,7 +11,7 @@ use std::iter::Iterator;
 use self::SubTreeState::*;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Pair<K: Clone, V: Clone> {
+pub struct Pair<K: Clone, V: Clone> {
     key: K,
     value: V,
 }
@@ -338,6 +338,14 @@ impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
 
     pub fn iter(&self) -> TreeMapIterator<K, V> {
         TreeMapIterator(self.0.iter())
+    }
+}
+
+impl<K: Clone + Ord, V: Clone> Iterator for TreeMapIterator<K, V> {
+    type Item = Pair<K, V>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }
 
