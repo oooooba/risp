@@ -653,17 +653,6 @@ impl Value {
         Value::new(ValueKind::MapXValue(map))
     }
 
-    pub fn iter(target: &ValuePtr) -> ValueIterator {
-        use self::ValueIteratorKind::*;
-        let iter = match target.kind {
-            ValueKind::ListValue(_) => ListIterator(target.clone()),
-            ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
-            ValueKind::MapValue(ref map) => MapIterator(map.iter()),
-            _ => unimplemented!(),
-        };
-        ValueIterator(iter)
-    }
-
     pub fn get_as_symbol<'a>(&'a self) -> Option<&'a String> {
         match self.kind {
             ValueKind::SymbolValue(ref symbol) => Some(symbol),
