@@ -13,6 +13,7 @@ use std::cmp::Ordering;
 use core::exception::Exception;
 use core::env::EnvPtr;
 use core::reserved;
+use core::pair;
 use core::map;
 
 #[derive(Debug, Eq)]
@@ -30,6 +31,7 @@ pub enum ValueKind {
     MacroValue(Applicable),
     TypeValue(TypePtr),
     MapXValue(map::TreeMap<ValuePtr, ValuePtr>),
+    InternalPairValue(pair::Pair<ValuePtr, ValuePtr>), // internal use
 }
 
 #[derive(PartialEq, Debug, Eq)]
@@ -72,6 +74,7 @@ impl ValueKind {
             &MacroValue(_) => unreachable!(),
             &TypeValue(_) => ValueKind::type_str_type(),
             &MapXValue(_) => unreachable!(),
+            &InternalPairValue(_) => unreachable!(),
         }
     }
 
@@ -422,6 +425,7 @@ impl ToString for ValuePtr {
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
             MapXValue(_) => unimplemented!(),
+            InternalPairValue(_) => unimplemented!(),
         }
     }
 }
@@ -480,6 +484,7 @@ impl Ord for ValuePtr {
                 &MacroValue(_) => 11,
                 &TypeValue(_) => 12,
                 &MapXValue(_) => 13,
+                &InternalPairValue(_) => 14,
             }
         }
 

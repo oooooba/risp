@@ -153,6 +153,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         MacroValue(_) => unreachable!(),
         TypeValue(_) => unreachable!(),
         MapXValue(_) => unreachable!(),
+        InternalPairValue(_) => unreachable!(),
     }
 }
 
