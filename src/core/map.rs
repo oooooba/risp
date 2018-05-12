@@ -8,19 +8,9 @@ use std::cmp::Ordering;
 use std::rc::Rc;
 use std::iter::Iterator;
 
+use core::pair::Pair;
+
 use self::SubTreeState::*;
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Pair<K: Clone, V: Clone> {
-    key: K,
-    value: V,
-}
-
-impl<K: Clone + Ord, V: Clone> Pair<K, V> {
-    fn new(key: K, value: V) -> Pair<K, V> {
-        Pair { key: key, value: value }
-    }
-}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum SubTreeState {
@@ -212,8 +202,8 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
     fn insert_helper(&self, pair: Pair<K, V>) -> (bool, AVLTree<K, V>, Option<V>) {
         match *self.0 {
             None => (true, AVLTree::create_node(Node { state: HeightIsEqual, pair: pair, left: AVLTree::create_leaf(), right: AVLTree::create_leaf() }), None),
-            Some(ref node) => match <AVLTree<K, V>>::compare(&pair.key, &node.pair.key) {
-                Ordering::Equal => (false, AVLTree::create_node(Node { pair: pair, ..node.clone() }), Some(node.pair.value.clone())),
+            Some(ref node) => match <AVLTree<K, V>>::compare(&pair.first, &node.pair.first) {
+                Ordering::Equal => (false, AVLTree::create_node(Node { pair: pair, ..node.clone() }), Some(node.pair.second.clone())),
                 Ordering::Less => {
                     let (balances, newtree, prev_val) = node.left.insert_helper(pair);
                     let (balances, newtree) = Node { left: newtree, ..node.clone() }
@@ -238,15 +228,15 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
     fn delete_helper(&self, key: &K) -> (bool, AVLTree<K, V>, Option<V>) {
         match *self.0 {
             None => (false, AVLTree::create_leaf(), None),
-            Some(ref node) => match <AVLTree<K, V>>::compare(key, &node.pair.key) {
+            Some(ref node) => match <AVLTree<K, V>>::compare(key, &node.pair.first) {
                 Ordering::Equal => {
                     match *node.left.0 {
-                        None => (true, node.right.clone(), Some(node.pair.value.clone())),
+                        None => (true, node.right.clone(), Some(node.pair.second.clone())),
                         Some(ref l_node) => {
                             let (pair, (balances, newtree)) = l_node.delete_helper_delete_rightmost();
                             let (balances, newtree) = Node { pair: pair, left: newtree, ..node.clone() }
                                 .delete_helper_balance_left(balances);
-                            (balances, newtree, Some(node.pair.value.clone()))
+                            (balances, newtree, Some(node.pair.second.clone()))
                         }
                     }
                 }
@@ -274,8 +264,8 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
     fn lookup(&self, key: &K) -> Option<&V> {
         match *self.0 {
             None => None,
-            Some(ref node) => match <AVLTree<K, V>>::compare(&key, &node.pair.key) {
-                Ordering::Equal => Some(&node.pair.value),
+            Some(ref node) => match <AVLTree<K, V>>::compare(&key, &node.pair.first) {
+                Ordering::Equal => Some(&node.pair.second),
                 Ordering::Less => node.left.lookup(key),
                 Ordering::Greater => node.right.lookup(key),
             }
