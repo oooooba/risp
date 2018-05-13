@@ -528,6 +528,7 @@ impl ValuePtr {
             ValueKind::ListValue(_) => ListIterator(self.clone()),
             ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
             ValueKind::MapValue(ref map) => MapIterator(map.iter()),
+            ValueKind::MapXValue(ref map) => MapXIterator(map.iter()),
             _ => unimplemented!(),
         };
         ValueIterator(iterator)
@@ -722,7 +723,9 @@ impl<'a> ValueIterator<'a> {
                 }
                 return Value::create_map_from_vec(rest_val);
             }
-            MapXIterator(_) => unimplemented!(),
+            MapXIterator(ref mut iter) => return Value::create_vector(iter.map(|p| {
+                Value::create_pair(p)
+            }).collect()),
         };
         self.0 = ListIterator(Value::create_list(ListKind::EmptyList));
         rest_val
