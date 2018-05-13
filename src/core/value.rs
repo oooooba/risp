@@ -658,6 +658,10 @@ impl Value {
         Value::new(ValueKind::MapXValue(map))
     }
 
+    pub fn create_pair(pair: pair::Pair<ValuePtr, ValuePtr>) -> ValuePtr {
+        Value::new(ValueKind::InternalPairValue(pair))
+    }
+
     pub fn get_as_symbol<'a>(&'a self) -> Option<&'a String> {
         match self.kind {
             ValueKind::SymbolValue(ref symbol) => Some(symbol),
@@ -692,6 +696,7 @@ pub enum ValueIteratorKind<'a> {
     ListIterator(ValuePtr),
     VectorIterator(Iter<'a, ValuePtr>),
     MapIterator(hash_map::Iter<'a, ValuePtr, ValuePtr>),
+    MapXIterator(map::TreeMapIterator<ValuePtr, ValuePtr>),
 }
 
 #[derive(Debug)]
@@ -717,6 +722,7 @@ impl<'a> ValueIterator<'a> {
                 }
                 return Value::create_map_from_vec(rest_val);
             }
+            MapXIterator(_) => unimplemented!(),
         };
         self.0 = ListIterator(Value::create_list(ListKind::EmptyList));
         rest_val
@@ -737,6 +743,10 @@ impl<'a> Iterator for ValueIterator<'a> {
                 Some((ref key, ref val)) => Some(Value::create_list_from_vec(vec![
                     (*key).clone(), (*val).clone()
                 ])),
+                None => None,
+            },
+            MapXIterator(ref mut iter) => return match iter.next() {
+                Some(pair) => Some(Value::create_pair(pair)),
                 None => None,
             },
             ListIterator(ref cur) => match cur.kind {
