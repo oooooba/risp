@@ -659,6 +659,10 @@ impl Value {
         Value::new(ValueKind::MapXValue(map))
     }
 
+    pub fn create_mapx_from_vec(values: Vec<(ValuePtr, ValuePtr)>) -> ValuePtr {
+        Value::create_mapx(map::TreeMap::create(values))
+    }
+
     pub fn create_pair(pair: pair::Pair<ValuePtr, ValuePtr>) -> ValuePtr {
         Value::new(ValueKind::InternalPairValue(pair))
     }
@@ -850,6 +854,15 @@ mod tests {
                 Value::create_keyword("c".to_string()),
                 Value::create_integer(3),
             ]));
+        }
+        {
+            // WIP
+            let _map_val = Value::create_mapx_from_vec(vec![
+                (Value::create_keyword("a".to_string()), Value::create_integer(1)),
+                (Value::create_keyword("b".to_string()), Value::create_integer(2)),
+                (Value::create_keyword("c".to_string()), Value::create_integer(3)),
+                (Value::create_keyword("b".to_string()), Value::create_integer(4)),
+            ]);
         }
     }
 

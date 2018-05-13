@@ -195,6 +195,15 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
         AVLTree::create_leaf()
     }
 
+    fn create(mut items: Vec<(K, V)>) -> AVLTree<K, V> {
+        let mut tree = AVLTree::create_leaf();
+        items.reverse();
+        while let Some(item) = items.pop() {
+            tree = tree.insert(item.0, item.1).0;
+        }
+        tree
+    }
+
     fn compare(lhs: &K, rhs: &K) -> Ordering {
         lhs.cmp(rhs)
     }
@@ -312,6 +321,10 @@ pub struct TreeMapIterator<K: Clone + Ord, V: Clone>(AVLTreeIterator<K, V>);
 impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
     pub fn create_empty() -> TreeMap<K, V> {
         TreeMap(AVLTree::create_empty())
+    }
+
+    pub fn create(items: Vec<(K, V)>) -> TreeMap<K, V> {
+        TreeMap(AVLTree::create(items))
     }
 
     pub fn insert(&self, key: K, value: V) -> (TreeMap<K, V>, Option<V>) {
