@@ -281,6 +281,7 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
     }
 }
 
+#[derive(Debug)]
 struct AVLTreeIterator<K: Clone + Ord, V: Clone>(Vec<AVLTree<K, V>>);
 
 impl<K: Clone + Ord, V: Clone> Iterator for AVLTreeIterator<K, V> {
@@ -305,6 +306,7 @@ impl<K: Clone + Ord, V: Clone> Iterator for AVLTreeIterator<K, V> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TreeMap<K: Clone + Ord, V: Clone>(AVLTree<K, V>);
 
+#[derive(Debug)]
 pub struct TreeMapIterator<K: Clone + Ord, V: Clone>(AVLTreeIterator<K, V>);
 
 impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
