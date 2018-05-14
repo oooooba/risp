@@ -190,6 +190,7 @@ impl PartialEq for ValueKind {
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
             (&TypeValue(ref lhs), &TypeValue(ref rhs)) => lhs == rhs,
             (&MapXValue(ref lhs), &MapXValue(ref rhs)) => lhs == rhs,
+            (&InternalPairValue(ref lhs), &InternalPairValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -856,13 +857,16 @@ mod tests {
             ]));
         }
         {
-            // WIP
-            let _map_val = Value::create_mapx_from_vec(vec![
+            let map_val = Value::create_mapx_from_vec(vec![
                 (Value::create_keyword("a".to_string()), Value::create_integer(1)),
-                (Value::create_keyword("b".to_string()), Value::create_integer(2)),
-                (Value::create_keyword("c".to_string()), Value::create_integer(3)),
-                (Value::create_keyword("b".to_string()), Value::create_integer(4)),
             ]);
+            let mut iter = map_val.iter();
+            assert_eq!(iter.next(), Some(Value::create_pair(
+                pair::Pair::new(Value::create_keyword("a".to_string()), Value::create_integer(1)))));
+            assert_eq!(iter.next(), None);
+            assert_eq!(map_val, Value::create_mapx_from_vec(vec![
+                (Value::create_keyword("a".to_string()), Value::create_integer(1)),
+            ]));
         }
     }
 
