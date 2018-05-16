@@ -40,3 +40,5 @@ pub const STR__L_PAREN_: &'static str = "(";
 pub const STR__R_PAREN_: &'static str = ")";
 pub const STR__L_BRACKET_: &'static str = "[";
 pub const STR__R_BRACKET_: &'static str = "]";
+pub const STR__L_CURLY_: &'static str = "{";
+pub const STR__R_CURLY_: &'static str = "}";

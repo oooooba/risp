@@ -425,7 +425,8 @@ impl ToString for ValuePtr {
                                                " ", self.iter()),
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
-            MapXValue(_) => unimplemented!(),
+            MapXValue(_) => to_string_helper(reserved::STR__L_CURLY_, reserved::STR__R_CURLY_,
+                                             ", ", self.iter()),
             InternalPairValue(ref p) => format!("{} {}", p.first.to_string(), p.second.to_string()),
         }
     }
