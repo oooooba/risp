@@ -4,6 +4,7 @@ pub mod env;
 pub mod reserved;
 pub mod pair;
 pub mod map;
+pub mod list;
 
 use std::collections::LinkedList;
 
