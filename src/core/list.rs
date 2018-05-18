@@ -52,8 +52,16 @@ impl<T: Clone> List<T> {
         List(CellPtr::create_nil())
     }
 
-    pub fn cons(&self, item: T) -> List<T> {
-        List(CellPtr::cons(item, self.0.clone()))
+    pub fn create(mut items: Vec<T>) -> List<T> {
+        let mut lst = List::create_empty();
+        while let Some(item) = items.pop() {
+            lst = lst.cons(item);
+        }
+        lst
+    }
+
+    pub fn cons(self, item: T) -> List<T> {
+        List(CellPtr::cons(item, self.0))
     }
 
     pub fn iter(&self) -> ListIterator<T> {
