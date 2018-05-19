@@ -11,6 +11,14 @@ impl<T: Clone> Cell<T> {
     fn new(car: T, cdr: CellPtr<T>) -> Cell<T> {
         Cell { car: car, cdr: cdr }
     }
+
+    fn car(&self) -> &T {
+        &self.car
+    }
+
+    fn cdr(&self) -> &CellPtr<T> {
+        &self.cdr
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -23,6 +31,14 @@ impl<T: Clone> CellPtr<T> {
 
     fn cons(car: T, cdr: Self) -> Self {
         CellPtr(Some(Rc::new(Cell::new(car, cdr))))
+    }
+
+    fn car(&self) -> Option<T> {
+        self.0.clone().map(|c| c.car().clone())
+    }
+
+    fn cdr(&self) -> Option<CellPtr<T>> {
+        self.0.clone().map(|c| c.cdr().clone())
     }
 }
 
@@ -62,6 +78,14 @@ impl<T: Clone> List<T> {
 
     pub fn cons(self, item: T) -> List<T> {
         List(CellPtr::cons(item, self.0))
+    }
+
+    pub fn car(&self) -> Option<T> {
+        self.0.car()
+    }
+
+    pub fn cdr(&self) -> Option<List<T>> {
+        self.0.cdr().map(|c| List(c))
     }
 
     pub fn iter(&self) -> ListIterator<T> {
