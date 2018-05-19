@@ -1,7 +1,7 @@
 use std::collections::LinkedList;
 
 use core::value;
-use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ListKind, ValueIterator, Applicable,
+use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ValueIterator, Applicable,
                   Pattern, PatternKind, PatternPtr, Type};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
@@ -331,31 +331,38 @@ pub fn eval_specialform_splice_unquote(ast: &ValuePtr, env: EnvPtr, enables: boo
 }
 
 fn eval_specialform_quasiquote_core(ast: &ValuePtr, env: EnvPtr) -> Result<(ValuePtr, bool), Exception> {
-    use self::ValueKind::*;
+    use self::ValueKind::ListValue;
     match ast.kind {
-        ListValue(ListKind::ConsList(ref car, _)) if car.kind.matches_symbol(reserved::STR_UNQUOTE) =>
-            eval_specialform_unquote(ast, env, true).map(|val| (val, false)),
-        ListValue(ListKind::ConsList(ref car, _)) if car.kind.matches_symbol(reserved::STR_SPLICE_UNQUOTE) =>
-            eval_specialform_splice_unquote(ast, env, true).map(|val| (val, true)),
-        ListValue(ListKind::ConsList(ref car, ref cdr)) => {
-            let (car_val, splices) = eval_specialform_quasiquote_core(car, env.clone())?;
-            let (cdr_val, _) = eval_specialform_quasiquote_core(cdr, env)?;
-            if splices {
-                let mut iter = car_val.iter();
-                let mut stack = vec![];
-                while let Some(item) = iter.next() {
-                    stack.push(item);
-                }
-                let mut list = cdr_val;
-                while let Some(item) = stack.pop() {
-                    list = Value::create_list(ListKind::ConsList(item, list));
-                }
-                Ok((list, false))
+        ListValue(ref list) if list.car().is_some() => {
+            let car = &list.car().unwrap();
+            if car.kind.matches_symbol(reserved::STR_UNQUOTE) {
+                eval_specialform_unquote(ast, env, true).map(|val| (val, false))
+            } else if car.kind.matches_symbol(reserved::STR_SPLICE_UNQUOTE) {
+                eval_specialform_splice_unquote(ast, env, true).map(|val| (val, true))
             } else {
-                Ok((Value::create_list(ListKind::ConsList(car_val, cdr_val)), false))
+                let cdr = Value::create_list(list.cdr().unwrap());
+                let (car_val, splices) = eval_specialform_quasiquote_core(car, env.clone())?;
+                let (cdr_val, _) = eval_specialform_quasiquote_core(&cdr, env)?;
+                if splices {
+                    let mut iter = car_val.iter();
+                    let mut stack = vec![];
+                    while let Some(item) = iter.next() {
+                        stack.push(item);
+                    }
+                    assert!(cdr_val.is_list());
+                    let mut list = cdr_val.get_as_list().unwrap().clone();
+                    while let Some(item) = stack.pop() {
+                        list = list.cons(item);
+                    }
+                    Ok((Value::create_list(list), false))
+                } else {
+                    assert!(cdr_val.is_list());
+                    let cdr_list = cdr_val.get_as_list().unwrap().clone();
+                    Ok((Value::create_list(cdr_list.cons(car_val)), false))
+                }
             }
         }
-        _ => Ok((ast.clone(), false))
+        _ => Ok((ast.clone(), false)),
     }
 }
 

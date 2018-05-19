@@ -2,7 +2,6 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::collections::hash_map;
 use std::fmt;
-use std::ops::Index;
 use std::iter::Iterator;
 use std::slice::Iter;
 use std::string::ToString;
@@ -15,6 +14,7 @@ use core::env::EnvPtr;
 use core::reserved;
 use core::pair;
 use core::map;
+use core::list;
 
 #[derive(Debug, Eq)]
 pub enum ValueKind {
@@ -22,7 +22,7 @@ pub enum ValueKind {
     StringValue(String),
     SymbolValue(String),
     KeywordValue(String),
-    ListValue(ListKind),
+    ListValue(list::List<ValuePtr>),
     ClosureValue(Applicable, EnvPtr),
     NilValue,
     MapValue(HashMap<ValuePtr, ValuePtr>),
@@ -32,12 +32,6 @@ pub enum ValueKind {
     TypeValue(TypePtr),
     MapXValue(map::TreeMap<ValuePtr, ValuePtr>),
     InternalPairValue(pair::Pair<ValuePtr, ValuePtr>), // internal use
-}
-
-#[derive(PartialEq, Debug, Eq)]
-pub enum ListKind {
-    ConsList(ValuePtr, ValuePtr), // (car, cdr), cdr must be ListValue
-    EmptyList,
 }
 
 #[derive(PartialEq, Debug, Eq)]
@@ -527,7 +521,7 @@ impl ValuePtr {
     pub fn iter(&self) -> ValueIterator {
         use self::ValueIteratorKind::*;
         let iterator = match self.kind {
-            ValueKind::ListValue(_) => ListIterator(self.clone()),
+            ValueKind::ListValue(ref list) => ListIterator(list.iter()),
             ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
             ValueKind::MapValue(ref map) => MapIterator(map.iter()),
             ValueKind::MapXValue(ref map) => MapXIterator(map.iter()),
@@ -586,20 +580,16 @@ impl Value {
         Value::new(ValueKind::KeywordValue(keyword))
     }
 
-    pub fn create_list(list: ListKind) -> ValuePtr {
-        if let ListKind::ConsList(_, ref cdr) = list {
-            assert!(cdr.kind.is_list());
-        }
+    pub fn create_list(list: list::List<ValuePtr>) -> ValuePtr {
         Value::new(ValueKind::ListValue(list))
     }
 
-    pub fn create_list_from_vec(mut values: Vec<ValuePtr>) -> ValuePtr {
-        use self::ListKind::*;
-        let mut list = Value::create_list(EmptyList);
-        while let Some(value) = values.pop() {
-            list = Value::create_list(ConsList(value, list));
-        }
-        list
+    pub fn create_list_empty() -> ValuePtr {
+        Value::create_list(list::List::create_empty())
+    }
+
+    pub fn create_list_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
+        Value::create_list(list::List::create(values))
     }
 
     pub fn create_closure(applicable: Applicable, env: EnvPtr) -> ValuePtr {
@@ -683,6 +673,13 @@ impl Value {
         }
     }
 
+    pub fn get_as_list<'a>(&'a self) -> Option<&'a list::List<ValuePtr>> {
+        match self.kind {
+            ValueKind::ListValue(ref list) => Some(list),
+            _ => None,
+        }
+    }
+
     pub fn get_as_map<'a>(&'a self) -> Option<&'a HashMap<ValuePtr, ValuePtr>> {
         match self.kind {
             ValueKind::MapValue(ref map) => Some(map),
@@ -700,7 +697,7 @@ impl Value {
 
 #[derive(Debug)]
 pub enum ValueIteratorKind<'a> {
-    ListIterator(ValuePtr),
+    ListIterator(list::ListIterator<ValuePtr>),
     VectorIterator(Iter<'a, ValuePtr>),
     MapIterator(hash_map::Iter<'a, ValuePtr, ValuePtr>),
     MapXIterator(map::TreeMapIterator<ValuePtr, ValuePtr>),
@@ -712,14 +709,20 @@ pub struct ValueIterator<'a>(ValueIteratorKind<'a>);
 impl<'a> ValueIterator<'a> {
     pub fn rest(&mut self) -> ValuePtr {
         use self::ValueIteratorKind::*;
-        let rest_val = match self.0 {
-            ListIterator(ref cur) => cur.clone(),
+        match self.0 {
+            ListIterator(ref mut iter) => {
+                let mut rest_val = vec![];
+                while let Some(val) = iter.next() {
+                    rest_val.push(val.clone());
+                }
+                Value::create_list_from_vec(rest_val)
+            }
             VectorIterator(ref mut iter) => {
                 let mut rest_val = vec![];
                 while let Some(val) = iter.next() {
                     rest_val.push(val.clone());
                 }
-                return Value::create_vector(rest_val);
+                Value::create_vector(rest_val)
             }
             MapIterator(ref mut iter) => {
                 let mut rest_val = vec![];
@@ -727,14 +730,12 @@ impl<'a> ValueIterator<'a> {
                     rest_val.push((*key).clone());
                     rest_val.push((*val).clone());
                 }
-                return Value::create_map_from_vec(rest_val);
+                Value::create_map_from_vec(rest_val)
             }
-            MapXIterator(ref mut iter) => return Value::create_vector(iter.map(|p| {
+            MapXIterator(ref mut iter) => Value::create_vector(iter.map(|p| {
                 Value::create_pair(p)
             }).collect()),
-        };
-        self.0 = ListIterator(Value::create_list(ListKind::EmptyList));
-        rest_val
+        }
     }
 }
 
@@ -743,47 +744,22 @@ impl<'a> Iterator for ValueIterator<'a> {
 
     fn next(&mut self) -> Option<ValuePtr> {
         use self::ValueIteratorKind::*;
-        let (val, next_cur) = match self.0 {
-            VectorIterator(ref mut iter) => return match iter.next() {
+        match self.0 {
+            VectorIterator(ref mut iter) => match iter.next() {
                 Some(ref val) => Some((*val).clone()),
                 None => None,
             },
-            MapIterator(ref mut iter) => return match iter.next() {
+            MapIterator(ref mut iter) => match iter.next() {
                 Some((ref key, ref val)) => Some(Value::create_list_from_vec(vec![
                     (*key).clone(), (*val).clone()
                 ])),
                 None => None,
             },
-            MapXIterator(ref mut iter) => return match iter.next() {
+            MapXIterator(ref mut iter) => match iter.next() {
                 Some(pair) => Some(Value::create_pair(pair)),
                 None => None,
             },
-            ListIterator(ref cur) => match cur.kind {
-                ValueKind::ListValue(ListKind::EmptyList) => return None,
-                ValueKind::ListValue(ListKind::ConsList(ref car, ref cdr)) => {
-                    assert!(cdr.kind.is_list());
-                    (Some(car.clone()), cdr.clone())
-                }
-                _ => unimplemented!(),
-            },
-        };
-        self.0 = ListIterator(next_cur);
-        val
-    }
-}
-
-impl Index<usize> for Value {
-    type Output = ValuePtr;
-
-    fn index(&self, index: usize) -> &ValuePtr {
-        use self::ValueKind::*;
-        match self.kind {
-            ListValue(ListKind::EmptyList) => panic!(),
-            ListValue(ListKind::ConsList(ref car, _)) if index == 0 => car,
-            ListValue(ListKind::ConsList(_, ref cdr)) if index > 0 && cdr.kind.is_list() => &cdr[index - 1],
-            ListValue(_) => panic!(),
-            VectorValue(ref vector) => &vector[index],
-            _ => panic!(),
+            ListIterator(ref mut iter) => iter.next(),
         }
     }
 }

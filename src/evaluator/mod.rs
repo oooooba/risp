@@ -3,14 +3,13 @@ pub mod builtinfunc;
 
 use std::collections::HashMap;
 
-use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern, ListKind};
+use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
 use core::reserved;
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.is_list());
-    use self::ListKind::*;
     let mut iter = ast.iter().peekable();
     match iter.peek() {
         Some(symbol) if symbol.kind.matches_symbol(reserved::STR_IF) => return specialform::eval_specialform_if(ast, env),
@@ -25,7 +24,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         Some(symbol) if symbol.kind.matches_symbol(reserved::STR_DO) => return specialform::eval_specialform_do(ast, env),
         Some(symbol) if symbol.kind.matches_symbol(reserved::STR_TRY) => return specialform::eval_specialform_try(ast, env),
         Some(symbol) if symbol.kind.matches_symbol(reserved::STR_DEFRECORD) => return specialform::eval_specialform_defrecord(ast, env),
-        None => return Ok(Value::create_list(EmptyList)),
+        None => return Ok(Value::create_list_empty()),
         _ => (),
     }
     let mut iter = ast.iter();
@@ -43,7 +42,8 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         let applicable = Applicable::new(None, pattern, body);
         let closure_env = Env::create_empty();
         let closure_val = Value::create_closure(applicable, closure_env);
-        let args = Value::create_list(ListKind::ConsList(evaled_car, cdr));
+        assert!(cdr.is_list());
+        let args = Value::create_list(cdr.get_as_list().unwrap().clone().cons(evaled_car));
         apply(&closure_val, &args, env)
     } else if evaled_car.kind.is_macro() {
         let new_ast = apply(&evaled_car, &cdr, env.clone())?;
