@@ -54,10 +54,10 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
             let mut iter = pattern.iter();
             loop {
                 let (pattern_val, key_val) = match iter.next() {
-                    Some(ref list) if list.is_list() => {
-                        let mut iter = list.iter();
-                        let pattern = iter.next().unwrap();
-                        let key = iter.next().unwrap();
+                    Some(ref pair) if pair.is_pair() => {
+                        let pair = pair.get_as_pair().unwrap();
+                        let pattern = pair.first.clone();
+                        let key = pair.second.clone();
                         (pattern, key)
                     }
                     Some(_) => unimplemented!(),
@@ -86,7 +86,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                 let default_val = match pattern.kind {
                     PatternKind::SymbolPattern(ref symbol) if or_value.is_some() => {
                         let default_val_map = or_value.as_ref().unwrap().get_as_map().unwrap();
-                        default_val_map.get(symbol).map(|val| { val.clone() })
+                        default_val_map.lookup(symbol).map(|val| { val.clone() })
                     }
                     _ => None,
                 };
@@ -135,7 +135,7 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr
             let arg_map = value.get_as_map().unwrap();
 
             for &(ref pattern, ref key, ref default_val) in patterns.iter() {
-                let val = arg_map.get(key)
+                let val = arg_map.lookup(key)
                     .map(|val| val.clone())
                     .or(match default_val {
                         &Some(ref expr) => Some(eval(expr.clone(), env.clone())?),

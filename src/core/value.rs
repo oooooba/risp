@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use std::collections::HashMap;
-use std::collections::hash_map;
 use std::fmt;
 use std::iter::Iterator;
 use std::slice::Iter;
@@ -25,12 +24,11 @@ pub enum ValueKind {
     ListValue(list::List<ValuePtr>),
     ClosureValue(Applicable, EnvPtr),
     NilValue,
-    MapValue(HashMap<ValuePtr, ValuePtr>),
+    MapValue(map::TreeMap<ValuePtr, ValuePtr>),
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
     TypeValue(TypePtr),
-    MapXValue(map::TreeMap<ValuePtr, ValuePtr>),
     InternalPairValue(pair::Pair<ValuePtr, ValuePtr>), // internal use
 }
 
@@ -67,7 +65,6 @@ impl ValueKind {
             &VectorValue(_) => ValueKind::type_str_vector(),
             &MacroValue(_) => unreachable!(),
             &TypeValue(_) => ValueKind::type_str_type(),
-            &MapXValue(_) => unreachable!(),
             &InternalPairValue(_) => unreachable!(),
         }
     }
@@ -147,9 +144,9 @@ impl ValueKind {
         }
     }
 
-    pub fn is_mapx(&self) -> bool {
+    fn is_pair(&self) -> bool {
         match self {
-            &ValueKind::MapXValue(_) => true,
+            &ValueKind::InternalPairValue(_) => true,
             _ => false,
         }
     }
@@ -183,7 +180,6 @@ impl PartialEq for ValueKind {
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
             (&TypeValue(ref lhs), &TypeValue(ref rhs)) => lhs == rhs,
-            (&MapXValue(ref lhs), &MapXValue(ref rhs)) => lhs == rhs,
             (&InternalPairValue(ref lhs), &InternalPairValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
@@ -336,7 +332,7 @@ impl Type {
             let value = values[i].clone();
             map.insert(key, value);
         }
-        Value::create_map(map)
+        Value::create_map_from_hashmap(map)
     }
 }
 
@@ -399,28 +395,13 @@ impl ToString for ValuePtr {
                 text
             }
             NilValue => reserved::STR_NIL.to_string(),
-            MapValue(ref m) => {
-                let mut text = String::new();
-                text.push(reserved::CHAR_L_CURLY);
-                let mut is_first = true;
-                for (key, val) in m.iter() {
-                    if is_first {
-                        is_first = false;
-                    } else {
-                        text.push_str(&format!("{} ", reserved::CHAR_COMMA));
-                    }
-                    text.push_str(&format!("{} {}", key.to_string(), val.to_string()));
-                }
-                text.push(reserved::CHAR_R_CURLY);
-                text
-            }
+            MapValue(_) => to_string_helper(reserved::STR__L_CURLY_, reserved::STR__R_CURLY_,
+                                            ", ", self.iter()),
             BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
             VectorValue(_) => to_string_helper(reserved::STR__L_BRACKET_, reserved::STR__R_BRACKET_,
                                                " ", self.iter()),
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
-            MapXValue(_) => to_string_helper(reserved::STR__L_CURLY_, reserved::STR__R_CURLY_,
-                                             ", ", self.iter()),
             InternalPairValue(ref p) => format!("{} {}", p.first.to_string(), p.second.to_string()),
         }
     }
@@ -479,8 +460,7 @@ impl Ord for ValuePtr {
                 &VectorValue(_) => 10,
                 &MacroValue(_) => 11,
                 &TypeValue(_) => 12,
-                &MapXValue(_) => 13,
-                &InternalPairValue(_) => 14,
+                &InternalPairValue(_) => 13,
             }
         }
 
@@ -507,7 +487,6 @@ impl Ord for ValuePtr {
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs.cmp(rhs),
             (&VectorValue(_), &VectorValue(_)) => cmp_helper(self.iter(), other.iter()),
             (&TypeValue(_), &TypeValue(_)) => unimplemented!(),
-            (&MapXValue(_), &MapXValue(_)) => unimplemented!(),
             _ => unimplemented!(),
         }
     }
@@ -524,7 +503,6 @@ impl ValuePtr {
             ValueKind::ListValue(ref list) => ListIterator(list.iter()),
             ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
             ValueKind::MapValue(ref map) => MapIterator(map.iter()),
-            ValueKind::MapXValue(ref map) => MapXIterator(map.iter()),
             _ => unimplemented!(),
         };
         ValueIterator(iterator)
@@ -552,6 +530,10 @@ impl ValuePtr {
 
     pub fn is_nil(&self) -> bool {
         self.kind.is_nil()
+    }
+
+    pub fn is_pair(&self) -> bool {
+        self.kind.is_pair()
     }
 }
 
@@ -600,31 +582,51 @@ impl Value {
         Value::new(ValueKind::NilValue)
     }
 
-    pub fn create_map(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
-        Value::new(ValueKind::MapValue(map))
+    fn build_pairs_from_hashmap(map: HashMap<ValuePtr, ValuePtr>) -> Vec<(ValuePtr, ValuePtr)> {
+        let mut pairs = vec![];
+        for (k, v) in map.iter() {
+            pairs.push((k.clone(), v.clone()));
+        }
+        pairs
     }
 
-    pub fn create_map_literal(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
-        Value::new_literal(ValueKind::MapValue(map))
-    }
-
-    fn build_map_from_vec(values: Vec<ValuePtr>) -> HashMap<ValuePtr, ValuePtr> {
+    fn build_pairs_from_vec(values: Vec<ValuePtr>) -> Vec<(ValuePtr, ValuePtr)> {
         assert_eq!(values.len() % 2, 0);
-        let mut map = HashMap::new();
+        let mut pairs = vec![];
         for i in 0..(values.len() / 2) {
             let key = values[i * 2].clone();
             let val = values[i * 2 + 1].clone();
-            map.insert(key, val);
+            pairs.push((key, val));
         }
-        map
+        pairs
+    }
+
+    pub fn create_map(pairs: Vec<(ValuePtr, ValuePtr)>) -> ValuePtr {
+        Value::new(ValueKind::MapValue(map::TreeMap::create(pairs)))
+    }
+
+    pub fn create_map_literal(pairs: Vec<(ValuePtr, ValuePtr)>) -> ValuePtr {
+        Value::new_literal(ValueKind::MapValue(map::TreeMap::create(pairs)))
+    }
+
+    pub fn create_map_from_hashmap(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
+        let pairs = Value::build_pairs_from_hashmap(map);
+        Value::create_map(pairs)
+    }
+
+    pub fn create_map_literal_from_hashmap(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
+        let pairs = Value::build_pairs_from_hashmap(map);
+        Value::create_map_literal(pairs)
     }
 
     pub fn create_map_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
-        Value::create_map(Value::build_map_from_vec(values))
+        let pairs = Value::build_pairs_from_vec(values);
+        Value::create_map(pairs)
     }
 
     pub fn create_map_literal_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
-        Value::create_map_literal(Value::build_map_from_vec(values))
+        let pairs = Value::build_pairs_from_vec(values);
+        Value::create_map_literal(pairs)
     }
 
     pub fn create_boolean(boolean: bool) -> ValuePtr {
@@ -645,14 +647,6 @@ impl Value {
 
     pub fn create_type(typ: TypePtr) -> ValuePtr {
         Value::new(ValueKind::TypeValue(typ))
-    }
-
-    pub fn create_mapx(map: map::TreeMap<ValuePtr, ValuePtr>) -> ValuePtr {
-        Value::new(ValueKind::MapXValue(map))
-    }
-
-    pub fn create_mapx_from_vec(values: Vec<(ValuePtr, ValuePtr)>) -> ValuePtr {
-        Value::create_mapx(map::TreeMap::create(values))
     }
 
     pub fn create_pair(pair: pair::Pair<ValuePtr, ValuePtr>) -> ValuePtr {
@@ -680,16 +674,16 @@ impl Value {
         }
     }
 
-    pub fn get_as_map<'a>(&'a self) -> Option<&'a HashMap<ValuePtr, ValuePtr>> {
+    pub fn get_as_map<'a>(&'a self) -> Option<&'a map::TreeMap<ValuePtr, ValuePtr>> {
         match self.kind {
             ValueKind::MapValue(ref map) => Some(map),
             _ => None,
         }
     }
 
-    pub fn get_as_mapx<'a>(&'a self) -> Option<&'a map::TreeMap<ValuePtr, ValuePtr>> {
+    pub fn get_as_pair<'a>(&'a self) -> Option<&'a pair::Pair<ValuePtr, ValuePtr>> {
         match self.kind {
-            ValueKind::MapXValue(ref map) => Some(map),
+            ValueKind::InternalPairValue(ref pair) => Some(pair),
             _ => None,
         }
     }
@@ -699,8 +693,7 @@ impl Value {
 pub enum ValueIteratorKind<'a> {
     ListIterator(list::ListIterator<ValuePtr>),
     VectorIterator(Iter<'a, ValuePtr>),
-    MapIterator(hash_map::Iter<'a, ValuePtr, ValuePtr>),
-    MapXIterator(map::TreeMapIterator<ValuePtr, ValuePtr>),
+    MapIterator(map::TreeMapIterator<ValuePtr, ValuePtr>),
 }
 
 #[derive(Debug)]
@@ -724,15 +717,7 @@ impl<'a> ValueIterator<'a> {
                 }
                 Value::create_vector(rest_val)
             }
-            MapIterator(ref mut iter) => {
-                let mut rest_val = vec![];
-                while let Some((ref key, ref val)) = iter.next() {
-                    rest_val.push((*key).clone());
-                    rest_val.push((*val).clone());
-                }
-                Value::create_map_from_vec(rest_val)
-            }
-            MapXIterator(ref mut iter) => Value::create_vector(iter.map(|p| {
+            MapIterator(ref mut iter) => Value::create_vector(iter.map(|p| {
                 Value::create_pair(p)
             }).collect()),
         }
@@ -750,12 +735,6 @@ impl<'a> Iterator for ValueIterator<'a> {
                 None => None,
             },
             MapIterator(ref mut iter) => match iter.next() {
-                Some((ref key, ref val)) => Some(Value::create_list_from_vec(vec![
-                    (*key).clone(), (*val).clone()
-                ])),
-                None => None,
-            },
-            MapXIterator(ref mut iter) => match iter.next() {
                 Some(pair) => Some(Value::create_pair(pair)),
                 None => None,
             },
@@ -790,63 +769,19 @@ mod tests {
             ]));
         }
         {
-            let map_val = Value::create_map_from_vec(vec![
-                Value::create_keyword("a".to_string()),
-                Value::create_integer(1),
-            ]);
-            let mut iter = map_val.iter();
-            assert_eq!(iter.next(), Some(Value::create_list_from_vec(vec![
-                Value::create_keyword("a".to_string()),
-                Value::create_integer(1),
-            ])));
-            assert_eq!(iter.next(), None);
-            assert_eq!(map_val, Value::create_map_from_vec(vec![
-                Value::create_keyword("a".to_string()),
-                Value::create_integer(1),
-            ]));
-        }
-        {
-            let map_val = Value::create_map_from_vec(vec![
-                Value::create_keyword("a".to_string()),
-                Value::create_integer(1),
-                Value::create_keyword("b".to_string()),
-                Value::create_integer(2),
-                Value::create_keyword("c".to_string()),
-                Value::create_integer(3),
-            ]);
-            let mut iter = map_val.iter();
-            assert_eq!(iter.rest(), Value::create_map_from_vec(vec![
-                Value::create_keyword("a".to_string()),
-                Value::create_integer(1),
-                Value::create_keyword("b".to_string()),
-                Value::create_integer(2),
-                Value::create_keyword("c".to_string()),
-                Value::create_integer(3),
-            ]));
-            assert_eq!(iter.next(), None);
-            assert_eq!(map_val, Value::create_map_from_vec(vec![
-                Value::create_keyword("a".to_string()),
-                Value::create_integer(1),
-                Value::create_keyword("b".to_string()),
-                Value::create_integer(2),
-                Value::create_keyword("c".to_string()),
-                Value::create_integer(3),
-            ]));
-        }
-        {
-            let map_val = Value::create_mapx_from_vec(vec![
+            let map_val = Value::create_map(vec![
                 (Value::create_keyword("a".to_string()), Value::create_integer(1)),
             ]);
             let mut iter = map_val.iter();
             assert_eq!(iter.next(), Some(Value::create_pair(
                 pair::Pair::new(Value::create_keyword("a".to_string()), Value::create_integer(1)))));
             assert_eq!(iter.next(), None);
-            assert_eq!(map_val, Value::create_mapx_from_vec(vec![
+            assert_eq!(map_val, Value::create_map(vec![
                 (Value::create_keyword("a".to_string()), Value::create_integer(1)),
             ]));
         }
         {
-            let map_val = Value::create_mapx_from_vec(vec![
+            let map_val = Value::create_map(vec![
                 (Value::create_keyword("a".to_string()), Value::create_integer(1)),
                 (Value::create_keyword("b".to_string()), Value::create_integer(2)),
                 (Value::create_keyword("c".to_string()), Value::create_integer(3)),
@@ -860,7 +795,7 @@ mod tests {
                 Value::create_pair(pair::Pair::new(Value::create_keyword("d".to_string()), Value::create_integer(4))),
             ]));
             assert_eq!(iter.next(), None);
-            assert_eq!(map_val, Value::create_mapx_from_vec(vec![
+            assert_eq!(map_val, Value::create_map(vec![
                 (Value::create_keyword("a".to_string()), Value::create_integer(1)),
                 (Value::create_keyword("b".to_string()), Value::create_integer(2)),
                 (Value::create_keyword("c".to_string()), Value::create_integer(3)),

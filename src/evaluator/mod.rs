@@ -100,12 +100,12 @@ fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     if let ValueKind::MapValue(ref map) = ast.kind {
         if ast.is_literal {
             let mut evaled_map = HashMap::new();
-            for (key, val) in map.iter() {
-                let key = eval(key.clone(), env.clone())?;
-                let val = eval(val.clone(), env.clone())?;
+            for pair in map.iter() {
+                let key = eval(pair.first, env.clone())?;
+                let val = eval(pair.second, env.clone())?;
                 evaled_map.insert(key, val);
             }
-            Ok(Value::create_map(evaled_map))
+            Ok(Value::create_map_from_hashmap(evaled_map))
         } else {
             Ok(ast.clone())
         }
@@ -152,7 +152,6 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         VectorValue(_) => eval_vector(&ast, env),
         MacroValue(_) => unreachable!(),
         TypeValue(_) => unreachable!(),
-        MapXValue(_) => unreachable!(),
         InternalPairValue(_) => unreachable!(),
     }
 }
