@@ -20,7 +20,7 @@ enum SubTreeState {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Node<K: Clone + Ord, V: Clone> {
+struct Node<K: Clone + Ord, V: Clone + Ord> {
     state: SubTreeState,
     pair: Pair<K, V>,
     left: AVLTree<K, V>,
@@ -33,10 +33,10 @@ None : Leaf
 */
 type TreeKind<K, V> = Option<Node<K, V>>;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct AVLTree<K: Clone + Ord, V: Clone>(Rc<TreeKind<K, V>>);
+#[derive(Debug, Eq, Clone)]
+struct AVLTree<K: Clone + Ord, V: Clone + Ord>(Rc<TreeKind<K, V>>);
 
-impl<K: Clone + Ord, V: Clone> Node<K, V> {
+impl<K: Clone + Ord, V: Clone + Ord> Node<K, V> {
     fn balance_left(self) -> (bool, Self) {
         match self.state {
             HeightIsEqual => return (true, Node { state: LeftIsHigher, ..self }),
@@ -178,7 +178,20 @@ impl<K: Clone + Ord, V: Clone> Node<K, V> {
     }
 }
 
-impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
+impl<K: Clone + Ord, V: Clone + Ord> PartialEq for AVLTree<K, V> {
+    fn eq(&self, other: &Self) -> bool {
+        let mut lhs_items: Vec<Pair<K, V>> = self.iter().collect();
+        let mut rhs_items: Vec<Pair<K, V>> = other.iter().collect();
+        if lhs_items.len() != rhs_items.len() {
+            return false;
+        }
+        lhs_items.sort();
+        rhs_items.sort();
+        return lhs_items == rhs_items;
+    }
+}
+
+impl<K: Clone + Ord, V: Clone + Ord> AVLTree<K, V> {
     fn new(kind: TreeKind<K, V>) -> AVLTree<K, V> {
         AVLTree(Rc::new(kind))
     }
@@ -291,9 +304,9 @@ impl<K: Clone + Ord, V: Clone> AVLTree<K, V> {
 }
 
 #[derive(Debug)]
-struct AVLTreeIterator<K: Clone + Ord, V: Clone>(Vec<AVLTree<K, V>>);
+struct AVLTreeIterator<K: Clone + Ord, V: Clone + Ord>(Vec<AVLTree<K, V>>);
 
-impl<K: Clone + Ord, V: Clone> Iterator for AVLTreeIterator<K, V> {
+impl<K: Clone + Ord, V: Clone + Ord> Iterator for AVLTreeIterator<K, V> {
     type Item = Pair<K, V>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -313,12 +326,12 @@ impl<K: Clone + Ord, V: Clone> Iterator for AVLTreeIterator<K, V> {
 
 // public interfaces
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct TreeMap<K: Clone + Ord, V: Clone>(AVLTree<K, V>);
+pub struct TreeMap<K: Clone + Ord, V: Clone + Ord>(AVLTree<K, V>);
 
 #[derive(Debug)]
-pub struct TreeMapIterator<K: Clone + Ord, V: Clone>(AVLTreeIterator<K, V>);
+pub struct TreeMapIterator<K: Clone + Ord, V: Clone + Ord>(AVLTreeIterator<K, V>);
 
-impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
+impl<K: Clone + Ord, V: Clone + Ord> TreeMap<K, V> {
     pub fn create_empty() -> TreeMap<K, V> {
         TreeMap(AVLTree::create_empty())
     }
@@ -346,7 +359,7 @@ impl<K: Clone + Ord, V: Clone> TreeMap<K, V> {
     }
 }
 
-impl<K: Clone + Ord, V: Clone> Iterator for TreeMapIterator<K, V> {
+impl<K: Clone + Ord, V: Clone + Ord> Iterator for TreeMapIterator<K, V> {
     type Item = Pair<K, V>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -483,6 +496,14 @@ mod tests {
 
             let items: Vec<Pair<ValuePtr, ValuePtr>> = t14.iter().collect();
             assert_eq!(items, vec![]);
+
+            assert_eq!(t6, t8);
+            assert_eq!(t5, t9);
+            assert_eq!(t4, t10);
+            assert_eq!(t3, t11);
+            assert_eq!(t2, t12);
+            assert_eq!(t1, t13);
+            assert_eq!(t0, t14);
         }
         {
             let t0 = AVLTree::create_empty();
@@ -593,6 +614,14 @@ mod tests {
 
             let items: Vec<Pair<ValuePtr, ValuePtr>> = t14.iter().collect();
             assert_eq!(items, vec![]);
+
+            assert_eq!(t6, t8);
+            assert_eq!(t5, t9);
+            assert_eq!(t4, t10);
+            assert_eq!(t3, t11);
+            assert_eq!(t2, t12);
+            assert_eq!(t1, t13);
+            assert_eq!(t0, t14);
         }
     }
 }
