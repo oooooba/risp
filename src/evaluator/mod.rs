@@ -1,8 +1,6 @@
 mod specialform;
 pub mod builtinfunc;
 
-use std::collections::HashMap;
-
 use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
@@ -99,13 +97,13 @@ fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.kind.is_map());
     if let ValueKind::MapValue(ref map) = ast.kind {
         if ast.is_literal {
-            let mut evaled_map = HashMap::new();
+            let mut pairs = vec![];
             for pair in map.iter() {
                 let key = eval(pair.first, env.clone())?;
                 let val = eval(pair.second, env.clone())?;
-                evaled_map.insert(key, val);
+                pairs.push((key, val));
             }
-            Ok(Value::create_map_from_hashmap(evaled_map))
+            Ok(Value::create_map(pairs))
         } else {
             Ok(ast.clone())
         }

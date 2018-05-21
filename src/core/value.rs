@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::collections::HashMap;
 use std::fmt;
 use std::iter::Iterator;
 use std::slice::Iter;
@@ -325,14 +324,14 @@ impl Type {
     }
 
     pub fn instantiate(&self, values: Vec<ValuePtr>) -> ValuePtr {
-        let mut map = HashMap::new();
+        let mut pairs = vec![];
         for i in 0..self.fields.len() {
             let field = &self.fields[i].0;
             let key = Value::create_keyword(field.clone());
             let value = values[i].clone();
-            map.insert(key, value);
+            pairs.push((key, value));
         }
-        Value::create_map_from_hashmap(map)
+        Value::create_map(pairs)
     }
 }
 
@@ -582,14 +581,6 @@ impl Value {
         Value::new(ValueKind::NilValue)
     }
 
-    fn build_pairs_from_hashmap(map: HashMap<ValuePtr, ValuePtr>) -> Vec<(ValuePtr, ValuePtr)> {
-        let mut pairs = vec![];
-        for (k, v) in map.iter() {
-            pairs.push((k.clone(), v.clone()));
-        }
-        pairs
-    }
-
     fn build_pairs_from_vec(values: Vec<ValuePtr>) -> Vec<(ValuePtr, ValuePtr)> {
         assert_eq!(values.len() % 2, 0);
         let mut pairs = vec![];
@@ -607,16 +598,6 @@ impl Value {
 
     pub fn create_map_literal(pairs: Vec<(ValuePtr, ValuePtr)>) -> ValuePtr {
         Value::new_literal(ValueKind::MapValue(map::TreeMap::create(pairs)))
-    }
-
-    pub fn create_map_from_hashmap(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
-        let pairs = Value::build_pairs_from_hashmap(map);
-        Value::create_map(pairs)
-    }
-
-    pub fn create_map_literal_from_hashmap(map: HashMap<ValuePtr, ValuePtr>) -> ValuePtr {
-        let pairs = Value::build_pairs_from_hashmap(map);
-        Value::create_map_literal(pairs)
     }
 
     pub fn create_map_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
