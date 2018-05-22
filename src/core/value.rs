@@ -769,9 +769,9 @@ mod tests {
                 (Value::create_keyword("d".to_string()), Value::create_integer(4)),
             ]);
             let mut iter = map_val.iter();
-            assert_eq!(iter.next(), Some(Value::create_pair(pair::Pair::new(Value::create_keyword("b".to_string()), Value::create_integer(2)))));
+            assert_eq!(iter.next(), Some(Value::create_pair(pair::Pair::new(Value::create_keyword("a".to_string()), Value::create_integer(1)))));
             assert_eq!(iter.rest(), Value::create_vector(vec![
-                Value::create_pair(pair::Pair::new(Value::create_keyword("a".to_string()), Value::create_integer(1))),
+                Value::create_pair(pair::Pair::new(Value::create_keyword("b".to_string()), Value::create_integer(2))),
                 Value::create_pair(pair::Pair::new(Value::create_keyword("c".to_string()), Value::create_integer(3))),
                 Value::create_pair(pair::Pair::new(Value::create_keyword("d".to_string()), Value::create_integer(4))),
             ]));

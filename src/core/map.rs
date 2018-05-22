@@ -295,11 +295,13 @@ impl<K: Clone + Ord, V: Clone + Ord> AVLTree<K, V> {
     }
 
     fn iter(&self) -> AVLTreeIterator<K, V> {
-        if self.0.is_some() {
-            AVLTreeIterator(vec![self.clone()])
-        } else {
-            AVLTreeIterator(vec![])
+        let mut stack = vec![];
+        let mut cur = self.clone();
+        while let Some(node) = (*cur.0).clone() {
+            stack.push(cur);
+            cur = node.left;
         }
+        AVLTreeIterator(stack)
     }
 }
 
@@ -315,10 +317,11 @@ impl<K: Clone + Ord, V: Clone + Ord> Iterator for AVLTreeIterator<K, V> {
             None => return None,
         };
         if node.right.0.is_some() {
-            self.0.push(node.right);
-        }
-        if node.left.0.is_some() {
-            self.0.push(node.left);
+            let mut cur = node.right;
+            while let Some(node) = (*cur.0).clone() {
+                self.0.push(cur);
+                cur = node.left;
+            }
         }
         Some(node.pair)
     }
@@ -447,12 +450,12 @@ mod tests {
 
             let items: Vec<Pair<ValuePtr, ValuePtr>> = t7.iter().collect();
             assert_eq!(items, vec![
-                Pair::new(i(4), i(4)),
-                Pair::new(i(2), i(2)),
                 Pair::new(i(1), i(1)),
+                Pair::new(i(2), i(2)),
                 Pair::new(i(3), i(3)),
-                Pair::new(i(6), i(6)),
+                Pair::new(i(4), i(4)),
                 Pair::new(i(5), i(5)),
+                Pair::new(i(6), i(6)),
                 Pair::new(i(7), i(7)),
             ]);
 
@@ -561,12 +564,12 @@ mod tests {
 
             let items: Vec<Pair<ValuePtr, ValuePtr>> = t7.iter().collect();
             assert_eq!(items, vec![
-                Pair::new(i(4), i(4)),
-                Pair::new(i(2), i(2)),
                 Pair::new(i(1), i(1)),
+                Pair::new(i(2), i(2)),
                 Pair::new(i(3), i(3)),
-                Pair::new(i(6), i(6)),
+                Pair::new(i(4), i(4)),
                 Pair::new(i(5), i(5)),
+                Pair::new(i(6), i(6)),
                 Pair::new(i(7), i(7)),
             ]);
 
