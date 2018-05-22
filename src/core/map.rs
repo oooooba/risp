@@ -180,14 +180,15 @@ impl<K: Clone + Ord, V: Clone + Ord> Node<K, V> {
 
 impl<K: Clone + Ord, V: Clone + Ord> PartialEq for AVLTree<K, V> {
     fn eq(&self, other: &Self) -> bool {
-        let mut lhs_items: Vec<Pair<K, V>> = self.iter().collect();
-        let mut rhs_items: Vec<Pair<K, V>> = other.iter().collect();
-        if lhs_items.len() != rhs_items.len() {
-            return false;
+        let mut lhs_iter = self.iter();
+        let mut rhs_iter = other.iter();
+        loop {
+            match (lhs_iter.next(), rhs_iter.next()) {
+                (None, None) => return true,
+                (Some(ref lhs_item), Some(ref rhs_item)) if lhs_item == rhs_item => (),
+                (_, _) => return false,
+            }
         }
-        lhs_items.sort();
-        rhs_items.sort();
-        return lhs_items == rhs_items;
     }
 }
 
