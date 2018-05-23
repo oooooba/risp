@@ -7,8 +7,9 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use core::parse_and_eval;
-use core::value::{Value, ValuePtr, BuiltinFuncType, ApplicableBodyKind, Applicable, Pattern};
+use core::value::{Value, ValuePtr, BuiltinFuncType, ApplicableBodyKind, Applicable};
 use core::map;
+use core::pattern::Pattern;
 use evaluator::builtinfunc;
 use reader::tokenize;
 

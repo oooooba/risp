@@ -1,10 +1,10 @@
 use std::collections::LinkedList;
 
 use core::value;
-use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ValueIterator, Applicable,
-                  Pattern, PatternKind, PatternPtr, Type};
+use core::value::{Value, ValueKind, ValuePtr, ApplicableBodyKind, ValueIterator, Applicable, Type};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
+use core::pattern::{Pattern, PatternKind, PatternPtr};
 use core::reserved;
 use evaluator::eval;
 

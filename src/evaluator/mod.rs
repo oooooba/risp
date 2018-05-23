@@ -1,9 +1,10 @@
 mod specialform;
 pub mod builtinfunc;
 
-use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind, Pattern};
+use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind};
 use core::exception::{Exception, ExceptionKind};
 use core::env::{Env, EnvPtr};
+use core::pattern::Pattern;
 use core::reserved;
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {

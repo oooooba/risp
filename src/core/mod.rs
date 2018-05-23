@@ -5,6 +5,7 @@ pub mod reserved;
 pub mod pair;
 pub mod map;
 pub mod list;
+pub mod pattern;
 
 use std::collections::LinkedList;
 
