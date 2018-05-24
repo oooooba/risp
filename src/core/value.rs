@@ -274,8 +274,28 @@ pub struct Value {
     pub is_literal: bool,
 }
 
-#[derive(PartialEq, Debug, Eq, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub struct ValuePtr(Rc<Value>);
+
+impl PartialEq for ValuePtr {
+    fn eq(&self, other: &Self) -> bool {
+        use self::ValueKind::*;
+        match (&self.0.kind, &other.0.kind) {
+            (&ListValue(_), &VectorValue(_)) => (),
+            (&VectorValue(_), &ListValue(_)) => (),
+            _ => return self.0 == other.0,
+        }
+        let mut lhs_iter = self.iter();
+        let mut rhs_iter = other.iter();
+        loop {
+            match (lhs_iter.next(), rhs_iter.next()) {
+                (None, None) => return true,
+                (Some(ref lhs_item), Some(ref rhs_item)) if lhs_item == rhs_item => (),
+                (_, _) => return false,
+            }
+        }
+    }
+}
 
 fn to_string_helper(begin_str: &str, end_str: &str, delim_str: &str, mut iter: ValueIterator) -> String {
     let mut text = String::new();
@@ -726,5 +746,14 @@ mod tests {
         ]).cmp(&Value::create_vector(vec![
             Value::create_integer(1), Value::create_integer(2),
         ])), Greater);
+        assert_eq!(Value::create_vector(vec![
+            Value::create_keyword("a".to_string()),
+            Value::create_keyword("b".to_string()),
+            Value::create_keyword("c".to_string()),
+        ]), Value::create_list_from_vec(vec![
+            Value::create_keyword("a".to_string()),
+            Value::create_keyword("b".to_string()),
+            Value::create_keyword("c".to_string()),
+        ]));
     }
 }
