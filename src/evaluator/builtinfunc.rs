@@ -136,3 +136,9 @@ pub fn builtinfunc_get(env: EnvPtr) -> Result<ValuePtr, Exception> {
     };
     Ok(val)
 }
+
+pub fn builtinfunc_vector(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let args = env.lookup_nth_param(1).unwrap();
+    let values = args.iter().collect();
+    Ok(Value::create_vector(values))
+}
