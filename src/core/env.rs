@@ -80,6 +80,7 @@ impl Env {
             prepare_builtinfunc("println", Box::new(builtinfunc::builtinfunc_println), 1),
             prepare_builtinfunc("_get", Box::new(builtinfunc::builtinfunc_get), 3),
             prepare_builtinfunc("_vector", Box::new(builtinfunc::builtinfunc_vector), 1),
+            prepare_builtinfunc("_vec", Box::new(builtinfunc::builtinfunc_vec), 1),
         ];
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))
     }
