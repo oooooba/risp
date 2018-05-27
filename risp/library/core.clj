@@ -14,3 +14,5 @@
 (def vector (fn [& xs] (_vector xs)))
 
 (def vec (fn [coll] (_vec coll)))
+
+(def boolean (fn [x] (_boolean x)))

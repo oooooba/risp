@@ -157,3 +157,13 @@ pub fn builtinfunc_vec(env: EnvPtr) -> Result<ValuePtr, Exception> {
     }
     Ok(Value::create_vector(values))
 }
+
+pub fn builtinfunc_boolean(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let val = env.lookup_nth_param(1).unwrap();
+    let b = match val.kind {
+        ValueKind::BooleanValue(false) => false,
+        ValueKind::NilValue => false,
+        _ => true,
+    };
+    Ok(Value::create_boolean(b))
+}

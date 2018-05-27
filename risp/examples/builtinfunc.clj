@@ -14,3 +14,11 @@
 
 (= (vec {:a 1, :b 2}) [[:a 1] [:b 2]])
 (not (= (vec {:b 2, :a 1}) [[:b 2] [:a 1]])) ; ToDo: actual [[:a 1] [:b 2]]
+
+(= (boolean true) true)
+(= (boolean false) false)
+(= (boolean nil) false)
+(= (boolean []) true)
+(= (boolean {}) true)
+(= (boolean '()) true)
+(= (boolean "") true)
