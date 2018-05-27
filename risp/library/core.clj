@@ -1,11 +1,3 @@
-(def not
-  (fn [x]
-      (if (= x false)
-        true
-        (if (= x nil)
-          true
-          false))))
-
 (def list
   (fn [& l] l))
 
@@ -16,3 +8,5 @@
 (def vec (fn [coll] (_vec coll)))
 
 (def boolean (fn [x] (_boolean x)))
+
+(def not (fn [x] (if (boolean x) false true)))
