@@ -167,3 +167,18 @@ pub fn builtinfunc_boolean(env: EnvPtr) -> Result<ValuePtr, Exception> {
     };
     Ok(Value::create_boolean(b))
 }
+
+pub fn builtinfunc_conj(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let collection = env.lookup_nth_param(1).unwrap();
+    let values = env.lookup_nth_param(2).unwrap();
+    match collection.kind {
+        ValueKind::ListValue(ref list) => {
+            let mut new_collection = list.clone();
+            for val in values.iter() {
+                new_collection = new_collection.cons(val);
+            }
+            Ok(Value::create_list(new_collection))
+        }
+        _ => unimplemented!(),
+    }
+}

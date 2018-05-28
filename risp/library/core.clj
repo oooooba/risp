@@ -9,3 +9,5 @@
 (def boolean (fn [x] (_boolean x)))
 
 (def not (fn [x] (if (boolean x) false true)))
+
+(def conj (fn [coll x & xs] (_conj coll (cons x xs))))
