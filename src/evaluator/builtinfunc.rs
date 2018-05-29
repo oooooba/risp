@@ -179,6 +179,11 @@ pub fn builtinfunc_conj(env: EnvPtr) -> Result<ValuePtr, Exception> {
             }
             Ok(Value::create_list(new_collection))
         }
+        ValueKind::VectorValue(ref vector) => {
+            let mut new_collection = vector.clone();
+            new_collection.append(&mut values.iter().collect());
+            Ok(Value::create_vector(new_collection))
+        }
         _ => unimplemented!(),
     }
 }
