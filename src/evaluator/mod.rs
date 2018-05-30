@@ -131,6 +131,24 @@ fn eval_vector(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     }
 }
 
+fn eval_set(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.is_set());
+    if let ValueKind::SetValue(ref map) = ast.kind {
+        if ast.is_literal {
+            let mut elems = vec![];
+            for pair in map.iter() {
+                let elem = eval(pair.first, env.clone())?;
+                elems.push(elem);
+            }
+            Ok(Value::create_set(elems))
+        } else {
+            Ok(ast.clone())
+        }
+    } else {
+        unreachable!()
+    }
+}
+
 pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     use self::ValueKind::*;
     match ast.kind {
@@ -152,6 +170,7 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         MacroValue(_) => unreachable!(),
         TypeValue(_) => unreachable!(),
         InternalPairValue(_) => unreachable!(),
+        SetValue(_) => eval_set(&ast, env),
     }
 }
 

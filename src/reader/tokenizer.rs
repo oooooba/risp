@@ -223,6 +223,14 @@ impl Tokenizer {
             } else if c == reserved::CHAR_SEMICOLON {
                 self.skip_line_comment();
                 None
+            } else if c == reserved::CHAR_SHARP {
+                let pos = self.pos;
+                let kind = match self.peek(1) {
+                    Some(c) if c == reserved::CHAR_L_CURLY => TokenKind::SharpLCurlyToken,
+                    _ => unreachable!(),
+                };
+                self.ahead(2);
+                Some(self.create_token(kind, pos, 2))
             } else if is_delim_char(c) {
                 self.ahead(1);
                 None

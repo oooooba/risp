@@ -125,6 +125,13 @@ impl Parser {
         })
     }
 
+    fn parse_set(&mut self) -> Result<ValuePtr, Exception> {
+        assert_eq!(self.peek().unwrap().kind, TokenKind::SharpLCurlyToken);
+        self.parse_sequence(TokenKind::SharpLCurlyToken, TokenKind::RCurlyToken, &|v| {
+            Ok(Value::create_set_literal(v))
+        })
+    }
+
     fn parse_quote_family_reader_macro(&mut self, kind: TokenKind, symbol: &'static str)
                                        -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, kind);
@@ -157,6 +164,7 @@ impl Parser {
             Some(&Token { kind: TildeAtToken, .. }) =>
                 self.parse_quote_family_reader_macro(TildeAtToken, reserved::STR_SPLICE_UNQUOTE),
             Some(&Token { kind: LCurlyToken, .. }) => self.parse_map(),
+            Some(&Token { kind: SharpLCurlyToken, .. }) => self.parse_set(),
             None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
             _ => unimplemented!(),
         }

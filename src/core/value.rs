@@ -30,6 +30,7 @@ pub enum ValueKind {
     MacroValue(Applicable),
     TypeValue(TypePtr),
     InternalPairValue(pair::Pair<ValuePtr, ValuePtr>), // internal use
+    SetValue(map::TreeMap<ValuePtr, ()>),
 }
 
 #[derive(PartialEq, Debug, Eq)]
@@ -66,6 +67,7 @@ impl ValueKind {
             &MacroValue(_) => unreachable!(),
             &TypeValue(_) => ValueKind::type_str_type(),
             &InternalPairValue(_) => unreachable!(),
+            &SetValue(_) => ValueKind::type_str_set(),
         }
     }
 
@@ -80,6 +82,7 @@ impl ValueKind {
     pub fn type_str_boolean() -> &'static str { "Boolean" }
     pub fn type_str_vector() -> &'static str { "Vector" }
     pub fn type_str_type() -> &'static str { "Type" }
+    pub fn type_str_set() -> &'static str { "Set" }
 
     fn is_integer(&self) -> bool {
         match self {
@@ -151,6 +154,13 @@ impl ValueKind {
         }
     }
 
+    fn is_set(&self) -> bool {
+        match self {
+            &ValueKind::SetValue(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn matches_symbol(&self, expected: &str) -> bool {
         match self {
             &ValueKind::SymbolValue(ref actual) => expected == actual.as_str(),
@@ -181,6 +191,7 @@ impl PartialEq for ValueKind {
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
             (&TypeValue(ref lhs), &TypeValue(ref rhs)) => lhs == rhs,
             (&InternalPairValue(ref lhs), &InternalPairValue(ref rhs)) => lhs == rhs,
+            (&SetValue(ref lhs), &SetValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -347,6 +358,8 @@ impl ToString for ValuePtr {
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
             InternalPairValue(ref p) => format!("{} {}", p.first.to_string(), p.second.to_string()),
+            SetValue(_) => to_string_helper(reserved::STR__SHARP__L_CURLY_, reserved::STR__R_CURLY_,
+                                            ", ", self.iter()),
         }
     }
 }
@@ -405,6 +418,7 @@ impl Ord for ValuePtr {
                 &MacroValue(_) => 11,
                 &TypeValue(_) => 12,
                 &InternalPairValue(_) => 13,
+                &SetValue(_) => 14,
             }
         }
 
@@ -431,6 +445,7 @@ impl Ord for ValuePtr {
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs.cmp(rhs),
             (&VectorValue(_), &VectorValue(_)) => cmp_helper(self.iter(), other.iter()),
             (&TypeValue(_), &TypeValue(_)) => unimplemented!(),
+            (&SetValue(_), &SetValue(_)) => unimplemented!(),
             _ => unimplemented!(),
         }
     }
@@ -447,6 +462,7 @@ impl ValuePtr {
             ValueKind::ListValue(ref list) => ListIterator(list.iter()),
             ValueKind::VectorValue(ref vector) => VectorIterator(vector.iter()),
             ValueKind::MapValue(ref map) => MapIterator(map.iter()),
+            ValueKind::SetValue(ref set) => SetIterator(set.iter()),
             _ => unimplemented!(),
         };
         ValueIterator(iterator)
@@ -478,6 +494,10 @@ impl ValuePtr {
 
     pub fn is_pair(&self) -> bool {
         self.kind.is_pair()
+    }
+
+    pub fn is_set(&self) -> bool {
+        self.kind.is_set()
     }
 }
 
@@ -579,6 +599,16 @@ impl Value {
         Value::new(ValueKind::InternalPairValue(pair))
     }
 
+    pub fn create_set(values: Vec<ValuePtr>) -> ValuePtr {
+        let pairs = values.iter().map(|v| (v.clone(), ())).collect();
+        Value::new(ValueKind::SetValue(map::TreeMap::create(pairs)))
+    }
+
+    pub fn create_set_literal(values: Vec<ValuePtr>) -> ValuePtr {
+        let pairs = values.iter().map(|v| (v.clone(), ())).collect();
+        Value::new_literal(ValueKind::SetValue(map::TreeMap::create(pairs)))
+    }
+
     pub fn get_as_symbol<'a>(&'a self) -> Option<&'a String> {
         match self.kind {
             ValueKind::SymbolValue(ref symbol) => Some(symbol),
@@ -620,6 +650,7 @@ pub enum ValueIteratorKind<'a> {
     ListIterator(list::ListIterator<ValuePtr>),
     VectorIterator(Iter<'a, ValuePtr>),
     MapIterator(map::TreeMapIterator<ValuePtr, ValuePtr>),
+    SetIterator(map::TreeMapIterator<ValuePtr, ()>),
 }
 
 #[derive(Debug)]
@@ -646,6 +677,13 @@ impl<'a> ValueIterator<'a> {
             MapIterator(ref mut iter) => Value::create_vector(iter.map(|p| {
                 Value::create_pair(p)
             }).collect()),
+            SetIterator(ref mut iter) => {
+                let mut rest_val = vec![];
+                while let Some(val) = iter.next() {
+                    rest_val.push(val.first);
+                }
+                Value::create_vector(rest_val)
+            }
         }
     }
 }
@@ -665,6 +703,10 @@ impl<'a> Iterator for ValueIterator<'a> {
                 None => None,
             },
             ListIterator(ref mut iter) => iter.next(),
+            SetIterator(ref mut iter) => match iter.next() {
+                Some(pair) => Some(pair.first),
+                None => None,
+            },
         }
     }
 }

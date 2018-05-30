@@ -28,6 +28,7 @@ enum TokenKind {
     TildeAtToken,
     LCurlyToken,
     RCurlyToken,
+    SharpLCurlyToken,
 }
 
 #[derive(PartialEq, Debug)]
