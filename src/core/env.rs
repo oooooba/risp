@@ -83,6 +83,7 @@ impl Env {
             prepare_builtinfunc("_vec", Box::new(builtinfunc::builtinfunc_vec), 1),
             prepare_builtinfunc("_boolean", Box::new(builtinfunc::builtinfunc_boolean), 1),
             prepare_builtinfunc("_conj", Box::new(builtinfunc::builtinfunc_conj), 2),
+            prepare_builtinfunc("_set", Box::new(builtinfunc::builtinfunc_set), 1),
         ];
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))
     }

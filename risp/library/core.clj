@@ -11,3 +11,5 @@
 (def not (fn [x] (if (boolean x) false true)))
 
 (def conj (fn [coll x & xs] (_conj coll (cons x xs))))
+
+(def set (fn [coll] (_set coll)))

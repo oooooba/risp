@@ -187,3 +187,9 @@ pub fn builtinfunc_conj(env: EnvPtr) -> Result<ValuePtr, Exception> {
         _ => unimplemented!(),
     }
 }
+
+pub fn builtinfunc_set(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let collection = env.lookup_nth_param(1).unwrap();
+    let values = collection.iter().collect();
+    Ok(Value::create_set(values))
+}
