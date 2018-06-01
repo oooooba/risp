@@ -126,7 +126,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_map(&self) -> bool {
+    fn is_map(&self) -> bool {
         match self {
             &ValueKind::MapValue(_) => true,
             _ => false,
@@ -490,6 +490,10 @@ impl ValuePtr {
 
     pub fn is_nil(&self) -> bool {
         self.kind.is_nil()
+    }
+
+    pub fn is_map(&self) -> bool {
+        self.kind.is_map()
     }
 
     pub fn is_pair(&self) -> bool {

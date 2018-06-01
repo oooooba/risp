@@ -32,7 +32,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     let cdr = iter.rest();
     if evaled_car.is_closure() {
         apply(&evaled_car, &cdr, env)
-    } else if evaled_car.kind.is_map() {
+    } else if evaled_car.is_map() {
         let pattern = Pattern::create_vector(vec![
             Pattern::create_symbol(Value::create_symbol("%1".to_string())),
             Pattern::create_symbol(Value::create_symbol("%2".to_string())),
@@ -95,7 +95,7 @@ fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<
 }
 
 fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_map());
+    assert!(ast.is_map());
     if let ValueKind::MapValue(ref map) = ast.kind {
         if ast.is_literal {
             let mut pairs = vec![];

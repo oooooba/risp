@@ -129,7 +129,7 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr
             }
         }
         MapPattern(ref patterns, ref as_symbol) => {
-            if !(value.kind.is_map()) {
+            if !(value.is_map()) {
                 unimplemented!()
             }
             let arg_map = value.get_as_map().unwrap();
@@ -163,7 +163,7 @@ fn split_let_binding_form(form: &ValuePtr) -> Result<(Vec<ValuePtr>, Vec<ValuePt
         let pattern = match iter.next() {
             Some(ref symbol) if symbol.is_symbol() => symbol.clone(),
             Some(ref vector) if vector.kind.is_vector() => vector.clone(),
-            Some(ref map) if map.kind.is_map() => map.clone(),
+            Some(ref map) if map.is_map() => map.clone(),
             Some(_) => unimplemented!(), // exception
             None => break,
         };
