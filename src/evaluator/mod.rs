@@ -140,7 +140,7 @@ fn eval_set(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
                 let elem = eval(pair.first, env.clone())?;
                 elems.push(elem);
             }
-            Ok(Value::create_set(elems))
+            Ok(Value::create_set_from_vec(elems))
         } else {
             Ok(ast.clone())
         }

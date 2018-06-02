@@ -603,12 +603,16 @@ impl Value {
         Value::new(ValueKind::InternalPairValue(pair))
     }
 
-    pub fn create_set(values: Vec<ValuePtr>) -> ValuePtr {
-        let pairs = values.iter().map(|v| (v.clone(), ())).collect();
-        Value::new(ValueKind::SetValue(map::TreeMap::create(pairs)))
+    pub fn create_set(set: map::TreeMap<ValuePtr, ()>) -> ValuePtr {
+        Value::new(ValueKind::SetValue(set))
     }
 
-    pub fn create_set_literal(values: Vec<ValuePtr>) -> ValuePtr {
+    pub fn create_set_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
+        let pairs = values.iter().map(|v| (v.clone(), ())).collect();
+        Value::create_set(map::TreeMap::create(pairs))
+    }
+
+    pub fn create_set_literal_from_vec(values: Vec<ValuePtr>) -> ValuePtr {
         let pairs = values.iter().map(|v| (v.clone(), ())).collect();
         Value::new_literal(ValueKind::SetValue(map::TreeMap::create(pairs)))
     }

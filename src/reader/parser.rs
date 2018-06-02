@@ -128,7 +128,7 @@ impl Parser {
     fn parse_set(&mut self) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, TokenKind::SharpLCurlyToken);
         self.parse_sequence(TokenKind::SharpLCurlyToken, TokenKind::RCurlyToken, &|v| {
-            Ok(Value::create_set_literal(v))
+            Ok(Value::create_set_literal_from_vec(v))
         })
     }
 
