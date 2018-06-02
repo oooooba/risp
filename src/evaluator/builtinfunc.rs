@@ -184,6 +184,13 @@ pub fn builtinfunc_conj(env: EnvPtr) -> Result<ValuePtr, Exception> {
             new_collection.append(&mut values.iter().collect());
             Ok(Value::create_vector(new_collection))
         }
+        ValueKind::SetValue(ref set) => {
+            let mut new_collection = set.clone();
+            for val in values.iter() {
+                new_collection = new_collection.insert(val, ()).0;
+            }
+            Ok(Value::create_set(new_collection))
+        }
         _ => unimplemented!(),
     }
 }
