@@ -200,3 +200,9 @@ pub fn builtinfunc_set(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let values = collection.iter().collect();
     Ok(Value::create_set_from_vec(values))
 }
+
+pub fn builtinfunc_hash_minus_map(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let args = env.lookup_nth_param(1).unwrap();
+    let values = args.iter().collect();
+    Ok(Value::create_map_from_vec(values))
+}

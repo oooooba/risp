@@ -13,3 +13,5 @@
 (def conj (fn [coll x & xs] (_conj coll (cons x xs))))
 
 (def set (fn [coll] (_set coll)))
+
+(def hash-map (fn [& xs] (_hash-map xs)))
