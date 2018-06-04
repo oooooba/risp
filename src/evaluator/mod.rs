@@ -32,7 +32,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     let cdr = iter.rest();
     if evaled_car.is_closure() {
         apply(&evaled_car, &cdr, env)
-    } else if evaled_car.is_map() {
+    } else if evaled_car.is_map() || evaled_car.is_keyword() {
         let pattern = Pattern::create_vector(vec![
             Pattern::create_symbol(Value::create_symbol("%1".to_string())),
             Pattern::create_symbol(Value::create_symbol("%2".to_string())),
@@ -42,7 +42,16 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         let closure_env = Env::create_empty();
         let closure_val = Value::create_closure(applicable, closure_env);
         assert!(cdr.is_list());
-        let args = Value::create_list(cdr.get_as_list().unwrap().clone().cons(evaled_car));
+        let args = if evaled_car.is_map() {
+            Value::create_list(cdr.get_as_list().unwrap().clone().cons(evaled_car))
+        } else {
+            let mut iter = cdr.iter();
+            let map = iter.next().unwrap();
+            let mut args = iter.rest().get_as_list().unwrap().clone();
+            args = args.cons(evaled_car);
+            args = args.cons(map);
+            Value::create_list(args)
+        };
         apply(&closure_val, &args, env)
     } else if evaled_car.kind.is_macro() {
         let new_ast = apply(&evaled_car, &cdr, env.clone())?;
