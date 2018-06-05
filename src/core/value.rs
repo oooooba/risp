@@ -561,6 +561,10 @@ impl Value {
         pairs
     }
 
+    pub fn create_map_raw(map: map::TreeMap<ValuePtr, ValuePtr>) -> ValuePtr {
+        Value::new(ValueKind::MapValue(map))
+    }
+
     pub fn create_map(pairs: Vec<(ValuePtr, ValuePtr)>) -> ValuePtr {
         Value::new(ValueKind::MapValue(map::TreeMap::create(pairs)))
     }

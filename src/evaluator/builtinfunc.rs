@@ -191,6 +191,16 @@ pub fn builtinfunc_conj(env: EnvPtr) -> Result<ValuePtr, Exception> {
             }
             Ok(Value::create_set(new_collection))
         }
+        ValueKind::MapValue(ref map) => {
+            let mut new_collection = map.clone();
+            for pair in values.iter() {
+                let mut iter = pair.iter();
+                let key = iter.next().unwrap();
+                let val = iter.next().unwrap();
+                new_collection = new_collection.insert(key, val).0;
+            }
+            Ok(Value::create_map_raw(new_collection))
+        }
         _ => unimplemented!(),
     }
 }
