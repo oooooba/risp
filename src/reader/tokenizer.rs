@@ -227,6 +227,7 @@ impl Tokenizer {
                 let pos = self.pos;
                 let kind = match self.peek(1) {
                     Some(c) if c == reserved::CHAR_L_CURLY => TokenKind::SharpLCurlyToken,
+                    Some(c) if c == reserved::CHAR_L_PAREN => TokenKind::SharpLParenToken,
                     _ => unreachable!(),
                 };
                 self.ahead(2);
