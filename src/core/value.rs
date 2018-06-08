@@ -272,7 +272,7 @@ impl Type {
 }
 
 pub fn constructor(typ: TypePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let args = env.lookup_nth_param(1).unwrap();
+    let args = env.lookup(&":_args".to_string()).unwrap();
     let arg_vec = args.iter().collect();
     Ok(typ.instantiate(arg_vec))
 }

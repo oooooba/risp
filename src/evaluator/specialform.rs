@@ -580,9 +580,7 @@ pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePt
     let record = Type::create(fields);
     let record_val = Value::create_type(record.clone());
 
-    let pattern = Pattern::create_vector(vec![], vec![
-        Pattern::create_symbol(Value::create_symbol("%1".to_string()))
-    ], None);
+    let pattern = Pattern::create_symbol(Value::create_symbol("_unreachable".to_string()));
     let body = ApplicableBodyKind::BuiltinBody(Box::new(move |e| {
         value::constructor(record.clone(), e)
     }));

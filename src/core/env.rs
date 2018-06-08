@@ -89,22 +89,28 @@ impl Env {
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))
     }
 
-    pub fn lookup(&self, key: &String) -> Option<&ValuePtr> {
-        self.0.lookup(key)
+    pub fn lookup(&self, key: &String) -> Option<ValuePtr> {
+        match key.chars().nth(0) {
+            Some('%') => match key.chars().nth(1) {
+                Some(c) if '1' <= c && c <= '9' => {
+                    let i = (c as usize) - ('0' as usize);
+                    self.lookup(&":_args".to_string()).unwrap().iter().skip(i - 1).next()
+                }
+                Some(_) => unimplemented!(),
+                None => unimplemented!(),
+            }
+            _ => self.0.lookup(key).map(|v| v.clone())
+        }
     }
 
-    pub fn lookup_nth_param(&self, n: usize) -> Option<&ValuePtr> {
-        self.lookup(&format!("%{}", n).to_string())
+    pub fn lookup_nth_param(&self, n: usize) -> Option<ValuePtr> {
+        self.lookup(&format!("%{}", n).to_string()).map(|v| v.clone())
     }
 }
 
-fn prepare_builtinfunc(name: &str, f: Box<BuiltinFuncType>, num_args: usize) -> (String, ValuePtr) {
+fn prepare_builtinfunc(name: &str, f: Box<BuiltinFuncType>, _num_args: usize) -> (String, ValuePtr) {
     let name = name.to_string();
-    let mut params = vec![];
-    for i in 0..num_args {
-        params.push(Pattern::create_symbol(Value::create_symbol(format!("%{}", i + 1))));
-    }
-    let param = Pattern::create_vector(params, vec![], None);
+    let param = Pattern::create_symbol(Value::create_symbol("_unreachable".to_string()));
     let env = Env::create_empty();
     let applicable = Applicable::new(None, param, ApplicableBodyKind::BuiltinBody(f));
     let closure = Value::create_closure(applicable, env);

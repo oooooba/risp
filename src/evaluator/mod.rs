@@ -86,8 +86,11 @@ fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<
     let mut evaled_pairs = vec![];
     if let Some(ref name) = applicable.name {
         evaled_pairs.push((name.clone(), applicable_val.clone()));
+    } else {
+        evaled_pairs.push(("_unreachable".to_string(), Value::create_nil()));
     }
     evaled_pairs.append(&mut specialform::bind_pattern_to_value(param, &evaled_args_val, env.clone())?);
+    evaled_pairs.push((":_args".to_string(), evaled_args_val));
 
     let new_env = if processes_closure {
         Env::create(evaled_pairs, closure_env)
