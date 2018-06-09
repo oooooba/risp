@@ -3,7 +3,6 @@ use std::collections::LinkedList;
 use core::value::{Value, ValuePtr};
 use core::exception::{Exception, ExceptionKind};
 use core::reserved;
-use core::list;
 use reader::{Token, TokenKind};
 
 pub struct Parser {
@@ -136,10 +135,10 @@ impl Parser {
     fn parse_lambda(&mut self) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, TokenKind::SharpLParenToken);
         self.parse_sequence(TokenKind::SharpLParenToken, TokenKind::RParenToken, &|v| {
-            let mut expr = list::List::create(v);
-            expr = expr.cons(Value::create_vector(vec![]));
-            expr = expr.cons(Value::create_symbol("fn".to_string()));
-            Ok(Value::create_list(expr))
+            let body = Value::create_list_from_vec(v);
+            let params = Value::create_vector(vec![]);
+            let symbol_fn = Value::create_symbol(reserved::STR_FN.to_string());
+            Ok(Value::create_list_from_vec(vec![symbol_fn, params, body]))
         })
     }
 
