@@ -97,7 +97,7 @@ impl Env {
                     self.lookup(&":_args".to_string()).unwrap().iter().skip(i - 1).next()
                 }
                 Some(_) => unimplemented!(),
-                None => unimplemented!(),
+                None => self.lookup_nth_param(1),
             }
             _ => self.0.lookup(key).map(|v| v.clone())
         }
