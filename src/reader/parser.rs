@@ -7,12 +7,14 @@ use reader::{Token, TokenKind};
 
 pub struct Parser {
     tokens: LinkedList<Token>,
+    is_parsing_labda_expr: bool,
 }
 
 impl Parser {
     pub fn new(tokens: LinkedList<Token>) -> Parser {
         Parser {
             tokens: tokens,
+            is_parsing_labda_expr: false,
         }
     }
 
@@ -134,12 +136,21 @@ impl Parser {
 
     fn parse_lambda(&mut self) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, TokenKind::SharpLParenToken);
-        self.parse_sequence(TokenKind::SharpLParenToken, TokenKind::RParenToken, &|v| {
+        if self.is_parsing_labda_expr {
+            return Err(Exception::new(ExceptionKind::EvaluatorIllegalStateException(
+                "parser".to_string(),
+                "Nested #()s are not allowed".to_string(),
+            ), None));
+        }
+        self.is_parsing_labda_expr = true;
+        let result = self.parse_sequence(TokenKind::SharpLParenToken, TokenKind::RParenToken, &|v| {
             let body = Value::create_list_from_vec(v);
             let params = Value::create_vector(vec![]);
             let symbol_fn = Value::create_symbol(reserved::STR_FN.to_string());
             Ok(Value::create_list_from_vec(vec![symbol_fn, params, body]))
-        })
+        });
+        self.is_parsing_labda_expr = false;
+        result
     }
 
     fn parse_quote_family_reader_macro(&mut self, kind: TokenKind, symbol: &'static str)
