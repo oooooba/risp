@@ -15,3 +15,5 @@
 (def set (fn [coll] (_set coll)))
 
 (def hash-map (fn [& xs] (_hash-map xs)))
+
+(def apply (fn [f xs] (_apply f xs)))

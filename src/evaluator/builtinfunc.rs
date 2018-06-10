@@ -1,6 +1,7 @@
 use core::value::{Value, ValueKind, ValuePtr};
 use core::exception::{Exception, ExceptionKind};
 use core::env::EnvPtr;
+use evaluator;
 
 enum IntegerBuiltinOperatorKind {
     Add,
@@ -215,4 +216,10 @@ pub fn builtinfunc_hash_minus_map(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let args = env.lookup_nth_param(1).unwrap();
     let values = args.iter().collect();
     Ok(Value::create_map_from_vec(values))
+}
+
+pub fn builtinfunc_apply(env: EnvPtr) -> Result<ValuePtr, Exception> {
+    let f = env.lookup_nth_param(1).unwrap();
+    let args = env.lookup_nth_param(2).unwrap();
+    evaluator::apply(&f, &args, env)
 }

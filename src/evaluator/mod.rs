@@ -61,7 +61,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     }
 }
 
-fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+pub fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(applicable_val.is_closure() || applicable_val.kind.is_macro());
     assert!(args_val.is_list());
     let (applicable, closure_env) = match applicable_val.kind {
