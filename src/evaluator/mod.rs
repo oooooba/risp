@@ -126,7 +126,7 @@ fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
 }
 
 fn eval_vector(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.kind.is_vector());
+    assert!(ast.is_vector());
     if let ValueKind::VectorValue(ref vector) = ast.kind {
         if ast.is_literal {
             let mut evaled_vector = vec![];

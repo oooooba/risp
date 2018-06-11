@@ -133,7 +133,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_vector(&self) -> bool {
+    fn is_vector(&self) -> bool {
         match self {
             &ValueKind::VectorValue(_) => true,
             _ => false,
@@ -494,6 +494,10 @@ impl ValuePtr {
 
     pub fn is_map(&self) -> bool {
         self.kind.is_map()
+    }
+
+    pub fn is_vector(&self) -> bool {
+        self.kind.is_vector()
     }
 
     pub fn is_pair(&self) -> bool {

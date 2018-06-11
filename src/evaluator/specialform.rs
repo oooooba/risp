@@ -109,7 +109,7 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr
             pairs.push((symbol.get_as_symbol().unwrap().clone(), value.clone()));
         }
         VectorPattern(ref patterns, ref rest_patterns, ref as_symbol) => {
-            if !(value.is_list() || value.kind.is_vector()) { // ToDo: fix to accept streaming-like data
+            if !(value.is_list() || value.is_vector()) { // ToDo: fix to accept streaming-like data
                 unimplemented!()
             }
             let mut value_iter = value.iter();
@@ -155,14 +155,14 @@ pub fn bind_pattern_to_value(pattern: &PatternPtr, value: &ValuePtr, env: EnvPtr
 }
 
 fn split_let_binding_form(form: &ValuePtr) -> Result<(Vec<ValuePtr>, Vec<ValuePtr>), Exception> {
-    assert!(form.kind.is_vector());
+    assert!(form.is_vector());
     let mut patterns = vec![];
     let mut exprs = vec![];
     let mut iter = form.iter();
     loop {
         let pattern = match iter.next() {
             Some(ref symbol) if symbol.is_symbol() => symbol.clone(),
-            Some(ref vector) if vector.kind.is_vector() => vector.clone(),
+            Some(ref vector) if vector.is_vector() => vector.clone(),
             Some(ref map) if map.is_map() => map.clone(),
             Some(_) => unimplemented!(), // exception
             None => break,
@@ -185,7 +185,7 @@ pub fn eval_specialform_let(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     assert!(iter.next().unwrap().kind.matches_symbol(reserved::STR_LET));
 
     let (unparsed_patterns, unevaled_exprs) = match iter.next() {
-        Some(ref form) if form.kind.is_vector() => split_let_binding_form(form)?,
+        Some(ref form) if form.is_vector() => split_let_binding_form(form)?,
         Some(_) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), ast.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException(reserved::STR_LET), None)),
     };
@@ -288,7 +288,7 @@ pub fn eval_specialform_fn(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exce
     };
 
     let param_vector = match iter.next() {
-        Some(ref vector) if vector.kind.is_vector() => vector.clone(),
+        Some(ref vector) if vector.is_vector() => vector.clone(),
         Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), other.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException(reserved::STR_FN), None)),
     };
@@ -389,7 +389,7 @@ pub fn eval_specialform_defmacro(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr
     };
 
     let param_vector = match iter.next() {
-        Some(ref vector) if vector.kind.is_vector() => vector.clone(),
+        Some(ref vector) if vector.is_vector() => vector.clone(),
         Some(other) => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_vector(), other.kind.as_type_str()), None)),
         None => return Err(Exception::new(ExceptionKind::EvaluatorIllegalFormException(reserved::STR_DEFMACRO), None)),
     };
@@ -429,7 +429,7 @@ fn split_try_form(mut iter: ValueIterator)
     let mut finally_clause = None;
 
     while let Some(expr) = iter.next() {
-        if expr.is_list() || expr.kind.is_vector() {
+        if expr.is_list() || expr.is_vector() {
             match expr.iter().peekable().peek() {
                 Some(ref symbol) if symbol.kind.matches_symbol(reserved::STR_CATCH) => {
                     catch_clauses.push(expr.clone());
@@ -455,7 +455,7 @@ fn split_try_form(mut iter: ValueIterator)
     }
 
     while let Some(expr) = iter.next() {
-        if !(expr.is_list() || expr.kind.is_vector()) {
+        if !(expr.is_list() || expr.is_vector()) {
             unimplemented!()
         }
         match expr.iter().peekable().peek() {
@@ -561,7 +561,7 @@ pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePt
     };
 
     let symbols = match iter.next() {
-        Some(ref vector) if vector.kind.is_vector() => {
+        Some(ref vector) if vector.is_vector() => {
             for symbol in vector.iter() {
                 if !symbol.is_symbol() {
                     unimplemented!()
