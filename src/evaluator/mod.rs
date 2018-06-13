@@ -53,7 +53,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
             Value::create_list(args)
         };
         apply(&closure_val, &args, env)
-    } else if evaled_car.kind.is_macro() {
+    } else if evaled_car.is_macro() {
         let new_ast = apply(&evaled_car, &cdr, env.clone())?;
         eval(new_ast, env)
     } else {
@@ -62,7 +62,7 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
 }
 
 pub fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(applicable_val.is_closure() || applicable_val.kind.is_macro());
+    assert!(applicable_val.is_closure() || applicable_val.is_macro());
     assert!(args_val.is_list());
     let (applicable, closure_env) = match applicable_val.kind {
         ValueKind::ClosureValue(ref applicable, ref closure_env) => (applicable, Some(closure_env.clone())),

@@ -140,7 +140,7 @@ impl ValueKind {
         }
     }
 
-    pub fn is_macro(&self) -> bool {
+    fn is_macro(&self) -> bool {
         match self {
             &ValueKind::MacroValue(_) => true,
             _ => false,
@@ -498,6 +498,10 @@ impl ValuePtr {
 
     pub fn is_vector(&self) -> bool {
         self.kind.is_vector()
+    }
+
+    pub fn is_macro(&self) -> bool {
+        self.kind.is_macro()
     }
 
     pub fn is_pair(&self) -> bool {
