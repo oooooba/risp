@@ -161,7 +161,7 @@ impl ValueKind {
         }
     }
 
-    pub fn matches_symbol(&self, expected: &str) -> bool {
+    fn matches_symbol(&self, expected: &str) -> bool {
         match self {
             &ValueKind::SymbolValue(ref actual) => expected == actual.as_str(),
             _ => false,
@@ -510,6 +510,10 @@ impl ValuePtr {
 
     pub fn is_set(&self) -> bool {
         self.kind.is_set()
+    }
+
+    pub fn matches_symbol(&self, expected: &str) -> bool {
+        self.kind.matches_symbol(expected)
     }
 }
 
