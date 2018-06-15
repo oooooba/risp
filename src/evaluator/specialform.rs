@@ -23,7 +23,7 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                     Some(pattern) => pattern,
                     None => break,
                 };
-                if pattern.kind.matches_keyword(reserved::STR_AS) {
+                if pattern.matches_keyword(reserved::STR_AS) {
                     match iter.next() {
                         Some(ref symbol) if symbol.is_symbol() => {
                             as_symbol = Some(parse_pattern(&symbol)?);
@@ -63,13 +63,13 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
                     Some(_) => unimplemented!(),
                     None => break,
                 };
-                if pattern_val.kind.matches_keyword(reserved::STR_AS) {
+                if pattern_val.matches_keyword(reserved::STR_AS) {
                     if key_val.is_symbol() && as_symbol.is_none() {
                         as_symbol = Some(parse_pattern(&key_val)?);
                     } else {
                         unimplemented!();
                     }
-                } else if pattern_val.kind.matches_keyword(reserved::STR_OR) {
+                } else if pattern_val.matches_keyword(reserved::STR_OR) {
                     if or_value.is_none() {
                         or_value = Some(key_val.clone());
                     } else {

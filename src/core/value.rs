@@ -168,7 +168,7 @@ impl ValueKind {
         }
     }
 
-    pub fn matches_keyword(&self, expected: &str) -> bool {
+    fn matches_keyword(&self, expected: &str) -> bool {
         match self {
             &ValueKind::KeywordValue(ref actual) => expected == actual.as_str(),
             _ => false,
@@ -514,6 +514,10 @@ impl ValuePtr {
 
     pub fn matches_symbol(&self, expected: &str) -> bool {
         self.kind.matches_symbol(expected)
+    }
+
+    pub fn matches_keyword(&self, expected: &str) -> bool {
+        self.kind.matches_keyword(expected)
     }
 }
 
