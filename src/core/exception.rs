@@ -1,7 +1,7 @@
-use core::value::ValuePtr;
-use core::env::EnvPtr;
+use super::env::EnvPtr;
+use super::value::ValuePtr;
 
-use reader::Token;
+use super::super::reader::Token;
 
 #[derive(PartialEq, Debug)]
 pub enum ExceptionKind {
@@ -18,10 +18,10 @@ pub enum ExceptionKind {
     ParserEmptyTokensException,
     EvaluatorUndefinedSymbolException(String),
     EvaluatorTypeException(&'static str, &'static str), // (expected, actual)
-    EvaluatorArityException(usize, usize), // (expected, actual)
-    EvaluatorIllegalFormException(&'static str), // (form)
-    EvaluatorIllegalArgumentException(String), // (message)
-    EvaluatorIllegalStateException(String, String), // (form, message)
+    EvaluatorArityException(usize, usize),              // (expected, actual)
+    EvaluatorIllegalFormException(&'static str),        // (form)
+    EvaluatorIllegalArgumentException(String),          // (message)
+    EvaluatorIllegalStateException(String, String),     // (form, message)
     Continuation(EnvPtr),
 }
 

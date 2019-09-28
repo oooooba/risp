@@ -1,19 +1,19 @@
-use std::rc::Rc;
+use std::cmp::Ordering;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::iter::Iterator;
+use std::ops::Deref;
+use std::rc::Rc;
 use std::slice::Iter;
 use std::string::ToString;
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
-use std::cmp::Ordering;
 
-use core::exception::Exception;
-use core::env::EnvPtr;
-use core::reserved;
-use core::pair;
-use core::pattern::PatternPtr;
-use core::map;
-use core::list;
+use super::env::EnvPtr;
+use super::exception::Exception;
+use super::list;
+use super::map;
+use super::pair;
+use super::pattern::PatternPtr;
+use super::reserved;
 
 #[derive(Debug, Eq)]
 pub enum ValueKind {
@@ -71,18 +71,42 @@ impl ValueKind {
         }
     }
 
-    pub fn type_str_integer() -> &'static str { "Integer" }
-    pub fn type_str_string() -> &'static str { "String" }
-    pub fn type_str_symbol() -> &'static str { "Symbol" }
-    pub fn type_str_keyword() -> &'static str { "Keyword" }
-    pub fn type_str_list() -> &'static str { "List" }
-    pub fn type_str_closure() -> &'static str { "Closure" }
-    pub fn type_str_nil() -> &'static str { "Nil" }
-    pub fn type_str_map() -> &'static str { "Map" }
-    pub fn type_str_boolean() -> &'static str { "Boolean" }
-    pub fn type_str_vector() -> &'static str { "Vector" }
-    pub fn type_str_type() -> &'static str { "Type" }
-    pub fn type_str_set() -> &'static str { "Set" }
+    pub fn type_str_integer() -> &'static str {
+        "Integer"
+    }
+    pub fn type_str_string() -> &'static str {
+        "String"
+    }
+    pub fn type_str_symbol() -> &'static str {
+        "Symbol"
+    }
+    pub fn type_str_keyword() -> &'static str {
+        "Keyword"
+    }
+    pub fn type_str_list() -> &'static str {
+        "List"
+    }
+    pub fn type_str_closure() -> &'static str {
+        "Closure"
+    }
+    pub fn type_str_nil() -> &'static str {
+        "Nil"
+    }
+    pub fn type_str_map() -> &'static str {
+        "Map"
+    }
+    pub fn type_str_boolean() -> &'static str {
+        "Boolean"
+    }
+    pub fn type_str_vector() -> &'static str {
+        "Vector"
+    }
+    pub fn type_str_type() -> &'static str {
+        "Type"
+    }
+    pub fn type_str_set() -> &'static str {
+        "Set"
+    }
 
     fn is_integer(&self) -> bool {
         match self {
@@ -197,7 +221,7 @@ impl PartialEq for ValueKind {
     }
 }
 
-pub type BuiltinFuncType = Fn(EnvPtr) -> Result<ValuePtr, Exception>;
+pub type BuiltinFuncType = dyn Fn(EnvPtr) -> Result<ValuePtr, Exception>;
 
 pub enum ApplicableBodyKind {
     AstBody(ValuePtr),
@@ -212,13 +236,11 @@ impl PartialEq for ApplicableBodyKind {
         use std::mem::transmute;
         match (self, other) {
             (&AstBody(ref lhs), &AstBody(ref rhs)) => lhs == rhs,
-            (&BuiltinBody(ref lhs), &BuiltinBody(ref rhs)) => {
-                unsafe {
-                    let addr_lhs: usize = transmute(lhs);
-                    let addr_rhs: usize = transmute(rhs);
-                    addr_lhs == addr_rhs
-                }
-            }
+            (&BuiltinBody(ref lhs), &BuiltinBody(ref rhs)) => unsafe {
+                let addr_lhs: usize = transmute(lhs);
+                let addr_rhs: usize = transmute(rhs);
+                addr_lhs == addr_rhs
+            },
             _ => false,
         }
     }
@@ -308,7 +330,12 @@ impl PartialEq for ValuePtr {
     }
 }
 
-fn to_string_helper(begin_str: &str, end_str: &str, delim_str: &str, mut iter: ValueIterator) -> String {
+fn to_string_helper(
+    begin_str: &str,
+    end_str: &str,
+    delim_str: &str,
+    mut iter: ValueIterator,
+) -> String {
     let mut text = String::new();
     text.push_str(begin_str);
     if let Some(val) = iter.next() {
@@ -327,39 +354,66 @@ impl ToString for ValuePtr {
         use self::ValueKind::*;
         match self.kind {
             IntegerValue(ref n) => n.to_string(),
-            StringValue(ref s) => format!("{}{}{}", reserved::CHAR_D_QUOTE, s, reserved::CHAR_D_QUOTE),
+            StringValue(ref s) => {
+                format!("{}{}{}", reserved::CHAR_D_QUOTE, s, reserved::CHAR_D_QUOTE)
+            }
             SymbolValue(ref s) => s.clone(),
             KeywordValue(ref k) => format!("{}{}", reserved::CHAR_COLON, k),
-            ListValue(_) => to_string_helper(reserved::STR__L_PAREN_, reserved::STR__R_PAREN_,
-                                             " ", self.iter()),
+            ListValue(_) => to_string_helper(
+                reserved::STR__L_PAREN_,
+                reserved::STR__R_PAREN_,
+                " ",
+                self.iter(),
+            ),
             ClosureValue(ref a, ref e) => {
                 use std::mem::transmute;
                 let mut text = String::new();
                 text.push('<');
-                text.push_str(&format!("{:x}", unsafe { transmute::<&ApplicableBodyKind, usize>(&a.body) }));
+                text.push_str(&format!("{:x}", unsafe {
+                    transmute::<&ApplicableBodyKind, usize>(&a.body)
+                }));
                 text.push_str(", ");
                 match a.name {
                     Some(ref name) => text.push_str(name),
                     None => text.push_str("<anon>"),
                 }
                 text.push_str(", ");
-                text.push_str(&format!("{:x}", unsafe { transmute::<&PatternPtr, usize>(&a.param) }));
+                text.push_str(&format!("{:x}", unsafe {
+                    transmute::<&PatternPtr, usize>(&a.param)
+                }));
                 text.push_str(", ");
                 text.push_str(&format!("{:x}", unsafe { transmute::<&EnvPtr, usize>(e) }));
                 text.push('>');
                 text
             }
             NilValue => reserved::STR_NIL.to_string(),
-            MapValue(_) => to_string_helper(reserved::STR__L_CURLY_, reserved::STR__R_CURLY_,
-                                            ", ", self.iter()),
-            BooleanValue(ref b) => (if *b { reserved::STR_TRUE } else { reserved::STR_FALSE }).to_string(),
-            VectorValue(_) => to_string_helper(reserved::STR__L_BRACKET_, reserved::STR__R_BRACKET_,
-                                               " ", self.iter()),
+            MapValue(_) => to_string_helper(
+                reserved::STR__L_CURLY_,
+                reserved::STR__R_CURLY_,
+                ", ",
+                self.iter(),
+            ),
+            BooleanValue(ref b) => (if *b {
+                reserved::STR_TRUE
+            } else {
+                reserved::STR_FALSE
+            })
+            .to_string(),
+            VectorValue(_) => to_string_helper(
+                reserved::STR__L_BRACKET_,
+                reserved::STR__R_BRACKET_,
+                " ",
+                self.iter(),
+            ),
             MacroValue(_) => unimplemented!(),
             TypeValue(_) => unimplemented!(),
             InternalPairValue(ref p) => format!("{} {}", p.first.to_string(), p.second.to_string()),
-            SetValue(_) => to_string_helper(reserved::STR__SHARP__L_CURLY_, reserved::STR__R_CURLY_,
-                                            ", ", self.iter()),
+            SetValue(_) => to_string_helper(
+                reserved::STR__SHARP__L_CURLY_,
+                reserved::STR__R_CURLY_,
+                ", ",
+                self.iter(),
+            ),
         }
     }
 }
@@ -523,11 +577,17 @@ impl ValuePtr {
 
 impl Value {
     fn new(kind: ValueKind) -> ValuePtr {
-        ValuePtr::wrap(Value { kind: kind, is_literal: false })
+        ValuePtr::wrap(Value {
+            kind: kind,
+            is_literal: false,
+        })
     }
 
     fn new_literal(kind: ValueKind) -> ValuePtr {
-        ValuePtr::wrap(Value { kind: kind, is_literal: true })
+        ValuePtr::wrap(Value {
+            kind: kind,
+            is_literal: true,
+        })
     }
 
     pub fn create_integer(integer: isize) -> ValuePtr {
@@ -702,9 +762,9 @@ impl<'a> ValueIterator<'a> {
                 }
                 Value::create_vector(rest_val)
             }
-            MapIterator(ref mut iter) => Value::create_vector(iter.map(|p| {
-                Value::create_pair(p)
-            }).collect()),
+            MapIterator(ref mut iter) => {
+                Value::create_vector(iter.map(|p| Value::create_pair(p)).collect())
+            }
             SetIterator(ref mut iter) => {
                 let mut rest_val = vec![];
                 while let Some(val) = iter.next() {
@@ -753,77 +813,167 @@ mod tests {
             ]);
             let mut iter = list_val.iter();
             assert_eq!(iter.next(), Some(Value::create_integer(1)));
-            assert_eq!(iter.rest(), Value::create_list_from_vec(vec![
-                Value::create_integer(2),
-                Value::create_integer(3),
-            ]));
+            assert_eq!(
+                iter.rest(),
+                Value::create_list_from_vec(vec![
+                    Value::create_integer(2),
+                    Value::create_integer(3),
+                ])
+            );
             assert_eq!(iter.next(), None);
-            assert_eq!(list_val, Value::create_list_from_vec(vec![
+            assert_eq!(
+                list_val,
+                Value::create_list_from_vec(vec![
+                    Value::create_integer(1),
+                    Value::create_integer(2),
+                    Value::create_integer(3),
+                ])
+            );
+        }
+        {
+            let map_val = Value::create_map(vec![(
+                Value::create_keyword("a".to_string()),
                 Value::create_integer(1),
-                Value::create_integer(2),
-                Value::create_integer(3),
-            ]));
+            )]);
+            let mut iter = map_val.iter();
+            assert_eq!(
+                iter.next(),
+                Some(Value::create_pair(pair::Pair::new(
+                    Value::create_keyword("a".to_string()),
+                    Value::create_integer(1)
+                )))
+            );
+            assert_eq!(iter.next(), None);
+            assert_eq!(
+                map_val,
+                Value::create_map(vec![(
+                    Value::create_keyword("a".to_string()),
+                    Value::create_integer(1)
+                ),])
+            );
         }
         {
             let map_val = Value::create_map(vec![
-                (Value::create_keyword("a".to_string()), Value::create_integer(1)),
+                (
+                    Value::create_keyword("a".to_string()),
+                    Value::create_integer(1),
+                ),
+                (
+                    Value::create_keyword("b".to_string()),
+                    Value::create_integer(2),
+                ),
+                (
+                    Value::create_keyword("c".to_string()),
+                    Value::create_integer(3),
+                ),
+                (
+                    Value::create_keyword("d".to_string()),
+                    Value::create_integer(4),
+                ),
             ]);
             let mut iter = map_val.iter();
-            assert_eq!(iter.next(), Some(Value::create_pair(
-                pair::Pair::new(Value::create_keyword("a".to_string()), Value::create_integer(1)))));
+            assert_eq!(
+                iter.next(),
+                Some(Value::create_pair(pair::Pair::new(
+                    Value::create_keyword("a".to_string()),
+                    Value::create_integer(1)
+                )))
+            );
+            assert_eq!(
+                iter.rest(),
+                Value::create_vector(vec![
+                    Value::create_pair(pair::Pair::new(
+                        Value::create_keyword("b".to_string()),
+                        Value::create_integer(2)
+                    )),
+                    Value::create_pair(pair::Pair::new(
+                        Value::create_keyword("c".to_string()),
+                        Value::create_integer(3)
+                    )),
+                    Value::create_pair(pair::Pair::new(
+                        Value::create_keyword("d".to_string()),
+                        Value::create_integer(4)
+                    )),
+                ])
+            );
             assert_eq!(iter.next(), None);
-            assert_eq!(map_val, Value::create_map(vec![
-                (Value::create_keyword("a".to_string()), Value::create_integer(1)),
-            ]));
-        }
-        {
-            let map_val = Value::create_map(vec![
-                (Value::create_keyword("a".to_string()), Value::create_integer(1)),
-                (Value::create_keyword("b".to_string()), Value::create_integer(2)),
-                (Value::create_keyword("c".to_string()), Value::create_integer(3)),
-                (Value::create_keyword("d".to_string()), Value::create_integer(4)),
-            ]);
-            let mut iter = map_val.iter();
-            assert_eq!(iter.next(), Some(Value::create_pair(pair::Pair::new(Value::create_keyword("a".to_string()), Value::create_integer(1)))));
-            assert_eq!(iter.rest(), Value::create_vector(vec![
-                Value::create_pair(pair::Pair::new(Value::create_keyword("b".to_string()), Value::create_integer(2))),
-                Value::create_pair(pair::Pair::new(Value::create_keyword("c".to_string()), Value::create_integer(3))),
-                Value::create_pair(pair::Pair::new(Value::create_keyword("d".to_string()), Value::create_integer(4))),
-            ]));
-            assert_eq!(iter.next(), None);
-            assert_eq!(map_val, Value::create_map(vec![
-                (Value::create_keyword("a".to_string()), Value::create_integer(1)),
-                (Value::create_keyword("b".to_string()), Value::create_integer(2)),
-                (Value::create_keyword("c".to_string()), Value::create_integer(3)),
-                (Value::create_keyword("d".to_string()), Value::create_integer(4)),
-            ]));
+            assert_eq!(
+                map_val,
+                Value::create_map(vec![
+                    (
+                        Value::create_keyword("a".to_string()),
+                        Value::create_integer(1)
+                    ),
+                    (
+                        Value::create_keyword("b".to_string()),
+                        Value::create_integer(2)
+                    ),
+                    (
+                        Value::create_keyword("c".to_string()),
+                        Value::create_integer(3)
+                    ),
+                    (
+                        Value::create_keyword("d".to_string()),
+                        Value::create_integer(4)
+                    ),
+                ])
+            );
         }
     }
 
     #[test]
     fn test_comparison() {
         use std::cmp::Ordering::*;
-        assert_eq!(Value::create_integer(1).cmp(&Value::create_integer(2)), Less);
-        assert_eq!(Value::create_integer(2).cmp(&Value::create_integer(2)), Equal);
-        assert_eq!(Value::create_integer(2).cmp(&Value::create_integer(1)), Greater);
-        assert_eq!(Value::create_symbol("ab".to_string()).cmp(&Value::create_symbol("abc".to_string())), Less);
-        assert_eq!(Value::create_symbol("ab".to_string()).cmp(&Value::create_symbol("a".to_string())), Greater);
-        assert_eq!(Value::create_integer(9).cmp(&Value::create_symbol("1".to_string())), Less);
-        assert_eq!(Value::create_list_from_vec(vec![]).cmp(&Value::create_list_from_vec(vec![])), Equal);
-        assert_eq!(Value::create_list_from_vec(vec![]).cmp(&Value::create_list_from_vec(vec![Value::create_integer(1)])), Less);
-        assert_eq!(Value::create_vector(vec![
-            Value::create_integer(3), Value::create_integer(4),
-        ]).cmp(&Value::create_vector(vec![
-            Value::create_integer(1), Value::create_integer(2),
-        ])), Greater);
-        assert_eq!(Value::create_vector(vec![
-            Value::create_keyword("a".to_string()),
-            Value::create_keyword("b".to_string()),
-            Value::create_keyword("c".to_string()),
-        ]), Value::create_list_from_vec(vec![
-            Value::create_keyword("a".to_string()),
-            Value::create_keyword("b".to_string()),
-            Value::create_keyword("c".to_string()),
-        ]));
+        assert_eq!(
+            Value::create_integer(1).cmp(&Value::create_integer(2)),
+            Less
+        );
+        assert_eq!(
+            Value::create_integer(2).cmp(&Value::create_integer(2)),
+            Equal
+        );
+        assert_eq!(
+            Value::create_integer(2).cmp(&Value::create_integer(1)),
+            Greater
+        );
+        assert_eq!(
+            Value::create_symbol("ab".to_string()).cmp(&Value::create_symbol("abc".to_string())),
+            Less
+        );
+        assert_eq!(
+            Value::create_symbol("ab".to_string()).cmp(&Value::create_symbol("a".to_string())),
+            Greater
+        );
+        assert_eq!(
+            Value::create_integer(9).cmp(&Value::create_symbol("1".to_string())),
+            Less
+        );
+        assert_eq!(
+            Value::create_list_from_vec(vec![]).cmp(&Value::create_list_from_vec(vec![])),
+            Equal
+        );
+        assert_eq!(
+            Value::create_list_from_vec(vec![])
+                .cmp(&Value::create_list_from_vec(vec![Value::create_integer(1)])),
+            Less
+        );
+        assert_eq!(
+            Value::create_vector(vec![Value::create_integer(3), Value::create_integer(4),]).cmp(
+                &Value::create_vector(vec![Value::create_integer(1), Value::create_integer(2),])
+            ),
+            Greater
+        );
+        assert_eq!(
+            Value::create_vector(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_keyword("b".to_string()),
+                Value::create_keyword("c".to_string()),
+            ]),
+            Value::create_list_from_vec(vec![
+                Value::create_keyword("a".to_string()),
+                Value::create_keyword("b".to_string()),
+                Value::create_keyword("c".to_string()),
+            ])
+        );
     }
 }

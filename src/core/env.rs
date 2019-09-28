@@ -1,17 +1,17 @@
-use std::rc::Rc;
 use std::collections::HashMap;
-use std::iter::FromIterator;
 use std::env;
 use std::fs::File;
 use std::io::Read;
+use std::iter::FromIterator;
 use std::path::PathBuf;
+use std::rc::Rc;
 
-use core::parse_and_eval;
-use core::value::{Value, ValuePtr, BuiltinFuncType, ApplicableBodyKind, Applicable};
-use core::map;
-use core::pattern::Pattern;
-use evaluator::builtinfunc;
-use reader::tokenize;
+use super::super::evaluator::builtinfunc;
+use super::super::reader::tokenize;
+use super::map;
+use super::parse_and_eval;
+use super::pattern::Pattern;
+use super::value::{Applicable, ApplicableBodyKind, BuiltinFuncType, Value, ValuePtr};
 
 #[derive(PartialEq, Debug, Eq)]
 pub struct Env(map::TreeMap<String, ValuePtr>);
@@ -51,7 +51,9 @@ impl Env {
             let (result, rest_tokens) = parse_and_eval(tokens, outer_env.clone());
             let env = match result {
                 Ok(_) => outer_env,
-                Err(exception) => exception.extract_env_from_continuation().unwrap_or(outer_env),
+                Err(exception) => exception
+                    .extract_env_from_continuation()
+                    .unwrap_or(outer_env),
             };
             match rest_tokens {
                 None => return env,
@@ -84,7 +86,11 @@ impl Env {
             prepare_builtinfunc("_boolean", Box::new(builtinfunc::builtinfunc_boolean), 1),
             prepare_builtinfunc("_conj", Box::new(builtinfunc::builtinfunc_conj), 2),
             prepare_builtinfunc("_set", Box::new(builtinfunc::builtinfunc_set), 1),
-            prepare_builtinfunc("_hash-map", Box::new(builtinfunc::builtinfunc_hash_minus_map), 1),
+            prepare_builtinfunc(
+                "_hash-map",
+                Box::new(builtinfunc::builtinfunc_hash_minus_map),
+                1,
+            ),
             prepare_builtinfunc("_apply", Box::new(builtinfunc::builtinfunc_apply), 2),
         ];
         Env::load_library(Env::new(HashMap::from_iter(pairs), None))
@@ -95,21 +101,30 @@ impl Env {
             Some('%') => match key.chars().nth(1) {
                 Some(c) if '1' <= c && c <= '9' => {
                     let i = (c as usize) - ('0' as usize);
-                    self.lookup(&":_args".to_string()).unwrap().iter().skip(i - 1).next()
+                    self.lookup(&":_args".to_string())
+                        .unwrap()
+                        .iter()
+                        .skip(i - 1)
+                        .next()
                 }
                 Some(_) => unimplemented!(),
                 None => self.lookup_nth_param(1),
-            }
-            _ => self.0.lookup(key).map(|v| v.clone())
+            },
+            _ => self.0.lookup(key).map(|v| v.clone()),
         }
     }
 
     pub fn lookup_nth_param(&self, n: usize) -> Option<ValuePtr> {
-        self.lookup(&format!("%{}", n).to_string()).map(|v| v.clone())
+        self.lookup(&format!("%{}", n).to_string())
+            .map(|v| v.clone())
     }
 }
 
-fn prepare_builtinfunc(name: &str, f: Box<BuiltinFuncType>, _num_args: usize) -> (String, ValuePtr) {
+fn prepare_builtinfunc(
+    name: &str,
+    f: Box<BuiltinFuncType>,
+    _num_args: usize,
+) -> (String, ValuePtr) {
     let name = name.to_string();
     let param = Pattern::create_symbol(Value::create_symbol("_unreachable".to_string()));
     let env = Env::create_empty();

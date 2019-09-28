@@ -1,7 +1,7 @@
-use core::value::{Value, ValueKind, ValuePtr};
-use core::exception::{Exception, ExceptionKind};
-use core::env::EnvPtr;
-use evaluator;
+use super::super::core::env::EnvPtr;
+use super::super::core::exception::{Exception, ExceptionKind};
+use super::super::core::value::{Value, ValueKind, ValuePtr};
+use super::super::evaluator;
 
 enum IntegerBuiltinOperatorKind {
     Add,
@@ -16,13 +16,29 @@ fn op_common_integer(kind: IntegerBuiltinOperatorKind, env: EnvPtr) -> Result<Va
     let lhs_val = env.lookup_nth_param(1).unwrap();
     let lhs_int = match lhs_val.kind {
         ValueKind::IntegerValue(n) => n,
-        _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), lhs_val.kind.as_type_str()), None)),
+        _ => {
+            return Err(Exception::new(
+                ExceptionKind::EvaluatorTypeException(
+                    ValueKind::type_str_integer(),
+                    lhs_val.kind.as_type_str(),
+                ),
+                None,
+            ))
+        }
     };
 
     let rhs_val = env.lookup_nth_param(2).unwrap();
     let rhs_int = match rhs_val.kind {
         ValueKind::IntegerValue(n) => n,
-        _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), rhs_val.kind.as_type_str()), None)),
+        _ => {
+            return Err(Exception::new(
+                ExceptionKind::EvaluatorTypeException(
+                    ValueKind::type_str_integer(),
+                    rhs_val.kind.as_type_str(),
+                ),
+                None,
+            ))
+        }
     };
 
     use self::IntegerBuiltinOperatorKind::*;
@@ -71,36 +87,59 @@ pub fn cons(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let elem_val = env.lookup_nth_param(1).unwrap();
     let list_val = env.lookup_nth_param(2).unwrap();
     if !list_val.is_list() {
-        return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_list(), list_val.kind.as_type_str()), None));
+        return Err(Exception::new(
+            ExceptionKind::EvaluatorTypeException(
+                ValueKind::type_str_list(),
+                list_val.kind.as_type_str(),
+            ),
+            None,
+        ));
     }
-    Ok(Value::create_list(list_val.get_as_list().unwrap().clone().cons(elem_val.clone())))
+    Ok(Value::create_list(
+        list_val
+            .get_as_list()
+            .unwrap()
+            .clone()
+            .cons(elem_val.clone()),
+    ))
 }
 
 pub fn builtinfunc_first(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let val = env.lookup_nth_param(1).unwrap();
     match val.kind {
-        ValueKind::ListValue(ref list) => Ok(list.car().map_or(Value::create_nil(), |car| car.clone())),
-        ValueKind::VectorValue(ref vector) => if vector.len() == 0 {
-            Ok(Value::create_nil())
-        } else {
-            Ok(vector[0].clone())
+        ValueKind::ListValue(ref list) => {
+            Ok(list.car().map_or(Value::create_nil(), |car| car.clone()))
         }
-        _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()), None))
+        ValueKind::VectorValue(ref vector) => {
+            if vector.len() == 0 {
+                Ok(Value::create_nil())
+            } else {
+                Ok(vector[0].clone())
+            }
+        }
+        _ => Err(Exception::new(
+            ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()),
+            None,
+        )),
     }
 }
 
 pub fn builtinfunc_rest(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let val = env.lookup_nth_param(1).unwrap();
     match val.kind {
-        ValueKind::ListValue(ref list) => Ok(list.cdr().map_or(Value::create_nil(), |cdr|
-            Value::create_list(cdr))),
+        ValueKind::ListValue(ref list) => Ok(list
+            .cdr()
+            .map_or(Value::create_nil(), |cdr| Value::create_list(cdr))),
         ValueKind::NilValue => Ok(Value::create_list_empty()),
         ValueKind::VectorValue(_) => {
             let mut iter = val.iter();
             iter.next();
             Ok(iter.rest())
         }
-        _ => Err(Exception::new(ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()), None))
+        _ => Err(Exception::new(
+            ExceptionKind::EvaluatorTypeException("Seq", val.kind.as_type_str()),
+            None,
+        )),
     }
 }
 
@@ -124,7 +163,11 @@ pub fn builtinfunc_get(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let obj = env.lookup_nth_param(1).unwrap();
     let key = env.lookup_nth_param(2).unwrap();
     let val = match obj.kind {
-        ValueKind::MapValue(ref map) => map.lookup(&key).or(Some(&Value::create_nil())).unwrap().clone(),
+        ValueKind::MapValue(ref map) => map
+            .lookup(&key)
+            .or(Some(&Value::create_nil()))
+            .unwrap()
+            .clone(),
         ValueKind::VectorValue(ref vector) if key.is_integer() => {
             let index = key.get_as_integer().unwrap().clone();
             if 0 <= index && index < vector.len() as isize {
@@ -150,8 +193,9 @@ pub fn builtinfunc_vec(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let mut values = vec![];
     while let Some(ref item) = iter.next() {
         let item = match item.kind {
-            ValueKind::InternalPairValue(ref pair) => Value::create_vector(
-                vec![pair.first.clone(), pair.second.clone()]),
+            ValueKind::InternalPairValue(ref pair) => {
+                Value::create_vector(vec![pair.first.clone(), pair.second.clone()])
+            }
             _ => item.clone(),
         };
         values.push(item);

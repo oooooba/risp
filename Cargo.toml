@@ -2,3 +2,4 @@
 name = "risp"
 version = "0.1.0"
 authors = ["oooooba <fuumin.23@gmail.com>"]
+edition = "2018"

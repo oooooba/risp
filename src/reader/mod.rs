@@ -1,13 +1,13 @@
-mod tokenizer;
 mod parser;
+mod tokenizer;
 
-use std::io;
 use std::collections::LinkedList;
+use std::io;
 
-use core::value::ValuePtr;
-use core::exception::{Exception, ExceptionKind};
-use core::env::EnvPtr;
-use core::exception::InfoKind;
+use super::core::env::EnvPtr;
+use super::core::exception::InfoKind;
+use super::core::exception::{Exception, ExceptionKind};
+use super::core::value::ValuePtr;
 
 #[derive(PartialEq, Debug)]
 enum TokenKind {
@@ -41,7 +41,11 @@ pub struct Token {
 
 impl Token {
     fn new(lexeme: String, kind: TokenKind, info: Option<InfoKind>) -> Token {
-        Token { lexeme: lexeme, kind: kind, info: info }
+        Token {
+            lexeme: lexeme,
+            kind: kind,
+            info: info,
+        }
     }
 }
 
@@ -49,7 +53,9 @@ pub fn tokenize(content: String, env: EnvPtr) -> Result<LinkedList<Token>, Excep
     tokenizer::Tokenizer::new(content, env).tokenize()
 }
 
-pub fn parse(tokens: LinkedList<Token>) -> (Result<ValuePtr, Exception>, Option<LinkedList<Token>>) {
+pub fn parse(
+    tokens: LinkedList<Token>,
+) -> (Result<ValuePtr, Exception>, Option<LinkedList<Token>>) {
     let mut parser = parser::Parser::new(tokens);
     let result = parser.parse();
     let rest_tokens = parser.pop_all();
@@ -58,12 +64,18 @@ pub fn parse(tokens: LinkedList<Token>) -> (Result<ValuePtr, Exception>, Option<
 
 pub fn read(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let mut buf = String::new();
-    io::stdin().read_line(&mut buf).map_err(|error|
-        Exception::new(ExceptionKind::ReaderIOException(error.to_string()), None))
-        .and_then(|n| if n == 0 {
-            Err(Exception::new(ExceptionKind::ReaderEndOfInputException, None))
-        } else {
-            Ok(buf)
+    io::stdin()
+        .read_line(&mut buf)
+        .map_err(|error| Exception::new(ExceptionKind::ReaderIOException(error.to_string()), None))
+        .and_then(|n| {
+            if n == 0 {
+                Err(Exception::new(
+                    ExceptionKind::ReaderEndOfInputException,
+                    None,
+                ))
+            } else {
+                Ok(buf)
+            }
         })
         .and_then(|buf| tokenize(buf, env))
         .and_then(|tokens| parse(tokens).0)

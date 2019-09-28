@@ -1,28 +1,52 @@
-mod specialform;
 pub mod builtinfunc;
+mod specialform;
 
-use core::value::{Value, ValueKind, ValuePtr, Applicable, ApplicableBodyKind};
-use core::exception::{Exception, ExceptionKind};
-use core::env::{Env, EnvPtr};
-use core::pattern::Pattern;
-use core::reserved;
+use super::core::env::{Env, EnvPtr};
+use super::core::exception::{Exception, ExceptionKind};
+use super::core::pattern::Pattern;
+use super::core::reserved;
+use super::core::value::{Applicable, ApplicableBodyKind, Value, ValueKind, ValuePtr};
 
 fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     assert!(ast.is_list());
     let mut iter = ast.iter().peekable();
     match iter.peek() {
-        Some(symbol) if symbol.matches_symbol(reserved::STR_IF) => return specialform::eval_specialform_if(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_FN) => return specialform::eval_specialform_fn(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_DEF) => return specialform::eval_specialform_def(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_QUOTE) => return specialform::eval_specialform_quote(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_LET) => return specialform::eval_specialform_let(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_QUASIQUOTE) => return specialform::eval_specialform_quasiquote(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_UNQUOTE) => return specialform::eval_specialform_unquote(ast, env, false),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_SPLICE_UNQUOTE) => return specialform::eval_specialform_splice_unquote(ast, env, false),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_DEFMACRO) => return specialform::eval_specialform_defmacro(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_DO) => return specialform::eval_specialform_do(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_TRY) => return specialform::eval_specialform_try(ast, env),
-        Some(symbol) if symbol.matches_symbol(reserved::STR_DEFRECORD) => return specialform::eval_specialform_defrecord(ast, env),
+        Some(symbol) if symbol.matches_symbol(reserved::STR_IF) => {
+            return specialform::eval_specialform_if(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_FN) => {
+            return specialform::eval_specialform_fn(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_DEF) => {
+            return specialform::eval_specialform_def(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_QUOTE) => {
+            return specialform::eval_specialform_quote(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_LET) => {
+            return specialform::eval_specialform_let(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_QUASIQUOTE) => {
+            return specialform::eval_specialform_quasiquote(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_UNQUOTE) => {
+            return specialform::eval_specialform_unquote(ast, env, false)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_SPLICE_UNQUOTE) => {
+            return specialform::eval_specialform_splice_unquote(ast, env, false)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_DEFMACRO) => {
+            return specialform::eval_specialform_defmacro(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_DO) => {
+            return specialform::eval_specialform_do(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_TRY) => {
+            return specialform::eval_specialform_try(ast, env)
+        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_DEFRECORD) => {
+            return specialform::eval_specialform_defrecord(ast, env)
+        }
         None => return Ok(Value::create_list_empty()),
         _ => (),
     }
@@ -33,10 +57,14 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
     if evaled_car.is_closure() {
         apply(&evaled_car, &cdr, env)
     } else if evaled_car.is_map() || evaled_car.is_keyword() {
-        let pattern = Pattern::create_vector(vec![
-            Pattern::create_symbol(Value::create_symbol("%1".to_string())),
-            Pattern::create_symbol(Value::create_symbol("%2".to_string())),
-        ], vec![], None);
+        let pattern = Pattern::create_vector(
+            vec![
+                Pattern::create_symbol(Value::create_symbol("%1".to_string())),
+                Pattern::create_symbol(Value::create_symbol("%2".to_string())),
+            ],
+            vec![],
+            None,
+        );
         let body = ApplicableBodyKind::BuiltinBody(Box::new(builtinfunc::builtinfunc_get));
         let applicable = Applicable::new(None, pattern, body);
         let closure_env = Env::create_empty();
@@ -57,15 +85,27 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         let new_ast = apply(&evaled_car, &cdr, env.clone())?;
         eval(new_ast, env)
     } else {
-        Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_closure(), evaled_car.kind.as_type_str()), None))
+        Err(Exception::new(
+            ExceptionKind::EvaluatorTypeException(
+                ValueKind::type_str_closure(),
+                evaled_car.kind.as_type_str(),
+            ),
+            None,
+        ))
     }
 }
 
-pub fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+pub fn apply(
+    applicable_val: &ValuePtr,
+    args_val: &ValuePtr,
+    env: EnvPtr,
+) -> Result<ValuePtr, Exception> {
     assert!(applicable_val.is_closure() || applicable_val.is_macro());
     assert!(args_val.is_list());
     let (applicable, closure_env) = match applicable_val.kind {
-        ValueKind::ClosureValue(ref applicable, ref closure_env) => (applicable, Some(closure_env.clone())),
+        ValueKind::ClosureValue(ref applicable, ref closure_env) => {
+            (applicable, Some(closure_env.clone()))
+        }
         ValueKind::MacroValue(ref applicable) => (applicable, None),
         _ => unreachable!(),
     };
@@ -89,7 +129,11 @@ pub fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Res
     } else {
         evaled_pairs.push(("_unreachable".to_string(), Value::create_nil()));
     }
-    evaled_pairs.append(&mut specialform::bind_pattern_to_value(param, &evaled_args_val, env.clone())?);
+    evaled_pairs.append(&mut specialform::bind_pattern_to_value(
+        param,
+        &evaled_args_val,
+        env.clone(),
+    )?);
     evaled_pairs.push((":_args".to_string(), evaled_args_val));
 
     let new_env = if processes_closure {
@@ -100,9 +144,7 @@ pub fn apply(applicable_val: &ValuePtr, args_val: &ValuePtr, env: EnvPtr) -> Res
 
     match applicable.body {
         ApplicableBodyKind::BuiltinBody(ref f) => f(new_env),
-        ApplicableBodyKind::AstBody(ref f) => {
-            eval(f.clone(), new_env)
-        }
+        ApplicableBodyKind::AstBody(ref f) => eval(f.clone(), new_env),
     }
 }
 
@@ -166,12 +208,13 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
     match ast.kind {
         IntegerValue(_) => Ok(ast.clone()),
         StringValue(_) => Ok(ast.clone()),
-        SymbolValue(ref symbol) => {
-            match env.lookup(symbol) {
-                Some(v) => Ok(v.clone()),
-                None => Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(symbol.clone()), None)),
-            }
-        }
+        SymbolValue(ref symbol) => match env.lookup(symbol) {
+            Some(v) => Ok(v.clone()),
+            None => Err(Exception::new(
+                ExceptionKind::EvaluatorUndefinedSymbolException(symbol.clone()),
+                None,
+            )),
+        },
         KeywordValue(_) => Ok(ast.clone()),
         ClosureValue(_, _) => Ok(ast.clone()),
         ListValue(_) => eval_list_trampoline(&ast, env),
@@ -188,23 +231,46 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::core::exception::*;
+    use super::super::core::value::*;
     use super::*;
-    use core::value::*;
 
     fn builtin_func(env: EnvPtr) -> Result<ValuePtr, Exception> {
         let x_str = "x".to_string();
         let y_str = "y".to_string();
 
-        let x_val = env.lookup(&x_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(x_str), None))?;
+        let x_val = env.lookup(&x_str).ok_or(Exception::new(
+            ExceptionKind::EvaluatorUndefinedSymbolException(x_str),
+            None,
+        ))?;
         let x_int = match x_val.kind {
             ValueKind::IntegerValue(n) => n,
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), x_val.kind.as_type_str()), None)),
+            _ => {
+                return Err(Exception::new(
+                    ExceptionKind::EvaluatorTypeException(
+                        ValueKind::type_str_integer(),
+                        x_val.kind.as_type_str(),
+                    ),
+                    None,
+                ))
+            }
         };
 
-        let y_val = env.lookup(&y_str).ok_or(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException(y_str), None))?;
+        let y_val = env.lookup(&y_str).ok_or(Exception::new(
+            ExceptionKind::EvaluatorUndefinedSymbolException(y_str),
+            None,
+        ))?;
         let y_int = match y_val.kind {
             ValueKind::IntegerValue(n) => n,
-            _ => return Err(Exception::new(ExceptionKind::EvaluatorTypeException(ValueKind::type_str_integer(), y_val.kind.as_type_str()), None)),
+            _ => {
+                return Err(Exception::new(
+                    ExceptionKind::EvaluatorTypeException(
+                        ValueKind::type_str_integer(),
+                        y_val.kind.as_type_str(),
+                    ),
+                    None,
+                ))
+            }
         };
 
         Ok(Value::create_integer(x_int + y_int))
@@ -214,118 +280,184 @@ mod tests {
     fn test_acceptance() {
         {
             let env = Env::create_empty();
-            assert_eq!(eval(Value::create_keyword("XYZ".to_string()), env),
-                       Ok(Value::create_keyword("XYZ".to_string())));
+            assert_eq!(
+                eval(Value::create_keyword("XYZ".to_string()), env),
+                Ok(Value::create_keyword("XYZ".to_string()))
+            );
         }
         {
-            let env = Env::create(vec![
-                ("x".to_string(), Value::create_string("abc".to_string())),
-            ], None);
-            assert_eq!(eval(Value::create_symbol("x".to_string()), env),
-                       Ok(Value::create_string("abc".to_string())));
+            let env = Env::create(
+                vec![("x".to_string(), Value::create_string("abc".to_string()))],
+                None,
+            );
+            assert_eq!(
+                eval(Value::create_symbol("x".to_string()), env),
+                Ok(Value::create_string("abc".to_string()))
+            );
         }
         {
             let func = ApplicableBodyKind::BuiltinBody(Box::new(builtin_func));
-            let closure_env = Env::create(vec![
-                ("y".to_string(), Value::create_integer(3)),
-            ], None);
-            let param = Pattern::create_vector(vec![
-                Pattern::create_symbol(Value::create_symbol("x".to_string()))
-            ], vec![], None);
+            let closure_env = Env::create(vec![("y".to_string(), Value::create_integer(3))], None);
+            let param = Pattern::create_vector(
+                vec![Pattern::create_symbol(Value::create_symbol(
+                    "x".to_string(),
+                ))],
+                vec![],
+                None,
+            );
             let applicable = Applicable::new(None, param, func);
-            let env = Env::create(vec![
-                ("x".to_string(), Value::create_integer(1)),
-                ("y".to_string(), Value::create_integer(2)),
-                ("f".to_string(), Value::create_closure(applicable, closure_env)),
-            ], None);
-            assert_eq!(eval(Value::create_list_from_vec(vec![
-                Value::create_symbol("f".to_string()),
-                Value::create_integer(4),
-            ]), env), Ok(Value::create_integer(7)));
+            let env = Env::create(
+                vec![
+                    ("x".to_string(), Value::create_integer(1)),
+                    ("y".to_string(), Value::create_integer(2)),
+                    (
+                        "f".to_string(),
+                        Value::create_closure(applicable, closure_env),
+                    ),
+                ],
+                None,
+            );
+            assert_eq!(
+                eval(
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol("f".to_string()),
+                        Value::create_integer(4),
+                    ]),
+                    env
+                ),
+                Ok(Value::create_integer(7))
+            );
         }
         {
             let func = ApplicableBodyKind::AstBody(Value::create_symbol("x".to_string()));
-            let closure_env = Env::create(vec![
-                ("x".to_string(), Value::create_integer(2)),
-            ], None);
-            let param = Pattern::create_vector(vec![
-                Pattern::create_symbol(Value::create_symbol("x".to_string()))
-            ], vec![], None);
+            let closure_env = Env::create(vec![("x".to_string(), Value::create_integer(2))], None);
+            let param = Pattern::create_vector(
+                vec![Pattern::create_symbol(Value::create_symbol(
+                    "x".to_string(),
+                ))],
+                vec![],
+                None,
+            );
             let applicable = Applicable::new(None, param, func);
-            let env = Env::create(vec![
-                ("x".to_string(), Value::create_integer(1)),
-                ("f".to_string(), Value::create_closure(applicable, closure_env)),
-            ], None);
-            assert_eq!(eval(Value::create_list_from_vec(vec![
-                Value::create_symbol("f".to_string()),
-                Value::create_integer(3),
-            ]), env), Ok(Value::create_integer(3)));
+            let env = Env::create(
+                vec![
+                    ("x".to_string(), Value::create_integer(1)),
+                    (
+                        "f".to_string(),
+                        Value::create_closure(applicable, closure_env),
+                    ),
+                ],
+                None,
+            );
+            assert_eq!(
+                eval(
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol("f".to_string()),
+                        Value::create_integer(3),
+                    ]),
+                    env
+                ),
+                Ok(Value::create_integer(3))
+            );
         }
         {
             let env = Env::create_empty();
-            assert_eq!(eval(Value::create_list_from_vec(vec![]), env),
-                       Ok(Value::create_list_from_vec(vec![])));
+            assert_eq!(
+                eval(Value::create_list_from_vec(vec![]), env),
+                Ok(Value::create_list_from_vec(vec![]))
+            );
         }
         {
             let env = Env::create_empty();
-            assert_eq!(eval(Value::create_nil(), env),
-                       Ok(Value::create_nil()));
+            assert_eq!(eval(Value::create_nil(), env), Ok(Value::create_nil()));
         }
         {
             let env = Env::create_default();
-            assert_eq!(eval(Value::create_list_from_vec(vec![
-                Value::create_symbol("+".to_string()),
-                Value::create_integer(1),
-                Value::create_integer(2),
-            ]), env), Ok(Value::create_integer(3)));
+            assert_eq!(
+                eval(
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol("+".to_string()),
+                        Value::create_integer(1),
+                        Value::create_integer(2),
+                    ]),
+                    env
+                ),
+                Ok(Value::create_integer(3))
+            );
         }
         {
             let env = Env::create_default();
-            assert_eq!(eval(Value::create_list_from_vec(vec![
-                Value::create_symbol("=".to_string()),
-                Value::create_boolean(true),
-                Value::create_boolean(true),
-            ]), env), Ok(Value::create_boolean(true)));
+            assert_eq!(
+                eval(
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol("=".to_string()),
+                        Value::create_boolean(true),
+                        Value::create_boolean(true),
+                    ]),
+                    env
+                ),
+                Ok(Value::create_boolean(true))
+            );
         }
     }
 
     #[test]
     fn test_rejection() {
-        use core::exception::*;
         {
             let env = Env::create_empty();
-            assert_eq!(eval(Value::create_symbol("x".to_string()), env),
-                       Err(Exception::new(ExceptionKind::EvaluatorUndefinedSymbolException("x".to_string()), None)));
+            assert_eq!(
+                eval(Value::create_symbol("x".to_string()), env),
+                Err(Exception::new(
+                    ExceptionKind::EvaluatorUndefinedSymbolException("x".to_string()),
+                    None
+                ))
+            );
         }
         {
             let env = Env::create_default();
-            assert_eq!(eval(Value::create_list_from_vec(vec![
-                Value::create_symbol("+".to_string()),
-                Value::create_integer(1),
-                Value::create_string("x".to_string()),
-            ]), env), Err(Exception::new(ExceptionKind::EvaluatorTypeException(
-                ValueKind::type_str_integer(),
-                ValueKind::type_str_string()), None)));
+            assert_eq!(
+                eval(
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol("+".to_string()),
+                        Value::create_integer(1),
+                        Value::create_string("x".to_string()),
+                    ]),
+                    env
+                ),
+                Err(Exception::new(
+                    ExceptionKind::EvaluatorTypeException(
+                        ValueKind::type_str_integer(),
+                        ValueKind::type_str_string()
+                    ),
+                    None
+                ))
+            );
         }
     }
 
     #[test]
     fn test_builtin_let() {
         let env = Env::create_default();
-        assert_eq!(eval(Value::create_list_from_vec(vec![
-            Value::create_symbol("let".to_string()),
-            Value::create_vector(vec![
-                Value::create_symbol("x".to_string()),
-                Value::create_integer(1),
-                Value::create_symbol("y".to_string()),
+        assert_eq!(
+            eval(
                 Value::create_list_from_vec(vec![
-                    Value::create_symbol("+".to_string()),
-                    Value::create_symbol("x".to_string()),
-                    Value::create_integer(2),
+                    Value::create_symbol("let".to_string()),
+                    Value::create_vector(vec![
+                        Value::create_symbol("x".to_string()),
+                        Value::create_integer(1),
+                        Value::create_symbol("y".to_string()),
+                        Value::create_list_from_vec(vec![
+                            Value::create_symbol("+".to_string()),
+                            Value::create_symbol("x".to_string()),
+                            Value::create_integer(2),
+                        ]),
+                    ]),
+                    Value::create_symbol("y".to_string()),
                 ]),
-            ]),
-            Value::create_symbol("y".to_string()),
-        ]), env), Ok(Value::create_integer(3)));
+                env
+            ),
+            Ok(Value::create_integer(3))
+        );
     }
 
     #[test]
@@ -334,13 +466,17 @@ mod tests {
             let outer_env = Some(Env::create_default());
             let macro_body = Value::create_integer(1);
             let funcparam = Pattern::create_vector(vec![], vec![], None);
-            let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
+            let applicable =
+                Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
             let macro_val = Value::create_macro(applicable);
             let env = Env::create(vec![("one".to_string(), macro_val)], outer_env);
-            assert_eq!(eval(Value::create_list_from_vec(vec![
-                Value::create_symbol("one".to_string()),
-            ]), env),
-                       Ok(Value::create_integer(1)));
+            assert_eq!(
+                eval(
+                    Value::create_list_from_vec(vec![Value::create_symbol("one".to_string()),]),
+                    env
+                ),
+                Ok(Value::create_integer(1))
+            );
         }
         {
             let outer_env = Some(Env::create_default());
@@ -368,22 +504,32 @@ mod tests {
                     ]),
                 ]),
             ]);
-            let funcparam = Pattern::create_vector(vec![
-                Pattern::create_symbol(Value::create_symbol(s_pred)),
-                Pattern::create_symbol(Value::create_symbol(s_a)),
-                Pattern::create_symbol(Value::create_symbol(s_b)),
-            ], vec![], None);
-            let applicable = Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
+            let funcparam = Pattern::create_vector(
+                vec![
+                    Pattern::create_symbol(Value::create_symbol(s_pred)),
+                    Pattern::create_symbol(Value::create_symbol(s_a)),
+                    Pattern::create_symbol(Value::create_symbol(s_b)),
+                ],
+                vec![],
+                None,
+            );
+            let applicable =
+                Applicable::new(None, funcparam, ApplicableBodyKind::AstBody(macro_body));
 
             let closure = Value::create_macro(applicable);
             let env = Env::create(vec![("unless".to_string(), closure)], outer_env);
-            assert_eq!(eval(Value::create_list_from_vec(vec![
-                Value::create_symbol("unless".to_string()),
-                Value::create_boolean(false),
-                Value::create_integer(7),
-                Value::create_integer(8),
-            ]), env),
-                       Ok(Value::create_integer(7)));
+            assert_eq!(
+                eval(
+                    Value::create_list_from_vec(vec![
+                        Value::create_symbol("unless".to_string()),
+                        Value::create_boolean(false),
+                        Value::create_integer(7),
+                        Value::create_integer(8),
+                    ]),
+                    env
+                ),
+                Ok(Value::create_integer(7))
+            );
         }
     }
 }

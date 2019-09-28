@@ -1,10 +1,13 @@
-use core::value::ValuePtr;
+use super::value::ValuePtr;
 
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub enum PatternKind {
     SymbolPattern(ValuePtr),
     VectorPattern(Vec<PatternPtr>, Vec<PatternPtr>, Option<PatternPtr>),
-    MapPattern(Vec<(PatternPtr, ValuePtr, Option<ValuePtr>)>, Option<PatternPtr>),
+    MapPattern(
+        Vec<(PatternPtr, ValuePtr, Option<ValuePtr>)>,
+        Option<PatternPtr>,
+    ),
 }
 
 impl ToString for PatternKind {
@@ -55,15 +58,20 @@ impl Pattern {
         })
     }
 
-    pub fn create_vector(patterns: Vec<PatternPtr>, rest_patterns: Vec<PatternPtr>,
-                         as_symbol: Option<PatternPtr>) -> PatternPtr {
+    pub fn create_vector(
+        patterns: Vec<PatternPtr>,
+        rest_patterns: Vec<PatternPtr>,
+        as_symbol: Option<PatternPtr>,
+    ) -> PatternPtr {
         Box::new(Pattern {
             kind: PatternKind::VectorPattern(patterns, rest_patterns, as_symbol),
         })
     }
 
-    pub fn create_map(patterns: Vec<(PatternPtr, ValuePtr, Option<ValuePtr>)>,
-                      as_symbol: Option<PatternPtr>) -> PatternPtr {
+    pub fn create_map(
+        patterns: Vec<(PatternPtr, ValuePtr, Option<ValuePtr>)>,
+        as_symbol: Option<PatternPtr>,
+    ) -> PatternPtr {
         Box::new(Pattern {
             kind: PatternKind::MapPattern(patterns, as_symbol),
         })

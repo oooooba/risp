@@ -1,9 +1,9 @@
 use std::collections::LinkedList;
 
-use core::value::{Value, ValuePtr};
-use core::exception::{Exception, ExceptionKind};
-use core::reserved;
-use reader::{Token, TokenKind};
+use super::super::core::exception::{Exception, ExceptionKind};
+use super::super::core::reserved;
+use super::super::core::value::{Value, ValuePtr};
+use super::super::reader::{Token, TokenKind};
 
 pub struct Parser {
     tokens: LinkedList<Token>,
@@ -50,7 +50,10 @@ impl Parser {
         let len = token.lexeme.len();
         assert!(len >= 2);
         assert_eq!(token.lexeme.chars().nth(0), Some(reserved::CHAR_D_QUOTE));
-        assert_eq!(token.lexeme.chars().nth(len - 1), Some(reserved::CHAR_D_QUOTE));
+        assert_eq!(
+            token.lexeme.chars().nth(len - 1),
+            Some(reserved::CHAR_D_QUOTE)
+        );
         let s = token.lexeme.as_str()[1..(len - 1)].to_string();
         Ok(Value::create_string(s))
     }
@@ -74,8 +77,10 @@ impl Parser {
     }
 
     fn parse_boolean(&mut self) -> Result<ValuePtr, Exception> {
-        assert!(self.peek().unwrap().kind == TokenKind::TrueToken ||
-            self.peek().unwrap().kind == TokenKind::FalseToken);
+        assert!(
+            self.peek().unwrap().kind == TokenKind::TrueToken
+                || self.peek().unwrap().kind == TokenKind::FalseToken
+        );
         let token = self.pop().unwrap();
         let b = token.kind == TokenKind::TrueToken;
         Ok(Value::create_boolean(b))
@@ -87,8 +92,15 @@ impl Parser {
         Ok(Value::create_nil())
     }
 
-    fn parse_sequence<F>(&mut self, begin_token: TokenKind, end_token: TokenKind, f: &F) -> Result<ValuePtr, Exception>
-        where F: Fn(Vec<ValuePtr>) -> Result<ValuePtr, Exception> {
+    fn parse_sequence<F>(
+        &mut self,
+        begin_token: TokenKind,
+        end_token: TokenKind,
+        f: &F,
+    ) -> Result<ValuePtr, Exception>
+    where
+        F: Fn(Vec<ValuePtr>) -> Result<ValuePtr, Exception>,
+    {
         assert_eq!(self.peek().unwrap().kind, begin_token);
         self.pop();
         let mut parsed = Vec::new();
@@ -96,8 +108,16 @@ impl Parser {
             match self.peek() {
                 Some(token) if token.kind == end_token => break,
                 Some(_) => (),
-                None => return Err(Exception::new(ExceptionKind::ParserUnterminatedTokens2Exception(
-                    Token::new("".to_string(), end_token, None)), None)),
+                None => {
+                    return Err(Exception::new(
+                        ExceptionKind::ParserUnterminatedTokens2Exception(Token::new(
+                            "".to_string(),
+                            end_token,
+                            None,
+                        )),
+                        None,
+                    ))
+                }
             }
             parsed.push(self.parse()?);
         }
@@ -137,24 +157,31 @@ impl Parser {
     fn parse_lambda(&mut self) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, TokenKind::SharpLParenToken);
         if self.is_parsing_labda_expr {
-            return Err(Exception::new(ExceptionKind::EvaluatorIllegalStateException(
-                "parser".to_string(),
-                "Nested #()s are not allowed".to_string(),
-            ), None));
+            return Err(Exception::new(
+                ExceptionKind::EvaluatorIllegalStateException(
+                    "parser".to_string(),
+                    "Nested #()s are not allowed".to_string(),
+                ),
+                None,
+            ));
         }
         self.is_parsing_labda_expr = true;
-        let result = self.parse_sequence(TokenKind::SharpLParenToken, TokenKind::RParenToken, &|v| {
-            let body = Value::create_list_from_vec(v);
-            let params = Value::create_vector(vec![]);
-            let symbol_fn = Value::create_symbol(reserved::STR_FN.to_string());
-            Ok(Value::create_list_from_vec(vec![symbol_fn, params, body]))
-        });
+        let result =
+            self.parse_sequence(TokenKind::SharpLParenToken, TokenKind::RParenToken, &|v| {
+                let body = Value::create_list_from_vec(v);
+                let params = Value::create_vector(vec![]);
+                let symbol_fn = Value::create_symbol(reserved::STR_FN.to_string());
+                Ok(Value::create_list_from_vec(vec![symbol_fn, params, body]))
+            });
         self.is_parsing_labda_expr = false;
         result
     }
 
-    fn parse_quote_family_reader_macro(&mut self, kind: TokenKind, symbol: &'static str)
-                                       -> Result<ValuePtr, Exception> {
+    fn parse_quote_family_reader_macro(
+        &mut self,
+        kind: TokenKind,
+        symbol: &'static str,
+    ) -> Result<ValuePtr, Exception> {
         assert_eq!(self.peek().unwrap().kind, kind);
         self.pop();
         let val = self.parse()?;
@@ -167,27 +194,60 @@ impl Parser {
     pub fn parse(&mut self) -> Result<ValuePtr, Exception> {
         use self::TokenKind::*;
         match self.peek() {
-            Some(&Token { kind: IntegerToken, .. }) => self.parse_integer(),
-            Some(&Token { kind: StringToken, .. }) => self.parse_string(),
-            Some(&Token { kind: SymbolToken, .. }) => self.parse_symbol(),
-            Some(&Token { kind: KeywordToken, .. }) => self.parse_keyword(),
-            Some(&Token { kind: TrueToken, .. }) => self.parse_boolean(),
-            Some(&Token { kind: FalseToken, .. }) => self.parse_boolean(),
+            Some(&Token {
+                kind: IntegerToken, ..
+            }) => self.parse_integer(),
+            Some(&Token {
+                kind: StringToken, ..
+            }) => self.parse_string(),
+            Some(&Token {
+                kind: SymbolToken, ..
+            }) => self.parse_symbol(),
+            Some(&Token {
+                kind: KeywordToken, ..
+            }) => self.parse_keyword(),
+            Some(&Token {
+                kind: TrueToken, ..
+            }) => self.parse_boolean(),
+            Some(&Token {
+                kind: FalseToken, ..
+            }) => self.parse_boolean(),
             Some(&Token { kind: NilToken, .. }) => self.parse_nil(),
-            Some(&Token { kind: LParenToken, .. }) => self.parse_list(),
-            Some(&Token { kind: LBracketToken, .. }) => self.parse_vector(),
-            Some(&Token { kind: QuoteToken, .. }) =>
-                self.parse_quote_family_reader_macro(QuoteToken, reserved::STR_QUOTE),
-            Some(&Token { kind: BackQuoteToken, .. }) =>
-                self.parse_quote_family_reader_macro(BackQuoteToken, reserved::STR_QUASIQUOTE),
-            Some(&Token { kind: TildeToken, .. }) =>
-                self.parse_quote_family_reader_macro(TildeToken, reserved::STR_UNQUOTE),
-            Some(&Token { kind: TildeAtToken, .. }) =>
-                self.parse_quote_family_reader_macro(TildeAtToken, reserved::STR_SPLICE_UNQUOTE),
-            Some(&Token { kind: LCurlyToken, .. }) => self.parse_map(),
-            Some(&Token { kind: SharpLCurlyToken, .. }) => self.parse_set(),
-            Some(&Token { kind: SharpLParenToken, .. }) => self.parse_lambda(),
-            None => Err(Exception::new(ExceptionKind::ParserEmptyTokensException, None)),
+            Some(&Token {
+                kind: LParenToken, ..
+            }) => self.parse_list(),
+            Some(&Token {
+                kind: LBracketToken,
+                ..
+            }) => self.parse_vector(),
+            Some(&Token {
+                kind: QuoteToken, ..
+            }) => self.parse_quote_family_reader_macro(QuoteToken, reserved::STR_QUOTE),
+            Some(&Token {
+                kind: BackQuoteToken,
+                ..
+            }) => self.parse_quote_family_reader_macro(BackQuoteToken, reserved::STR_QUASIQUOTE),
+            Some(&Token {
+                kind: TildeToken, ..
+            }) => self.parse_quote_family_reader_macro(TildeToken, reserved::STR_UNQUOTE),
+            Some(&Token {
+                kind: TildeAtToken, ..
+            }) => self.parse_quote_family_reader_macro(TildeAtToken, reserved::STR_SPLICE_UNQUOTE),
+            Some(&Token {
+                kind: LCurlyToken, ..
+            }) => self.parse_map(),
+            Some(&Token {
+                kind: SharpLCurlyToken,
+                ..
+            }) => self.parse_set(),
+            Some(&Token {
+                kind: SharpLParenToken,
+                ..
+            }) => self.parse_lambda(),
+            None => Err(Exception::new(
+                ExceptionKind::ParserEmptyTokensException,
+                None,
+            )),
             _ => unimplemented!(),
         }
     }
@@ -195,92 +255,116 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::TokenKind::*;
+    use super::*;
     use std::iter::FromIterator;
 
-    fn s(x: &str) -> String { x.to_string() }
+    fn s(x: &str) -> String {
+        x.to_string()
+    }
 
     #[test]
     fn test_acceptance() {
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![
-            Token::new(s("123"), IntegerToken, None),
-        ])).parse(), Ok(
-            Value::create_integer(123)
-        ));
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![
-            Token::new(s("("), LParenToken, None),
-            Token::new(s(")"), RParenToken, None),
-        ])).parse(), Ok(
-            Value::create_list_from_vec(vec![])
-        ));
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![
-            Token::new(s("("), LParenToken, None),
-            Token::new(s("123"), IntegerToken, None),
-            Token::new(s(r#""abc""#), StringToken, None),
-            Token::new(s("def"), SymbolToken, None),
-            Token::new(s(":XYZ"), KeywordToken, None),
-            Token::new(s(")"), RParenToken, None),
-        ])).parse(), Ok(
-            Value::create_list_from_vec(vec![
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![Token::new(
+                s("123"),
+                IntegerToken,
+                None
+            ),]))
+            .parse(),
+            Ok(Value::create_integer(123))
+        );
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![
+                Token::new(s("("), LParenToken, None),
+                Token::new(s(")"), RParenToken, None),
+            ]))
+            .parse(),
+            Ok(Value::create_list_from_vec(vec![]))
+        );
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![
+                Token::new(s("("), LParenToken, None),
+                Token::new(s("123"), IntegerToken, None),
+                Token::new(s(r#""abc""#), StringToken, None),
+                Token::new(s("def"), SymbolToken, None),
+                Token::new(s(":XYZ"), KeywordToken, None),
+                Token::new(s(")"), RParenToken, None),
+            ]))
+            .parse(),
+            Ok(Value::create_list_from_vec(vec![
                 Value::create_integer(123),
                 Value::create_string("abc".to_string()),
                 Value::create_symbol("def".to_string()),
                 Value::create_keyword("XYZ".to_string()),
-            ])
-        ));
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![
-            Token::new(s("("), LParenToken, None),
-            Token::new(s("("), LParenToken, None),
-            Token::new(s("123"), IntegerToken, None),
-            Token::new(s(")"), RParenToken, None),
-            Token::new(s(r#""abc""#), StringToken, None),
-            Token::new(s("("), LParenToken, None),
-            Token::new(s("def"), SymbolToken, None),
-            Token::new(s(":XYZ"), KeywordToken, None),
-            Token::new(s(")"), RParenToken, None),
-            Token::new(s(")"), RParenToken, None),
-        ])).parse(), Ok(
-            Value::create_list_from_vec(vec![
-                Value::create_list_from_vec(vec![
-                    Value::create_integer(123),
-                ]),
+            ]))
+        );
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![
+                Token::new(s("("), LParenToken, None),
+                Token::new(s("("), LParenToken, None),
+                Token::new(s("123"), IntegerToken, None),
+                Token::new(s(")"), RParenToken, None),
+                Token::new(s(r#""abc""#), StringToken, None),
+                Token::new(s("("), LParenToken, None),
+                Token::new(s("def"), SymbolToken, None),
+                Token::new(s(":XYZ"), KeywordToken, None),
+                Token::new(s(")"), RParenToken, None),
+                Token::new(s(")"), RParenToken, None),
+            ]))
+            .parse(),
+            Ok(Value::create_list_from_vec(vec![
+                Value::create_list_from_vec(vec![Value::create_integer(123),]),
                 Value::create_string("abc".to_string()),
                 Value::create_list_from_vec(vec![
                     Value::create_symbol("def".to_string()),
                     Value::create_keyword("XYZ".to_string()),
                 ]),
-            ])
-        ));
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![
-            Token::new(s("false"), FalseToken, None),
-        ])).parse(), Ok(
-            Value::create_boolean(false)
-        ));
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![
-            Token::new(s("["), LBracketToken, None),
-            Token::new(s("123"), IntegerToken, None),
-            Token::new(s(r#""abc""#), StringToken, None),
-            Token::new(s("]"), RBracketToken, None),
-        ])).parse(), Ok(
-            Value::create_vector_literal(vec![
+            ]))
+        );
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![Token::new(
+                s("false"),
+                FalseToken,
+                None
+            ),]))
+            .parse(),
+            Ok(Value::create_boolean(false))
+        );
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![
+                Token::new(s("["), LBracketToken, None),
+                Token::new(s("123"), IntegerToken, None),
+                Token::new(s(r#""abc""#), StringToken, None),
+                Token::new(s("]"), RBracketToken, None),
+            ]))
+            .parse(),
+            Ok(Value::create_vector_literal(vec![
                 Value::create_integer(123),
                 Value::create_string("abc".to_string()),
-            ])
-        ));
+            ]))
+        );
     }
 
     #[test]
     fn test_rejection() {
         use self::ExceptionKind::*;
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![])).parse(),
-                   Err(Exception::new(ParserEmptyTokensException, None)));
-        assert_eq!(Parser::new(LinkedList::from_iter(vec![
-            Token::new(s("("), LParenToken, None),
-            Token::new(s("("), LParenToken, None),
-            Token::new(s("123"), IntegerToken, None),
-            Token::new(s(")"), RParenToken, None),
-        ])).parse(), Err(Exception::new(ParserUnterminatedTokens2Exception(
-            Token::new(s(""), RParenToken, None)), None)));
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![])).parse(),
+            Err(Exception::new(ParserEmptyTokensException, None))
+        );
+        assert_eq!(
+            Parser::new(LinkedList::from_iter(vec![
+                Token::new(s("("), LParenToken, None),
+                Token::new(s("("), LParenToken, None),
+                Token::new(s("123"), IntegerToken, None),
+                Token::new(s(")"), RParenToken, None),
+            ]))
+            .parse(),
+            Err(Exception::new(
+                ParserUnterminatedTokens2Exception(Token::new(s(""), RParenToken, None)),
+                None
+            ))
+        );
     }
 }

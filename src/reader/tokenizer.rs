@@ -1,9 +1,9 @@
 use std::collections::LinkedList;
 
-use core::exception::{Exception, ExceptionKind, InfoKind};
-use core::env::EnvPtr;
-use core::reserved;
-use reader::{Token, TokenKind};
+use super::super::core::env::EnvPtr;
+use super::super::core::exception::{Exception, ExceptionKind, InfoKind};
+use super::super::core::reserved;
+use super::super::reader::{Token, TokenKind};
 
 fn is_delim_char(c: char) -> bool {
     c.is_whitespace() || c == reserved::CHAR_COMMA || c == reserved::CHAR_SEMICOLON
@@ -14,9 +14,12 @@ fn is_digit(c: char) -> bool {
 }
 
 fn is_grouping_char(c: char) -> bool {
-    c == reserved::CHAR_L_PAREN || c == reserved::CHAR_R_PAREN ||
-        c == reserved::CHAR_L_BRACKET || c == reserved::CHAR_R_BRACKET ||
-        c == reserved::CHAR_L_CURLY || c == reserved::CHAR_R_CURLY
+    c == reserved::CHAR_L_PAREN
+        || c == reserved::CHAR_R_PAREN
+        || c == reserved::CHAR_L_BRACKET
+        || c == reserved::CHAR_R_BRACKET
+        || c == reserved::CHAR_L_CURLY
+        || c == reserved::CHAR_R_CURLY
 }
 
 pub struct Tokenizer {
@@ -73,11 +76,17 @@ impl Tokenizer {
                 Some(reserved::CHAR_BACKSLASH) => {
                     self.ahead(1);
                     match self.peek(0) {
-                        Some(c) if c == reserved::CHAR_D_QUOTE || c == reserved::CHAR_BACKSLASH => s.push(c),
+                        Some(c) if c == reserved::CHAR_D_QUOTE || c == reserved::CHAR_BACKSLASH => {
+                            s.push(c)
+                        }
                         Some('n') => s.push(reserved::CHAR_NEWLINE),
                         Some(c) => {
                             if err == None {
-                                err = Some(ExceptionKind::TokenizerInvalidEscapedCharacterException(c, self.pos + 1 - pos))
+                                err =
+                                    Some(ExceptionKind::TokenizerInvalidEscapedCharacterException(
+                                        c,
+                                        self.pos + 1 - pos,
+                                    ))
                             }
                         }
                         None => {
@@ -126,8 +135,9 @@ impl Tokenizer {
         assert_eq!(self.peek(0).unwrap(), reserved::CHAR_COLON);
         let pos = self.pos;
         match self.peek(1) {
-            Some(c) if is_grouping_char(c) || is_delim_char(c) =>
-                return Err(self.create_invalid_lexeme_exception(pos, 2)),
+            Some(c) if is_grouping_char(c) || is_delim_char(c) => {
+                return Err(self.create_invalid_lexeme_exception(pos, 2))
+            }
             Some(_) => (),
             None => return Err(self.create_invalid_lexeme_exception(pos, 1)),
         }
@@ -152,7 +162,7 @@ impl Tokenizer {
             if is_digit(c) {
                 self.ahead(1);
             } else if is_delim_char(c) || is_grouping_char(c) {
-                break
+                break;
             } else {
                 is_valid = false;
                 self.ahead(1);
@@ -172,7 +182,7 @@ impl Tokenizer {
         while let Some(c) = self.peek(0) {
             self.ahead(1);
             if c == reserved::CHAR_NEWLINE {
-                break
+                break;
             }
         }
     }
@@ -249,61 +259,83 @@ impl Tokenizer {
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::core::env::Env;
     use super::*;
     use std::iter::FromIterator;
-    use core::env::Env;
 
-    fn s(x: &str) -> String { x.to_string() }
+    fn s(x: &str) -> String {
+        x.to_string()
+    }
 
-    fn i(p: usize, l: usize) -> Option<InfoKind> { Some(InfoKind::TokenizerInfo(p, l)) }
+    fn i(p: usize, l: usize) -> Option<InfoKind> {
+        Some(InfoKind::TokenizerInfo(p, l))
+    }
 
     #[test]
     fn test_acceptance() {
-        assert_eq!(Tokenizer::new("123 -456".to_string(),
-                                  Env::create_default()).tokenize(),
-                   Ok(LinkedList::from_iter(vec![
-                       Token::new(s("123"), TokenKind::IntegerToken, i(0, 3)),
-                       Token::new(s("-456"), TokenKind::IntegerToken, i(4, 4)),
-                   ])));
-        assert_eq!(Tokenizer::new(r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
-                                  Env::create_default()).tokenize(),
-                   Ok(LinkedList::from_iter(vec![
-                       Token::new(s(r#""abc""#), TokenKind::StringToken, i(0, 5)),
-                       Token::new(s(r#""d\ne\\f\"g""#), TokenKind::StringToken, i(6, 12)),
-                       Token::new(s("+"), TokenKind::SymbolToken, i(19, 1)),
-                       Token::new(s("-"), TokenKind::SymbolToken, i(21, 1)),
-                       Token::new(s("--"), TokenKind::SymbolToken, i(23, 2)),
-                       Token::new(s("-h"), TokenKind::SymbolToken, i(26, 2)),
-                   ])));
-        assert_eq!(Tokenizer::new(":a".to_string(),
-                                  Env::create_default()).tokenize(),
-                   Ok(LinkedList::from_iter(vec![
-                       Token::new(s(":a"), TokenKind::KeywordToken, i(0, 2)),
-                   ])));
-        assert_eq!(Tokenizer::new("true".to_string(),
-                                  Env::create_default()).tokenize(),
-                   Ok(LinkedList::from_iter(vec![
-                       Token::new(s("true"), TokenKind::TrueToken, i(0, 4)),
-                   ])));
+        assert_eq!(
+            Tokenizer::new("123 -456".to_string(), Env::create_default()).tokenize(),
+            Ok(LinkedList::from_iter(vec![
+                Token::new(s("123"), TokenKind::IntegerToken, i(0, 3)),
+                Token::new(s("-456"), TokenKind::IntegerToken, i(4, 4)),
+            ]))
+        );
+        assert_eq!(
+            Tokenizer::new(
+                r#""abc" "d\ne\\f\"g" + - -- -h"#.to_string(),
+                Env::create_default()
+            )
+            .tokenize(),
+            Ok(LinkedList::from_iter(vec![
+                Token::new(s(r#""abc""#), TokenKind::StringToken, i(0, 5)),
+                Token::new(s(r#""d\ne\\f\"g""#), TokenKind::StringToken, i(6, 12)),
+                Token::new(s("+"), TokenKind::SymbolToken, i(19, 1)),
+                Token::new(s("-"), TokenKind::SymbolToken, i(21, 1)),
+                Token::new(s("--"), TokenKind::SymbolToken, i(23, 2)),
+                Token::new(s("-h"), TokenKind::SymbolToken, i(26, 2)),
+            ]))
+        );
+        assert_eq!(
+            Tokenizer::new(":a".to_string(), Env::create_default()).tokenize(),
+            Ok(LinkedList::from_iter(vec![Token::new(
+                s(":a"),
+                TokenKind::KeywordToken,
+                i(0, 2)
+            ),]))
+        );
+        assert_eq!(
+            Tokenizer::new("true".to_string(), Env::create_default()).tokenize(),
+            Ok(LinkedList::from_iter(vec![Token::new(
+                s("true"),
+                TokenKind::TrueToken,
+                i(0, 4)
+            ),]))
+        );
     }
 
     #[test]
     fn test_rejection() {
         use self::ExceptionKind::*;
-        assert_eq!(Tokenizer::new("( 1x2 )".to_string(),
-                                  Env::create_default()).tokenize(),
-                   Err(Exception::new(
-                       TokenizerInvalidLexemeException("1x2".to_string()),
-                       Some(InfoKind::TokenizerInfo(2, 3)))));
-        assert_eq!(Tokenizer::new(r#"x "abc"#.to_string(),
-                                  Env::create_default()).tokenize(),
-                   Err(Exception::new(
-                       TokenizerNonTerminatedStringException,
-                       Some(InfoKind::TokenizerInfo(2, 4)))));
-        assert_eq!(Tokenizer::new(r#""a\bc""#.to_string(),
-                                  Env::create_default()).tokenize(),
-                   Err(Exception::new(
-                       TokenizerInvalidEscapedCharacterException('b', 4),
-                       Some(InfoKind::TokenizerInfo(0, 6)))));
+        assert_eq!(
+            Tokenizer::new("( 1x2 )".to_string(), Env::create_default()).tokenize(),
+            Err(Exception::new(
+                TokenizerInvalidLexemeException("1x2".to_string()),
+                Some(InfoKind::TokenizerInfo(2, 3))
+            ))
+        );
+        assert_eq!(
+            Tokenizer::new(r#"x "abc"#.to_string(), Env::create_default()).tokenize(),
+            Err(Exception::new(
+                TokenizerNonTerminatedStringException,
+                Some(InfoKind::TokenizerInfo(2, 4))
+            ))
+        );
+        assert_eq!(
+            Tokenizer::new(r#""a\bc""#.to_string(), Env::create_default()).tokenize(),
+            Err(Exception::new(
+                TokenizerInvalidEscapedCharacterException('b', 4),
+                Some(InfoKind::TokenizerInfo(0, 6))
+            ))
+        );
     }
 }
