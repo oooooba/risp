@@ -7,46 +7,58 @@ use super::core::pattern::Pattern;
 use super::core::reserved;
 use super::core::value::{Applicable, ApplicableBodyKind, Value, ValueKind, ValuePtr};
 
-fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+fn try_and_eval_specialform(ast: &ValuePtr, env: EnvPtr) -> Option<Result<ValuePtr, Exception>> {
     assert!(ast.is_list());
     let mut iter = ast.iter().peekable();
     match iter.peek() {
         Some(symbol) if symbol.matches_symbol(reserved::STR_IF) => {
-            return specialform::eval_specialform_if(ast, env)
+            Some(specialform::eval_specialform_if(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_FN) => {
-            return specialform::eval_specialform_fn(ast, env)
+            Some(specialform::eval_specialform_fn(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_DEF) => {
-            return specialform::eval_specialform_def(ast, env)
+            Some(specialform::eval_specialform_def(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_QUOTE) => {
-            return specialform::eval_specialform_quote(ast, env)
+            Some(specialform::eval_specialform_quote(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_LET) => {
-            return specialform::eval_specialform_let(ast, env)
+            Some(specialform::eval_specialform_let(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_QUASIQUOTE) => {
-            return specialform::eval_specialform_quasiquote(ast, env)
+            Some(specialform::eval_specialform_quasiquote(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_UNQUOTE) => {
-            return specialform::eval_specialform_unquote(ast, env, false)
+            Some(specialform::eval_specialform_unquote(ast, env, false))
         }
-        Some(symbol) if symbol.matches_symbol(reserved::STR_SPLICE_UNQUOTE) => {
-            return specialform::eval_specialform_splice_unquote(ast, env, false)
-        }
+        Some(symbol) if symbol.matches_symbol(reserved::STR_SPLICE_UNQUOTE) => Some(
+            specialform::eval_specialform_splice_unquote(ast, env, false),
+        ),
         Some(symbol) if symbol.matches_symbol(reserved::STR_DEFMACRO) => {
-            return specialform::eval_specialform_defmacro(ast, env)
+            Some(specialform::eval_specialform_defmacro(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_DO) => {
-            return specialform::eval_specialform_do(ast, env)
+            Some(specialform::eval_specialform_do(ast, env))
         }
         Some(symbol) if symbol.matches_symbol(reserved::STR_TRY) => {
-            return specialform::eval_specialform_try(ast, env)
+            Some(specialform::eval_specialform_try(ast, env))
         }
-        None => return Ok(Value::create_list_empty()),
-        _ => (),
+        _ => None,
     }
+}
+
+fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
+    assert!(ast.is_list());
+
+    if ast.iter().peekable().peek().is_none() {
+        return Ok(Value::create_list_empty());
+    }
+
+    if let Some(result) = try_and_eval_specialform(ast, env.clone()) {
+        return result;
+    }
+
     let mut iter = ast.iter();
     let car = iter.next().unwrap();
     let evaled_car = eval(car.clone(), env.clone())?;
