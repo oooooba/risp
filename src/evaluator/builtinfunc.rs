@@ -189,18 +189,7 @@ pub fn builtinfunc_vector(env: EnvPtr) -> Result<ValuePtr, Exception> {
 
 pub fn builtinfunc_vec(env: EnvPtr) -> Result<ValuePtr, Exception> {
     let collection = env.lookup_nth_param(1).unwrap();
-    let mut iter = collection.iter();
-    let mut values = vec![];
-    while let Some(ref item) = iter.next() {
-        let item = match item.kind {
-            ValueKind::InternalPairValue(ref pair) => {
-                Value::create_vector(vec![pair.first.clone(), pair.second.clone()])
-            }
-            _ => item.clone(),
-        };
-        values.push(item);
-    }
-    Ok(Value::create_vector(values))
+    Ok(Value::create_vector(collection.iter().collect()))
 }
 
 pub fn builtinfunc_boolean(env: EnvPtr) -> Result<ValuePtr, Exception> {

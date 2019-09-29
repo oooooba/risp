@@ -55,10 +55,11 @@ fn parse_pattern(pattern: &ValuePtr) -> Result<PatternPtr, Exception> {
             let mut iter = pattern.iter();
             loop {
                 let (pattern_val, key_val) = match iter.next() {
-                    Some(ref pair) if pair.is_pair() => {
-                        let pair = pair.get_as_pair().unwrap();
-                        let pattern = pair.first.clone();
-                        let key = pair.second.clone();
+                    Some(ref pair) if pair.is_vector() => {
+                        let pair = pair.get_as_vector().unwrap();
+                        assert_eq!(pair.len(), 2);
+                        let pattern = pair[0].clone();
+                        let key = pair[1].clone();
                         (pattern, key)
                     }
                     Some(_) => unimplemented!(),

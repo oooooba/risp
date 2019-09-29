@@ -685,6 +685,13 @@ impl Value {
         }
     }
 
+    pub fn get_as_vector<'a>(&'a self) -> Option<&'a Vec<ValuePtr>> {
+        match self.kind {
+            ValueKind::VectorValue(ref vector) => Some(vector),
+            _ => None,
+        }
+    }
+
     pub fn get_as_pair<'a>(&'a self) -> Option<&'a pair::Pair<ValuePtr, ValuePtr>> {
         match self.kind {
             ValueKind::InternalPairValue(ref pair) => Some(pair),
@@ -723,7 +730,11 @@ impl<'a> ValueIterator<'a> {
                 Value::create_vector(rest_val)
             }
             MapIterator(ref mut iter) => {
-                Value::create_vector(iter.map(|p| Value::create_pair(p)).collect())
+                let mut rest_val = vec![];
+                while let Some(val) = iter.next() {
+                    rest_val.push(Value::create_vector(vec![val.first, val.second]));
+                }
+                Value::create_vector(rest_val)
             }
             SetIterator(ref mut iter) => {
                 let mut rest_val = vec![];
@@ -747,7 +758,7 @@ impl<'a> Iterator for ValueIterator<'a> {
                 None => None,
             },
             MapIterator(ref mut iter) => match iter.next() {
-                Some(pair) => Some(Value::create_pair(pair)),
+                Some(pair) => Some(Value::create_vector(vec![pair.first, pair.second])),
                 None => None,
             },
             ListIterator(ref mut iter) => iter.next(),
@@ -798,10 +809,10 @@ mod tests {
             let mut iter = map_val.iter();
             assert_eq!(
                 iter.next(),
-                Some(Value::create_pair(pair::Pair::new(
+                Some(Value::create_vector(vec![
                     Value::create_keyword("a".to_string()),
                     Value::create_integer(1)
-                )))
+                ]))
             );
             assert_eq!(iter.next(), None);
             assert_eq!(
@@ -834,26 +845,26 @@ mod tests {
             let mut iter = map_val.iter();
             assert_eq!(
                 iter.next(),
-                Some(Value::create_pair(pair::Pair::new(
+                Some(Value::create_vector(vec![
                     Value::create_keyword("a".to_string()),
                     Value::create_integer(1)
-                )))
+                ]))
             );
             assert_eq!(
                 iter.rest(),
                 Value::create_vector(vec![
-                    Value::create_pair(pair::Pair::new(
+                    Value::create_vector(vec![
                         Value::create_keyword("b".to_string()),
                         Value::create_integer(2)
-                    )),
-                    Value::create_pair(pair::Pair::new(
+                    ]),
+                    Value::create_vector(vec![
                         Value::create_keyword("c".to_string()),
                         Value::create_integer(3)
-                    )),
-                    Value::create_pair(pair::Pair::new(
+                    ]),
+                    Value::create_vector(vec![
                         Value::create_keyword("d".to_string()),
                         Value::create_integer(4)
-                    )),
+                    ]),
                 ])
             );
             assert_eq!(iter.next(), None);
