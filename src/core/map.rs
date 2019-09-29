@@ -8,8 +8,6 @@ use std::cmp::Ordering;
 use std::iter::Iterator;
 use std::rc::Rc;
 
-use super::pair::Pair;
-
 use self::SubTreeState::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -17,6 +15,21 @@ enum SubTreeState {
     LeftIsHigher,
     HeightIsEqual,
     RightIsHigher,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
+struct Pair<F: Clone + Ord, S: Clone + Ord> {
+    pub first: F,
+    pub second: S,
+}
+
+impl<F: Clone + Ord, S: Clone + Ord> Pair<F, S> {
+    fn new(first: F, second: S) -> Pair<F, S> {
+        Pair {
+            first: first,
+            second: second,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -481,7 +494,7 @@ impl<K: Clone + Ord, V: Clone + Ord> AVLTree<K, V> {
 struct AVLTreeIterator<K: Clone + Ord, V: Clone + Ord>(Vec<AVLTree<K, V>>);
 
 impl<K: Clone + Ord, V: Clone + Ord> Iterator for AVLTreeIterator<K, V> {
-    type Item = Pair<K, V>;
+    type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
         let node = match self.0.pop() {
@@ -495,7 +508,7 @@ impl<K: Clone + Ord, V: Clone + Ord> Iterator for AVLTreeIterator<K, V> {
                 cur = node.left;
             }
         }
-        Some(node.pair)
+        Some((node.pair.first, node.pair.second))
     }
 }
 
@@ -535,7 +548,7 @@ impl<K: Clone + Ord, V: Clone + Ord> TreeMap<K, V> {
 }
 
 impl<K: Clone + Ord, V: Clone + Ord> Iterator for TreeMapIterator<K, V> {
-    type Item = Pair<K, V>;
+    type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
@@ -637,17 +650,17 @@ mod tests {
             assert_eq!(t7.lookup(&i(7)), Some(&i(7)));
             assert_eq!(t7.lookup(&i(8)), None);
 
-            let items: Vec<Pair<ValuePtr, ValuePtr>> = t7.iter().collect();
+            let items: Vec<(ValuePtr, ValuePtr)> = t7.iter().collect();
             assert_eq!(
                 items,
                 vec![
-                    Pair::new(i(1), i(1)),
-                    Pair::new(i(2), i(2)),
-                    Pair::new(i(3), i(3)),
-                    Pair::new(i(4), i(4)),
-                    Pair::new(i(5), i(5)),
-                    Pair::new(i(6), i(6)),
-                    Pair::new(i(7), i(7)),
+                    (i(1), i(1)),
+                    (i(2), i(2)),
+                    (i(3), i(3)),
+                    (i(4), i(4)),
+                    (i(5), i(5)),
+                    (i(6), i(6)),
+                    (i(7), i(7)),
                 ]
             );
 
@@ -692,7 +705,7 @@ mod tests {
             assert_eq!(p14, Some(i(1)));
             assert_eq!(t14, l());
 
-            let items: Vec<Pair<ValuePtr, ValuePtr>> = t14.iter().collect();
+            let items: Vec<(ValuePtr, ValuePtr)> = t14.iter().collect();
             assert_eq!(items, vec![]);
 
             assert_eq!(t6, t8);
@@ -765,17 +778,17 @@ mod tests {
             assert_eq!(t7.lookup(&i(7)), Some(&i(7)));
             assert_eq!(t7.lookup(&i(8)), None);
 
-            let items: Vec<Pair<ValuePtr, ValuePtr>> = t7.iter().collect();
+            let items: Vec<(ValuePtr, ValuePtr)> = t7.iter().collect();
             assert_eq!(
                 items,
                 vec![
-                    Pair::new(i(1), i(1)),
-                    Pair::new(i(2), i(2)),
-                    Pair::new(i(3), i(3)),
-                    Pair::new(i(4), i(4)),
-                    Pair::new(i(5), i(5)),
-                    Pair::new(i(6), i(6)),
-                    Pair::new(i(7), i(7)),
+                    (i(1), i(1)),
+                    (i(2), i(2)),
+                    (i(3), i(3)),
+                    (i(4), i(4)),
+                    (i(5), i(5)),
+                    (i(6), i(6)),
+                    (i(7), i(7)),
                 ]
             );
 
@@ -820,7 +833,7 @@ mod tests {
             assert_eq!(p14, Some(i(7)));
             assert_eq!(t14, l());
 
-            let items: Vec<Pair<ValuePtr, ValuePtr>> = t14.iter().collect();
+            let items: Vec<(ValuePtr, ValuePtr)> = t14.iter().collect();
             assert_eq!(items, vec![]);
 
             assert_eq!(t6, t8);

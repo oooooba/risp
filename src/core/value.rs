@@ -11,7 +11,6 @@ use super::env::EnvPtr;
 use super::exception::Exception;
 use super::list;
 use super::map;
-use super::pair;
 use super::pattern::PatternPtr;
 use super::reserved;
 
@@ -28,7 +27,6 @@ pub enum ValueKind {
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
-    InternalPairValue(pair::Pair<ValuePtr, ValuePtr>), // internal use
     SetValue(map::TreeMap<ValuePtr, ()>),
 }
 
@@ -64,7 +62,6 @@ impl ValueKind {
             &BooleanValue(_) => ValueKind::type_str_boolean(),
             &VectorValue(_) => ValueKind::type_str_vector(),
             &MacroValue(_) => unreachable!(),
-            &InternalPairValue(_) => unreachable!(),
             &SetValue(_) => ValueKind::type_str_set(),
         }
     }
@@ -169,13 +166,6 @@ impl ValueKind {
         }
     }
 
-    fn is_pair(&self) -> bool {
-        match self {
-            &ValueKind::InternalPairValue(_) => true,
-            _ => false,
-        }
-    }
-
     fn is_set(&self) -> bool {
         match self {
             &ValueKind::SetValue(_) => true,
@@ -211,7 +201,6 @@ impl PartialEq for ValueKind {
             (&MapValue(ref lhs), &MapValue(ref rhs)) => lhs == rhs,
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
-            (&InternalPairValue(ref lhs), &InternalPairValue(ref rhs)) => lhs == rhs,
             (&SetValue(ref lhs), &SetValue(ref rhs)) => lhs == rhs,
             _ => false,
         }
@@ -373,7 +362,6 @@ impl ToString for ValuePtr {
                 self.iter(),
             ),
             MacroValue(_) => unimplemented!(),
-            InternalPairValue(ref p) => format!("{} {}", p.first.to_string(), p.second.to_string()),
             SetValue(_) => to_string_helper(
                 reserved::STR__SHARP__L_CURLY_,
                 reserved::STR__R_CURLY_,
@@ -436,7 +424,6 @@ impl Ord for ValuePtr {
                 &BooleanValue(_) => 9,
                 &VectorValue(_) => 10,
                 &MacroValue(_) => 11,
-                &InternalPairValue(_) => 13,
                 &SetValue(_) => 14,
             }
         }
@@ -520,10 +507,6 @@ impl ValuePtr {
 
     pub fn is_macro(&self) -> bool {
         self.kind.is_macro()
-    }
-
-    pub fn is_pair(&self) -> bool {
-        self.kind.is_pair()
     }
 
     pub fn is_set(&self) -> bool {
@@ -639,10 +622,6 @@ impl Value {
         Value::new(ValueKind::MacroValue(applicable))
     }
 
-    pub fn create_pair(pair: pair::Pair<ValuePtr, ValuePtr>) -> ValuePtr {
-        Value::new(ValueKind::InternalPairValue(pair))
-    }
-
     pub fn create_set(set: map::TreeMap<ValuePtr, ()>) -> ValuePtr {
         Value::new(ValueKind::SetValue(set))
     }
@@ -691,13 +670,6 @@ impl Value {
             _ => None,
         }
     }
-
-    pub fn get_as_pair<'a>(&'a self) -> Option<&'a pair::Pair<ValuePtr, ValuePtr>> {
-        match self.kind {
-            ValueKind::InternalPairValue(ref pair) => Some(pair),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -732,14 +704,14 @@ impl<'a> ValueIterator<'a> {
             MapIterator(ref mut iter) => {
                 let mut rest_val = vec![];
                 while let Some(val) = iter.next() {
-                    rest_val.push(Value::create_vector(vec![val.first, val.second]));
+                    rest_val.push(Value::create_vector(vec![val.0, val.1]));
                 }
                 Value::create_vector(rest_val)
             }
             SetIterator(ref mut iter) => {
                 let mut rest_val = vec![];
                 while let Some(val) = iter.next() {
-                    rest_val.push(val.first);
+                    rest_val.push(val.0);
                 }
                 Value::create_vector(rest_val)
             }
@@ -758,12 +730,12 @@ impl<'a> Iterator for ValueIterator<'a> {
                 None => None,
             },
             MapIterator(ref mut iter) => match iter.next() {
-                Some(pair) => Some(Value::create_vector(vec![pair.first, pair.second])),
+                Some(pair) => Some(Value::create_vector(vec![pair.0, pair.1])),
                 None => None,
             },
             ListIterator(ref mut iter) => iter.next(),
             SetIterator(ref mut iter) => match iter.next() {
-                Some(pair) => Some(pair.first),
+                Some(pair) => Some(pair.0),
                 None => None,
             },
         }

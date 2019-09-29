@@ -151,8 +151,8 @@ fn eval_map(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         if ast.is_literal {
             let mut pairs = vec![];
             for pair in map.iter() {
-                let key = eval(pair.first, env.clone())?;
-                let val = eval(pair.second, env.clone())?;
+                let key = eval(pair.0, env.clone())?;
+                let val = eval(pair.1, env.clone())?;
                 pairs.push((key, val));
             }
             Ok(Value::create_map(pairs))
@@ -188,7 +188,7 @@ fn eval_set(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         if ast.is_literal {
             let mut elems = vec![];
             for pair in map.iter() {
-                let elem = eval(pair.first, env.clone())?;
+                let elem = eval(pair.0, env.clone())?;
                 elems.push(elem);
             }
             Ok(Value::create_set_from_vec(elems))
@@ -220,7 +220,6 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         BooleanValue(_) => Ok(ast.clone()),
         VectorValue(_) => eval_vector(&ast, env),
         MacroValue(_) => unreachable!(),
-        InternalPairValue(_) => unreachable!(),
         SetValue(_) => eval_set(&ast, env),
     }
 }

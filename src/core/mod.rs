@@ -2,7 +2,6 @@ pub mod env;
 pub mod exception;
 pub mod list;
 pub mod map;
-pub mod pair;
 pub mod pattern;
 pub mod reserved;
 pub mod value;
