@@ -31,7 +31,6 @@ pub const STR_LET: &'static str = "let";
 pub const STR_DEFMACRO: &'static str = "defmacro";
 pub const STR_DO: &'static str = "do";
 pub const STR_TRY: &'static str = "try";
-pub const STR_DEFRECORD: &'static str = "defrecord";
 pub const STR_AS: &'static str = "as";
 pub const STR_OR: &'static str = "or";
 pub const STR_CATCH: &'static str = "catch";

@@ -4,9 +4,8 @@ use super::super::core::env::{Env, EnvPtr};
 use super::super::core::exception::{Exception, ExceptionKind};
 use super::super::core::pattern::{Pattern, PatternKind, PatternPtr};
 use super::super::core::reserved;
-use super::super::core::value;
 use super::super::core::value::{
-    Applicable, ApplicableBodyKind, Type, Value, ValueIterator, ValueKind, ValuePtr,
+    Applicable, ApplicableBodyKind, Value, ValueIterator, ValueKind, ValuePtr,
 };
 use super::super::evaluator::eval;
 
@@ -720,54 +719,6 @@ pub fn eval_specialform_try(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exc
     }
 
     Ok(ret_val)
-}
-
-pub fn eval_specialform_defrecord(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    assert!(ast.is_list());
-    let mut iter = ast.iter();
-    assert!(iter.next().unwrap().matches_symbol(reserved::STR_DEFRECORD));
-
-    let record_name = match iter.next() {
-        Some(ref symbol) if symbol.is_symbol() => symbol.get_as_symbol().unwrap().clone(),
-        _ => unimplemented!(),
-    };
-
-    let symbols = match iter.next() {
-        Some(ref vector) if vector.is_vector() => {
-            for symbol in vector.iter() {
-                if !symbol.is_symbol() {
-                    unimplemented!()
-                }
-            }
-            vector.clone()
-        }
-        _ => unimplemented!(),
-    };
-
-    let mut fields = vec![];
-    for symbol in symbols.iter() {
-        let field = symbol.get_as_symbol().unwrap().clone();
-        fields.push((field, None))
-    }
-    let record = Type::create(fields);
-    let record_val = Value::create_type(record.clone());
-
-    let pattern = Pattern::create_symbol(Value::create_symbol("_unreachable".to_string()));
-    let body =
-        ApplicableBodyKind::BuiltinBody(Box::new(move |e| value::constructor(record.clone(), e)));
-    let applicable = Applicable::new(None, pattern, body);
-    let closure_val = Value::create_closure(applicable, env.clone());
-
-    Err(Exception::new(
-        ExceptionKind::Continuation(Env::create(
-            vec![
-                (record_name.clone(), record_val),
-                (format!("{}->", record_name), closure_val),
-            ],
-            Some(env),
-        )),
-        None,
-    ))
 }
 
 #[cfg(test)]

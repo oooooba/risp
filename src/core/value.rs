@@ -28,7 +28,6 @@ pub enum ValueKind {
     BooleanValue(bool),
     VectorValue(Vec<ValuePtr>),
     MacroValue(Applicable),
-    TypeValue(TypePtr),
     InternalPairValue(pair::Pair<ValuePtr, ValuePtr>), // internal use
     SetValue(map::TreeMap<ValuePtr, ()>),
 }
@@ -65,7 +64,6 @@ impl ValueKind {
             &BooleanValue(_) => ValueKind::type_str_boolean(),
             &VectorValue(_) => ValueKind::type_str_vector(),
             &MacroValue(_) => unreachable!(),
-            &TypeValue(_) => ValueKind::type_str_type(),
             &InternalPairValue(_) => unreachable!(),
             &SetValue(_) => ValueKind::type_str_set(),
         }
@@ -213,7 +211,6 @@ impl PartialEq for ValueKind {
             (&MapValue(ref lhs), &MapValue(ref rhs)) => lhs == rhs,
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs == rhs,
             (&VectorValue(ref lhs), &VectorValue(ref rhs)) => lhs == rhs,
-            (&TypeValue(ref lhs), &TypeValue(ref rhs)) => lhs == rhs,
             (&InternalPairValue(ref lhs), &InternalPairValue(ref rhs)) => lhs == rhs,
             (&SetValue(ref lhs), &SetValue(ref rhs)) => lhs == rhs,
             _ => false,
@@ -270,36 +267,6 @@ impl fmt::Debug for ApplicableBodyKind {
         }
     }
 }
-
-#[derive(PartialEq, Eq, Debug)]
-pub struct Type {
-    fields: Vec<(String, Option<TypePtr>)>,
-}
-
-impl Type {
-    pub fn create(fields: Vec<(String, Option<TypePtr>)>) -> TypePtr {
-        Rc::new(Type { fields: fields })
-    }
-
-    pub fn instantiate(&self, values: Vec<ValuePtr>) -> ValuePtr {
-        let mut pairs = vec![];
-        for i in 0..self.fields.len() {
-            let field = &self.fields[i].0;
-            let key = Value::create_keyword(field.clone());
-            let value = values[i].clone();
-            pairs.push((key, value));
-        }
-        Value::create_map(pairs)
-    }
-}
-
-pub fn constructor(typ: TypePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
-    let args = env.lookup(&":_args".to_string()).unwrap();
-    let arg_vec = args.iter().collect();
-    Ok(typ.instantiate(arg_vec))
-}
-
-pub type TypePtr = Rc<Type>;
 
 #[derive(PartialEq, Debug, Eq)]
 pub struct Value {
@@ -406,7 +373,6 @@ impl ToString for ValuePtr {
                 self.iter(),
             ),
             MacroValue(_) => unimplemented!(),
-            TypeValue(_) => unimplemented!(),
             InternalPairValue(ref p) => format!("{} {}", p.first.to_string(), p.second.to_string()),
             SetValue(_) => to_string_helper(
                 reserved::STR__SHARP__L_CURLY_,
@@ -470,7 +436,6 @@ impl Ord for ValuePtr {
                 &BooleanValue(_) => 9,
                 &VectorValue(_) => 10,
                 &MacroValue(_) => 11,
-                &TypeValue(_) => 12,
                 &InternalPairValue(_) => 13,
                 &SetValue(_) => 14,
             }
@@ -498,7 +463,6 @@ impl Ord for ValuePtr {
             (&MapValue(_), &MapValue(_)) => unimplemented!(),
             (&BooleanValue(ref lhs), &BooleanValue(ref rhs)) => lhs.cmp(rhs),
             (&VectorValue(_), &VectorValue(_)) => cmp_helper(self.iter(), other.iter()),
-            (&TypeValue(_), &TypeValue(_)) => unimplemented!(),
             (&SetValue(_), &SetValue(_)) => unimplemented!(),
             _ => unimplemented!(),
         }
@@ -673,10 +637,6 @@ impl Value {
 
     pub fn create_macro(applicable: Applicable) -> ValuePtr {
         Value::new(ValueKind::MacroValue(applicable))
-    }
-
-    pub fn create_type(typ: TypePtr) -> ValuePtr {
-        Value::new(ValueKind::TypeValue(typ))
     }
 
     pub fn create_pair(pair: pair::Pair<ValuePtr, ValuePtr>) -> ValuePtr {

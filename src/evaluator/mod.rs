@@ -44,9 +44,6 @@ fn eval_list_trampoline(ast: &ValuePtr, env: EnvPtr) -> Result<ValuePtr, Excepti
         Some(symbol) if symbol.matches_symbol(reserved::STR_TRY) => {
             return specialform::eval_specialform_try(ast, env)
         }
-        Some(symbol) if symbol.matches_symbol(reserved::STR_DEFRECORD) => {
-            return specialform::eval_specialform_defrecord(ast, env)
-        }
         None => return Ok(Value::create_list_empty()),
         _ => (),
     }
@@ -223,7 +220,6 @@ pub fn eval(ast: ValuePtr, env: EnvPtr) -> Result<ValuePtr, Exception> {
         BooleanValue(_) => Ok(ast.clone()),
         VectorValue(_) => eval_vector(&ast, env),
         MacroValue(_) => unreachable!(),
-        TypeValue(_) => unreachable!(),
         InternalPairValue(_) => unreachable!(),
         SetValue(_) => eval_set(&ast, env),
     }

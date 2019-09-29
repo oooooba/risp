@@ -13,9 +13,3 @@
          {j :j, k :k, i :i, [r s & t :as v] :ivec, :or {i 12, j 13}} m]
         [i j k r s t v])
    [12 15 16 22 23 [24 25] [22 23 24 25]])
-
-(defrecord X [a b])
-(def x (X-> 1 2))
-(= (x :a) 1)
-(= (x :b) 2)
-(= (x :c) nil)
